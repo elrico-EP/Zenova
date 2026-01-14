@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Zenova - Planificador de Turnos</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'admin-red': {
+                '500': '#C0392B', // Rojo institucional
+                '900': '#7B241C', // Texto para contraste sobre fondo claro
+              },
+              'user-blue': {
+                '500': '#3498DB', // Azul medio
+                '900': '#1A5276', // Texto para contraste sobre fondo claro
+              },
+              'amber-soft': { // Paleta elegante y suave para la vista de administrador
+                '100': '#F5EBE0', // Usado para fondos secundarios
+                '200': '#E3D5CA', // Color de fondo principal
+                '800': '#785A48', // Color de texto principal
+                '900': '#5E4839', // Color de texto más oscuro para elementos activos
+              },
+              zen: { // Zen Blue - Custom palette for better contrast
+                '50': '#f0f9ff', '100': '#e0f2fe', '200': '#bae6fd', '300': '#7dd3fc',
+                '400': '#38bdf8', '500': '#0ea5e9', '600': '#0284c7', '700': '#0369a1',
+                '800': '#083344', // Darker shade for header background
+                '900': '#04222e', // Even darker shade
+              },
+              nova: { // Nova Orange based on Orange
+                '50': '#fff7ed', '100': '#ffedd5', '200': '#fed7aa', '300': '#fdba74',
+                '400': '#fb923c', '500': '#f97316', '600': '#ea580c', '700': '#c2410c',
+                '800': '#9a3412', '900': '#7c2d12',
+              }
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- jsPDF and html2canvas for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- XLSX (SheetJS) for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "firebase/": "https://esm.sh/firebase@^12.7.0/"
+  }
+}
+</script>
+<style>
+  @media print {
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .no-print {
+      display: none !important;
+    }
+    .print-container {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+    }
+    .print-main-content {
+      display: block !important;
+      width: 100% !important;
+    }
+    .print-grid-container {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    /* --- New styles for printing the Personal Agenda Modal --- */
+    body.print-active .max-w-screen-2xl > header,
+    body.print-active .max-w-screen-2xl > main {
+      display: none !important;
+    }
+
+    body.print-active .personal-agenda-modal-wrapper {
+      position: static !important;
+      display: block !important;
+      padding: 0 !important;
+      background: none !important;
+    }
+
+    body.print-active .personal-agenda-modal-content {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      transform: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    
+    body.print-active .personal-agenda-modal-main-content {
+        overflow: visible !important;
+    }
+  }
+</style>
+<link rel="stylesheet" href="/index.css">
+</head>
+
+  <body class="bg-zen-50">
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+    <!-- 
+    // --- SERVICE WORKER DESACTIVADO ---
+    // Se ha desactivado el Service Worker para forzar el modo online y evitar
+    // problemas de caché que causaban el falso estado "offline" de Firestore.
+    -->
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
