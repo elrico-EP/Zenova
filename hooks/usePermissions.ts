@@ -21,6 +21,8 @@ export const usePermissions = () => {
     const canDoManualChanges = isViewingAsAdmin;
     const canExport = isViewingAsAdmin;
     const canValidateWishes = isViewingAsAdmin;
+    const canManageUsers = isViewingAsAdmin;
+
 
     // Permissions available to both view contexts
     const canManageSwaps = true; // Create/undo visual swaps is visible for both
@@ -76,6 +78,7 @@ export const usePermissions = () => {
         canDoManualChanges,
         canExport,
         canValidateWishes,
+        canManageUsers,
 
         // Shared UI capabilities
         canManageSwaps,

@@ -24,14 +24,7 @@ const UserMenu: React.FC<{ nurses: Nurse[]; buttonClass: string }> = ({ nurses, 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
     
-    if (user?.role !== 'admin') {
-        return (
-            <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{user?.name}</span>
-                <button onClick={logout} className="text-sm font-semibold hover:underline">Logout</button>
-            </div>
-        );
-    }
+    if (!user) return null;
 
     return (
         <div className="relative" ref={menuRef}>
@@ -43,11 +36,15 @@ const UserMenu: React.FC<{ nurses: Nurse[]; buttonClass: string }> = ({ nurses, 
             {isOpen && (
                 <div className="absolute right-0 mt-2 w-56 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-20">
                     <div className="py-1 text-gray-700">
-                        {isImpersonating && <button onClick={() => impersonate(null)} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 font-semibold">{t.returnToAdmin}</button>}
-                        <div className="px-4 py-2 text-xs text-gray-400 uppercase">{t.selectView}</div>
-                        {nurses.map(n => <button key={n.id} onClick={() => { impersonate(n); setIsOpen(false); }} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100">{n.name}</button>)}
-                        <div className="border-t my-1"></div>
-                        <button onClick={logout} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100">Logout</button>
+                        {user.role === 'admin' && (
+                            <>
+                                {isImpersonating && <button onClick={() => impersonate(null)} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 font-semibold">{t.returnToAdmin}</button>}
+                                <div className="px-4 py-2 text-xs text-gray-400 uppercase">{t.selectView}</div>
+                                {nurses.map(n => <button key={n.id} onClick={() => { impersonate(n); setIsOpen(false); }} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100">{n.name}</button>)}
+                                <div className="border-t my-1"></div>
+                            </>
+                        )}
+                        <button onClick={logout} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100">Cerrar Sesión</button>
                     </div>
                 </div>
             )}
@@ -110,8 +107,8 @@ interface HeaderProps {
   notes: Notes;
   agenda: Agenda;
   onExportPdf: () => Promise<void>;
-  view: 'schedule' | 'balance' | 'wishes';
-  setView: (view: 'schedule' | 'balance' | 'wishes') => void;
+  view: 'schedule' | 'balance' | 'wishes' | 'userManagement';
+  setView: (view: 'schedule' | 'balance' | 'wishes' | 'userManagement') => void;
   onOpenHelp: () => void;
 }
 
@@ -147,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, on
   const goToToday = () => onDateChange(new Date());
   const handleDateSelect = (newDate: Date) => { onDateChange(newDate); setIsMonthPickerOpen(false); };
   
-  const ViewToggleButton: React.FC<{ targetView: 'schedule' | 'balance' | 'wishes', label: string }> = ({ targetView, label }) => (
+  const ViewToggleButton: React.FC<{ targetView: 'schedule' | 'balance' | 'wishes' | 'userManagement', label: string }> = ({ targetView, label }) => (
       <button 
         onClick={() => setView(targetView)}
         className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
@@ -174,7 +171,10 @@ export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, on
             <ViewToggleButton targetView="schedule" label="Planning" />
             <ViewToggleButton targetView="wishes" label={t.wishesViewButton} />
             {permissions.isViewingAsAdmin && (
-              <ViewToggleButton targetView="balance" label="Balance" />
+              <>
+                <ViewToggleButton targetView="balance" label="Balance" />
+                <ViewToggleButton targetView="userManagement" label="Usuarios" />
+              </>
             )}
         </div>
       </div>

@@ -10,6 +10,8 @@ import { BalancePage } from './components/BalancePage';
 import { WishesPage } from './components/WishesPage';
 import { HelpModal } from './components/HelpModal';
 import { JornadaLaboralManager } from './components/JornadaLaboralManager';
+import { LoginScreen } from './components/LoginScreen';
+import { UserManagementPage } from './components/UserManagementPage';
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, SwapInfo } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell } from './utils/scheduleUtils';
@@ -26,14 +28,14 @@ import { usePermissions } from './hooks/usePermissions';
 import { SwapShiftPanel } from './components/SwapShiftModal';
 
 const App: React.FC = () => {
-  const { user, effectiveUser } = useUser();
+  const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   const permissions = usePermissions();
   const { data: sharedData, loading: isStateLoading, updateData } = useSharedState();
 
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
   // UI State remains local
-  const [view, setView] = useState<'schedule' | 'balance' | 'wishes'>('schedule');
+  const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement'>('schedule');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [selectedNurseForAgenda, setSelectedNurseForAgenda] = useState<Nurse | null>(null);
   const [isJornadaManagerOpen, setIsJornadaManagerOpen] = useState(false);
@@ -73,7 +75,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // When the effective user is a nurse (either by login or impersonation),
     // and the current view is 'balance', reset to the default 'schedule' view.
-    if (effectiveUser?.role === 'nurse' && view === 'balance') {
+    if (effectiveUser?.role === 'nurse' && (view === 'balance' || view === 'userManagement')) {
       setView('schedule');
     }
   }, [effectiveUser, view]);
@@ -362,8 +364,22 @@ const App: React.FC = () => {
     });
   }, [nurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents]);
 
-  if (isStateLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><div>Loading...</div></div>;
+  if (isAuthLoading || isStateLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zen-50">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="mt-2 text-zen-600">Cargando datos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
   }
 
   return (
@@ -395,7 +411,7 @@ const App: React.FC = () => {
         )}
         <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
         <main className="flex flex-col lg:flex-row gap-8 mt-8 print-main-content">
-          {view === 'schedule' && (
+          {view !== 'userManagement' && view === 'schedule' && (
              <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print">
               <Sidebar 
                 nurses={nurses} 
@@ -435,7 +451,8 @@ const App: React.FC = () => {
                     <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} isFitToScreen={isFitToScreen} strasbourgAssignments={strasbourgAssignments} specialStrasbourgEvents={specialStrasbourgEvents} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} visualSwaps={visualSwaps} onCellDoubleClick={handleOpenSwapPanelFromCell} />
                   </div>
                 </>
-              ) : view === 'balance' ? ( <BalancePage nurses={nurses} balanceData={balanceData} currentDate={currentDate} onDateChange={setCurrentDate} onOpenAgenda={setSelectedNurseForAgenda} /> ) : ( 
+              ) : view === 'balance' ? ( <BalancePage nurses={nurses} balanceData={balanceData} currentDate={currentDate} onDateChange={setCurrentDate} onOpenAgenda={setSelectedNurseForAgenda} /> ) : 
+                 view === 'wishes' ? ( 
               <WishesPage 
                 nurses={activeNurses} 
                 year={year} 
@@ -444,7 +461,7 @@ const App: React.FC = () => {
                 onWishValidationChange={(nurseId, dateKey, isValidated) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], validated: isValidated } } } })} 
                 agenda={effectiveAgenda} 
               /> 
-              )}
+              ) : ( <UserManagementPage /> )}
           </div>
         </main>
       </div>

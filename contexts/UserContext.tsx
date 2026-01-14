@@ -1,29 +1,65 @@
-import React, { useState, createContext, useContext, useMemo, useCallback } from 'react';
-import type { User, Nurse } from '../types';
+
+import React, { useState, createContext, useContext, useMemo, useCallback, useEffect } from 'react';
+import type { User, Nurse, UserRole } from '../types';
+import * as userService from '../firebase/userService';
 
 interface UserContextType {
-  user: User | null;
+  user: User | Nurse | null;
   effectiveUser: User | Nurse | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>; // Mock
-  logout: () => Promise<void>; // Mock
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
   impersonate: (nurse: Nurse | null) => void;
   isImpersonating: boolean;
   authError: string | null;
+  // User management functions
+  users: (User | Nurse)[];
+  register: (userData: Omit<User, 'id'>) => Promise<void>;
+  updateUser: (userData: User | Nurse) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const mockAdminUser: User = {
-    id: 'admin-user',
-    name: 'Admin',
-    email: 'admin@example.com',
-    role: 'admin'
-};
-
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user] = useState<User | null>(mockAdminUser); // Always logged in as admin
+  const [user, setUser] = useState<User | Nurse | null>(null);
   const [impersonatedNurse, setImpersonatedNurse] = useState<Nurse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [users, setUsers] = useState<(User|Nurse)[]>([]);
+  
+  useEffect(() => {
+      const allUsers = userService.getUsers();
+      setUsers(allUsers);
+      const currentUser = userService.getCurrentUser();
+      if (currentUser) {
+          setUser(currentUser);
+      }
+      setIsLoading(false);
+  }, []);
+
+  const refreshUsers = () => {
+    setUsers(userService.getUsers());
+  };
+
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    setAuthError(null);
+    try {
+      const loggedInUser = await userService.authenticate(email, password);
+      setUser(loggedInUser);
+    } catch (error) {
+      setAuthError((error as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = () => {
+    userService.clearCurrentUser();
+    setUser(null);
+    setImpersonatedNurse(null);
+  };
 
   const impersonate = useCallback((nurse: Nurse | null) => {
     if (user?.role === 'admin') {
@@ -40,20 +76,37 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isImpersonating = useMemo(() => user?.role === 'admin' && !!impersonatedNurse, [user, impersonatedNurse]);
 
-  // Mock functions to satisfy the interface
-  const login = async () => Promise.resolve();
-  const logout = async () => Promise.resolve();
+  const register = async (userData: Omit<User, 'id'>) => {
+    if (user?.role !== 'admin') throw new Error("Permission denied");
+    await userService.addUser(userData);
+    refreshUsers();
+  };
+  const updateUser = async (userData: User | Nurse) => {
+    if (user?.role !== 'admin') throw new Error("Permission denied");
+    await userService.updateUser(userData);
+    refreshUsers();
+  };
+  const deleteUser = async (userId: string) => {
+    if (user?.role !== 'admin') throw new Error("Permission denied");
+    await userService.deleteUser(userId);
+    refreshUsers();
+  }
+
 
   const contextValue = useMemo(() => ({
     user,
     effectiveUser,
-    isLoading: false, // Never loading
+    isLoading,
     login,
     logout,
     impersonate,
     isImpersonating,
-    authError: null
-  }), [user, effectiveUser, impersonate, isImpersonating]);
+    authError,
+    users,
+    register,
+    updateUser,
+    deleteUser
+  }), [user, effectiveUser, isLoading, isImpersonating, authError, users]);
 
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };
