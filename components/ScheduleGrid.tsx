@@ -1,13 +1,10 @@
-
 import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
 import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote, SwapInfo } from '../types';
 import { SHIFTS } from '../constants';
 import { getWeekIdentifier } from '../utils/dateUtils';
 import { getScheduleCellHours, getShiftsFromCell } from '../utils/scheduleUtils';
-import { getActiveJornada } from '../utils/jornadaUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useTranslations } from '../hooks/useTranslations';
 import { Locale } from '../translations/locales';
@@ -286,7 +283,6 @@ interface ScheduleGridProps {
   onNoteChange: (dateKey: string, text: string, color: string) => void;
   vaccinationPeriod: { start: string; end: string } | null;
   zoomLevel: number;
-  isFitToScreen: boolean;
   strasbourgAssignments: Record<string, string[]>;
   specialStrasbourgEvents: SpecialStrasbourgEvent[];
   isMonthClosed: boolean;
@@ -307,7 +303,7 @@ const getShiftLabel = (cell: ScheduleCell | undefined): string => {
     return shifts.map(s => SHIFTS[s]?.label || s).join(' / ');
 };
 
-export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, isFitToScreen, strasbourgAssignments, specialStrasbourgEvents, isMonthClosed, jornadasLaborales, visualSwaps, onCellDoubleClick }, ref) => {
+export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, specialStrasbourgEvents, isMonthClosed, jornadasLaborales, visualSwaps, onCellDoubleClick }, ref) => {
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
@@ -319,25 +315,8 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     const NOTES_COL_WIDTH = 160;
 
     useLayoutEffect(() => {
-        const calculateWidth = () => {
-            const container = (ref as React.RefObject<HTMLDivElement>)?.current;
-            if (!container) return;
-            const containerWidth = container.clientWidth;
-            
-            if (isFitToScreen) {
-                const availableWidth = containerWidth - DAY_COL_WIDTH - PRESENT_COL_WIDTH - NOTES_COL_WIDTH - 20;
-                const calculatedWidth = Math.max(80, availableWidth / nurses.length);
-                const newCellWidth = Math.min(BASE_CELL_WIDTH * 1.5, calculatedWidth); // Cap at 150% zoom to prevent excessive growth
-                setCellWidth(newCellWidth);
-            } else {
-                setCellWidth(BASE_CELL_WIDTH * zoomLevel);
-            }
-        };
-        
-        calculateWidth();
-        window.addEventListener('resize', calculateWidth);
-        return () => window.removeEventListener('resize', calculateWidth);
-    }, [isFitToScreen, zoomLevel, nurses.length, currentDate, ref]);
+        setCellWidth(BASE_CELL_WIDTH * zoomLevel);
+    }, [zoomLevel]);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -346,32 +325,16 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     
     let lastWeekId: string | null = null;
     
-    const monthStartDate = new Date(year, month, 1);
-
     return (
         <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
-            <table className="min-w-full border-collapse">
+            <table className="min-w-full border-collapse table-fixed">
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>
                         <th className="sticky top-0 left-0 z-30 bg-white border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH}px` }}></th>
                         {nurses.map(nurse => {
-                            let displayName = nurse.name;
-                            // FIX: Replaced `permissions.isAdmin` with `permissions.isViewingAsAdmin` to align with the `usePermissions` hook's returned properties.
-                            if (permissions.isViewingAsAdmin) {
-                                const activeJornada = getActiveJornada(nurse.id, currentDate, jornadasLaborales);
-                                if (activeJornada && activeJornada.porcentaje < 100) {
-                                    const startDate = new Date(activeJornada.fechaInicio);
-                                    if (startDate > monthStartDate && startDate.getMonth() === month) {
-                                        const formattedDate = startDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
-                                        displayName = `${nurse.name} (${activeJornada.porcentaje}% desde ${formattedDate})`;
-                                    } else {
-                                        displayName = `${nurse.name} (${activeJornada.porcentaje}%)`;
-                                    }
-                                }
-                            }
                             return (
-                                <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200" style={{ minWidth: `${cellWidth}px` }}>
-                                    <span className="font-semibold text-slate-700 truncate p-1 text-sm">{displayName}</span>
+                                <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px`, maxWidth: `${cellWidth}px` }}>
+                                    <span className="font-semibold text-slate-700 truncate text-sm block">{nurse.name}</span>
                                 </th>
                             );
                         })}
@@ -456,7 +419,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                                     key={nurse.id} 
                                     title={tooltip} 
                                     className={`relative border-r border-b border-gray-200/80 h-16 hover:bg-nova-50/50 transition-colors ${permissions.canManageSwaps && !isMonthClosed ? 'cursor-pointer' : ''}`}
-                                    style={{ minWidth: `${cellWidth}px` }}
+                                    style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px`, maxWidth: `${cellWidth}px` }}
                                     onDoubleClick={(e) => {
                                         if (permissions.canManageSwaps && !isMonthClosed) {
                                             e.preventDefault();
