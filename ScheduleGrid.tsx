@@ -283,6 +283,7 @@ interface ScheduleGridProps {
   onNoteChange: (dateKey: string, text: string, color: string) => void;
   vaccinationPeriod: { start: string; end: string } | null;
   zoomLevel: number;
+  isFitToScreen: boolean;
   strasbourgAssignments: Record<string, string[]>;
   specialStrasbourgEvents: SpecialStrasbourgEvent[];
   isMonthClosed: boolean;
@@ -303,7 +304,7 @@ const getShiftLabel = (cell: ScheduleCell | undefined): string => {
     return shifts.map(s => SHIFTS[s]?.label || s).join(' / ');
 };
 
-export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, specialStrasbourgEvents, isMonthClosed, jornadasLaborales, visualSwaps, onCellDoubleClick }, ref) => {
+export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, isFitToScreen, strasbourgAssignments, specialStrasbourgEvents, isMonthClosed, jornadasLaborales, visualSwaps, onCellDoubleClick }, ref) => {
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
@@ -315,8 +316,25 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     const NOTES_COL_WIDTH = 160;
 
     useLayoutEffect(() => {
-        setCellWidth(BASE_CELL_WIDTH * zoomLevel);
-    }, [zoomLevel]);
+        const calculateWidth = () => {
+            const container = (ref as React.RefObject<HTMLDivElement>)?.current;
+            if (!container) return;
+            const containerWidth = container.clientWidth;
+            
+            if (isFitToScreen) {
+                const availableWidth = containerWidth - DAY_COL_WIDTH - PRESENT_COL_WIDTH - NOTES_COL_WIDTH - 20;
+                const calculatedWidth = Math.max(80, availableWidth / nurses.length);
+                const newCellWidth = Math.min(BASE_CELL_WIDTH * 1.5, calculatedWidth); // Cap at 150% zoom to prevent excessive growth
+                setCellWidth(newCellWidth);
+            } else {
+                setCellWidth(BASE_CELL_WIDTH * zoomLevel);
+            }
+        };
+        
+        calculateWidth();
+        window.addEventListener('resize', calculateWidth);
+        return () => window.removeEventListener('resize', calculateWidth);
+    }, [isFitToScreen, zoomLevel, nurses.length, currentDate, ref]);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
