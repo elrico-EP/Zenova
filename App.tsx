@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ScheduleGrid } from './components/ScheduleGrid';
+import React, { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
+import { ScheduleGrid, BASE_CELL_WIDTH, DAY_COL_WIDTH, PRESENT_COL_WIDTH, NOTES_COL_WIDTH } from './components/ScheduleGrid';
 import { Header } from './components/Header';
 import { PersonalAgendaModal } from './components/PersonalAgendaModal';
 import { AgendaPlanner } from './components/AgendaPlanner';
@@ -42,9 +42,9 @@ const App: React.FC = () => {
   const [selectedNurseForAgenda, setSelectedNurseForAgenda] = useState<Nurse | null>(null);
   const [isJornadaManagerOpen, setIsJornadaManagerOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [isFitToScreen, setIsFitToScreen] = useState(true);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
+  const initialZoomCalculated = useRef(false);
 
   // State derived from shared state now
   const nurses = sharedData?.nurses ?? INITIAL_NURSES;
@@ -87,6 +87,23 @@ const App: React.FC = () => {
     if (isInternActive) return nurses;
     return nurses.filter(n => n.id !== 'nurse-11');
   }, [nurses, currentDate]);
+
+  useLayoutEffect(() => {
+    if (scheduleGridRef.current && !initialZoomCalculated.current && activeNurses.length > 0) {
+      const container = scheduleGridRef.current;
+      const containerWidth = container.clientWidth;
+
+      const totalTableWidth = DAY_COL_WIDTH + (activeNurses.length * BASE_CELL_WIDTH) + PRESENT_COL_WIDTH + NOTES_COL_WIDTH + 20;
+
+      if (totalTableWidth > containerWidth) {
+        const requiredZoom = containerWidth / totalTableWidth;
+        const finalZoom = Math.max(0.25, requiredZoom);
+        setZoomLevel(finalZoom);
+      }
+      
+      initialZoomCalculated.current = true;
+    }
+  }, [activeNurses]);
 
   const combinedOverrides = useMemo(() => {
     const eventOverrides: Schedule = {};
@@ -453,7 +470,7 @@ const App: React.FC = () => {
               {view === 'schedule' ? (
                 <>
                   <div className="no-print">
-                    <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} isFitToScreen={isFitToScreen} setIsFitToScreen={setIsFitToScreen} />
+                    <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
                     <AgendaPlanner currentDate={currentDate} agenda={agenda} onAgendaChange={(newAgenda) => updateData({ agenda: newAgenda })} onWeekSelect={setCurrentDate} />
                   </div>
                   <div className="mt-6">
@@ -464,7 +481,7 @@ const App: React.FC = () => {
                             currentDate={currentDate}
                         />
                     )}
-                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} isFitToScreen={isFitToScreen} strasbourgAssignments={strasbourgAssignments} specialStrasbourgEvents={specialStrasbourgEvents} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} visualSwaps={visualSwaps} onCellDoubleClick={handleOpenSwapPanelFromCell} />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} specialStrasbourgEvents={specialStrasbourgEvents} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} visualSwaps={visualSwaps} onCellDoubleClick={handleOpenSwapPanelFromCell} />
                   </div>
                 </>
               ) : view === 'balance' ? ( <BalancePage nurses={nurses} balanceData={balanceData} currentDate={currentDate} onDateChange={setCurrentDate} onOpenAgenda={setSelectedNurseForAgenda} /> ) : 

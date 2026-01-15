@@ -4,35 +4,21 @@ import { useTranslations } from '../hooks/useTranslations';
 interface ZoomControlsProps {
   zoomLevel: number;
   setZoomLevel: React.Dispatch<React.SetStateAction<number>>;
-  isFitToScreen: boolean;
-  setIsFitToScreen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export const ZoomControls: React.FC<ZoomControlsProps> = ({ zoomLevel, setZoomLevel, isFitToScreen, setIsFitToScreen }) => {
+export const ZoomControls: React.FC<ZoomControlsProps> = ({ zoomLevel, setZoomLevel }) => {
   const t = useTranslations();
 
   const handleZoomIn = () => {
-    setIsFitToScreen(false);
     setZoomLevel(prev => Math.min(prev + 0.1, 2));
   };
 
   const handleZoomOut = () => {
-    setIsFitToScreen(false);
     setZoomLevel(prev => Math.max(prev - 0.1, 0.25));
   };
 
   return (
     <div className="flex items-center justify-end gap-2 mb-4">
-      <button
-        onClick={() => setIsFitToScreen(true)}
-        className={`px-3 py-1.5 text-sm font-semibold border rounded-md transition-colors ${
-          isFitToScreen 
-            ? 'bg-zen-800 text-white border-zen-800' 
-            : 'bg-white text-zen-700 border-gray-300 hover:bg-gray-50'
-        }`}
-      >
-        {t.fitToScreen}
-      </button>
       <div className="flex items-center">
         <button
             onClick={handleZoomOut}
@@ -44,7 +30,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({ zoomLevel, setZoomLe
             </svg>
         </button>
         <span className="px-3 py-1.5 border-t border-b border-gray-300 bg-white text-sm font-semibold text-gray-700 w-20 text-center">
-            {isFitToScreen ? 'Auto' : `${Math.round(zoomLevel * 100)}%`}
+            {`${Math.round(zoomLevel * 100)}%`}
         </span>
         <button
             onClick={handleZoomIn}
