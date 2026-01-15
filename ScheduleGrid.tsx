@@ -349,13 +349,13 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
 
     return (
         <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
-            <table className="min-w-full border-collapse">
+            <table className="min-w-full border-collapse table-fixed">
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>
                         <th className="sticky top-0 left-0 z-30 bg-white border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH}px` }}></th>
                         {nurses.map(nurse => (
-                            <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ minWidth: `${cellWidth}px` }}>
-                                <span className="font-semibold text-slate-700 truncate text-sm">{nurse.name}</span>
+                            <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px`, maxWidth: `${cellWidth}px` }}>
+                                <span className="font-semibold text-slate-700 truncate text-sm block">{nurse.name}</span>
                             </th>
                         ))}
                         <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${PRESENT_COL_WIDTH}px`}}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.present}</span></th>
@@ -439,7 +439,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                                     key={nurse.id} 
                                     title={tooltip} 
                                     className={`relative border-r border-b border-gray-200/80 h-16 hover:bg-nova-50/50 transition-colors ${permissions.canManageSwaps && !isMonthClosed ? 'cursor-pointer' : ''}`}
-                                    style={{ minWidth: `${cellWidth}px` }}
+                                    style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px`, maxWidth: `${cellWidth}px` }}
                                     onDoubleClick={(e) => {
                                         if (permissions.canManageSwaps && !isMonthClosed) {
                                             e.preventDefault();
