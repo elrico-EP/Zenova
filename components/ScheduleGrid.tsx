@@ -303,16 +303,17 @@ const getShiftLabel = (cell: ScheduleCell | undefined): string => {
     return shifts.map(s => SHIFTS[s]?.label || s).join(' / ');
 };
 
+export const BASE_CELL_WIDTH = 128;
+export const DAY_COL_WIDTH = 128;
+export const PRESENT_COL_WIDTH = 80;
+export const NOTES_COL_WIDTH = 160;
+
 export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, specialStrasbourgEvents, isMonthClosed, jornadasLaborales, visualSwaps, onCellDoubleClick }, ref) => {
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
     
     const [cellWidth, setCellWidth] = useState(128);
-    const BASE_CELL_WIDTH = 128;
-    const DAY_COL_WIDTH = 128;
-    const PRESENT_COL_WIDTH = 80;
-    const NOTES_COL_WIDTH = 160;
 
     useLayoutEffect(() => {
         setCellWidth(BASE_CELL_WIDTH * zoomLevel);

@@ -29,7 +29,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({ zoomLevel, setZoomLe
                 <path fillRule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" />
             </svg>
         </button>
-        <span className="px-3 py-1.5 border-t border-b border-gray-300 bg-white text-sm font-semibold text-gray-700 w-16 text-center">
+        <span className="px-3 py-1.5 border-t border-b border-gray-300 bg-white text-sm font-semibold text-gray-700 w-20 text-center">
             {`${Math.round(zoomLevel * 100)}%`}
         </span>
         <button
