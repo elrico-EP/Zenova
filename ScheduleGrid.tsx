@@ -3,10 +3,8 @@ import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, S
 import { SHIFTS } from '../constants';
 import { getWeekIdentifier } from '../utils/dateUtils';
 import { getScheduleCellHours, getShiftsFromCell } from '../utils/scheduleUtils';
-import { getActiveJornada } from '../utils/jornadaUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useTranslations } from '../hooks/useTranslations';
 import { Locale } from '../translations/locales';
@@ -345,8 +343,6 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     
     let lastWeekId: string | null = null;
     
-    const monthStartDate = new Date(year, month, 1);
-
     return (
         <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
             <table className="min-w-full border-collapse table-fixed">
@@ -354,26 +350,9 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                     <tr>
                         <th className="sticky top-0 left-0 z-30 bg-white border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH}px` }}></th>
                         {nurses.map(nurse => {
-                            const activeJornada = permissions.isViewingAsAdmin ? getActiveJornada(nurse.id, currentDate, jornadasLaborales) : null;
-                            const hasReducedJornada = activeJornada && activeJornada.porcentaje < 100;
-
-                            let jornadaTooltip = '';
-                            if (hasReducedJornada) {
-                                const startDate = new Date(activeJornada.fechaInicio);
-                                if (startDate > monthStartDate && startDate.getMonth() === month) {
-                                    const formattedDate = startDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
-                                    jornadaTooltip = `Jornada reducida: ${activeJornada.porcentaje}% a partir del ${formattedDate}`;
-                                } else {
-                                    jornadaTooltip = `Jornada reducida: ${activeJornada.porcentaje}%`;
-                                }
-                            }
-                            
                             return (
                                 <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px`, maxWidth: `${cellWidth}px` }}>
-                                    <div className="flex items-center justify-center gap-1 p-1" title={jornadaTooltip}>
-                                        <span className="font-semibold text-slate-700 truncate text-sm">{nurse.name}</span>
-                                        {hasReducedJornada && <span className="text-xs cursor-help">⏱️</span>}
-                                    </div>
+                                    <span className="font-semibold text-slate-700 truncate text-sm block">{nurse.name}</span>
                                 </th>
                             );
                         })}

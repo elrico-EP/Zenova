@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { Header } from './components/Header';
@@ -28,6 +27,7 @@ import { useTranslations } from './hooks/useTranslations';
 import { useSharedState } from './hooks/useSharedState';
 import { usePermissions } from './hooks/usePermissions';
 import { SwapShiftPanel } from './components/SwapShiftModal';
+import { WorkConditionsBar } from './components/WorkConditionsBar';
 
 const App: React.FC = () => {
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
@@ -457,6 +457,13 @@ const App: React.FC = () => {
                     <AgendaPlanner currentDate={currentDate} agenda={agenda} onAgendaChange={(newAgenda) => updateData({ agenda: newAgenda })} onWeekSelect={setCurrentDate} />
                   </div>
                   <div className="mt-6">
+                    {permissions.isViewingAsAdmin && (
+                        <WorkConditionsBar 
+                            nurses={activeNurses}
+                            jornadas={jornadasLaborales}
+                            currentDate={currentDate}
+                        />
+                    )}
                     <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} isFitToScreen={isFitToScreen} strasbourgAssignments={strasbourgAssignments} specialStrasbourgEvents={specialStrasbourgEvents} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} visualSwaps={visualSwaps} onCellDoubleClick={handleOpenSwapPanelFromCell} />
                   </div>
                 </>
