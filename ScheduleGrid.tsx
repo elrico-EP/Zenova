@@ -353,11 +353,30 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>
                         <th className="sticky top-0 left-0 z-30 bg-white border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH}px` }}></th>
-                        {nurses.map(nurse => (
-                            <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px`, maxWidth: `${cellWidth}px` }}>
-                                <span className="font-semibold text-slate-700 truncate text-sm block">{nurse.name}</span>
-                            </th>
-                        ))}
+                        {nurses.map(nurse => {
+                            const activeJornada = permissions.isViewingAsAdmin ? getActiveJornada(nurse.id, currentDate, jornadasLaborales) : null;
+                            const hasReducedJornada = activeJornada && activeJornada.porcentaje < 100;
+
+                            let jornadaTooltip = '';
+                            if (hasReducedJornada) {
+                                const startDate = new Date(activeJornada.fechaInicio);
+                                if (startDate > monthStartDate && startDate.getMonth() === month) {
+                                    const formattedDate = startDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+                                    jornadaTooltip = `Jornada reducida: ${activeJornada.porcentaje}% a partir del ${formattedDate}`;
+                                } else {
+                                    jornadaTooltip = `Jornada reducida: ${activeJornada.porcentaje}%`;
+                                }
+                            }
+                            
+                            return (
+                                <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ width: `${cellWidth}px`, minWidth: `${cellWidth}px`, maxWidth: `${cellWidth}px` }}>
+                                    <div className="flex items-center justify-center gap-1 p-1" title={jornadaTooltip}>
+                                        <span className="font-semibold text-slate-700 truncate text-sm">{nurse.name}</span>
+                                        {hasReducedJornada && <span className="text-xs cursor-help">⏱️</span>}
+                                    </div>
+                                </th>
+                            );
+                        })}
                         <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${PRESENT_COL_WIDTH}px`}}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.present}</span></th>
                         <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${NOTES_COL_WIDTH}px` }}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.notes}</span></th>
                     </tr>
