@@ -42,7 +42,6 @@ const App: React.FC = () => {
   const [selectedNurseForAgenda, setSelectedNurseForAgenda] = useState<Nurse | null>(null);
   const [isJornadaManagerOpen, setIsJornadaManagerOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [isFitToScreen, setIsFitToScreen] = useState(true);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
 
@@ -453,7 +452,7 @@ const App: React.FC = () => {
               {view === 'schedule' ? (
                 <>
                   <div className="no-print">
-                    <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} isFitToScreen={isFitToScreen} setIsFitToScreen={setIsFitToScreen} />
+                    <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
                     <AgendaPlanner currentDate={currentDate} agenda={agenda} onAgendaChange={(newAgenda) => updateData({ agenda: newAgenda })} onWeekSelect={setCurrentDate} />
                   </div>
                   <div className="mt-6">
@@ -464,7 +463,7 @@ const App: React.FC = () => {
                             currentDate={currentDate}
                         />
                     )}
-                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} isFitToScreen={isFitToScreen} strasbourgAssignments={strasbourgAssignments} specialStrasbourgEvents={specialStrasbourgEvents} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} visualSwaps={visualSwaps} onCellDoubleClick={handleOpenSwapPanelFromCell} />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} specialStrasbourgEvents={specialStrasbourgEvents} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} visualSwaps={visualSwaps} onCellDoubleClick={handleOpenSwapPanelFromCell} />
                   </div>
                 </>
               ) : view === 'balance' ? ( <BalancePage nurses={nurses} balanceData={balanceData} currentDate={currentDate} onDateChange={setCurrentDate} onOpenAgenda={setSelectedNurseForAgenda} /> ) : 
