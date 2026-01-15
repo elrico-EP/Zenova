@@ -41,10 +41,9 @@ const App: React.FC = () => {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [selectedNurseForAgenda, setSelectedNurseForAgenda] = useState<Nurse | null>(null);
   const [isJornadaManagerOpen, setIsJornadaManagerOpen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(0.4);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
-  const initialZoomCalculated = useRef(false);
 
   // State derived from shared state now
   const nurses = sharedData?.nurses ?? INITIAL_NURSES;
@@ -87,23 +86,6 @@ const App: React.FC = () => {
     if (isInternActive) return nurses;
     return nurses.filter(n => n.id !== 'nurse-11');
   }, [nurses, currentDate]);
-
-  useLayoutEffect(() => {
-    if (scheduleGridRef.current && !initialZoomCalculated.current && activeNurses.length > 0) {
-      const container = scheduleGridRef.current;
-      const containerWidth = container.clientWidth;
-
-      const totalTableWidth = DAY_COL_WIDTH + (activeNurses.length * BASE_CELL_WIDTH) + PRESENT_COL_WIDTH + NOTES_COL_WIDTH + 20;
-
-      if (totalTableWidth > containerWidth) {
-        const requiredZoom = containerWidth / totalTableWidth;
-        const finalZoom = Math.max(0.25, requiredZoom);
-        setZoomLevel(finalZoom);
-      }
-      
-      initialZoomCalculated.current = true;
-    }
-  }, [activeNurses]);
 
   const combinedOverrides = useMemo(() => {
     const eventOverrides: Schedule = {};
@@ -466,7 +448,7 @@ const App: React.FC = () => {
               />
             </aside>
           )}
-          <div className={`flex-grow ${view === 'schedule' ? 'lg:w-3/4 xl:w-4/5' : 'w-full'}`}>
+          <div className={`flex-grow min-w-0 ${view === 'schedule' ? 'lg:w-3/4 xl:w-4/5' : 'w-full'}`}>
               {view === 'schedule' ? (
                 <>
                   <div className="no-print">
