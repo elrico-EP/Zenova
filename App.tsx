@@ -12,6 +12,8 @@ import { HelpModal } from './components/HelpModal';
 import { JornadaLaboralManager } from './components/JornadaLaboralManager';
 import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
+import { ProfilePage } from './components/ProfilePage';
+import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, SwapInfo } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell } from './utils/scheduleUtils';
@@ -35,7 +37,7 @@ const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
   // UI State remains local
-  const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement'>('schedule');
+  const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'>('schedule');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [selectedNurseForAgenda, setSelectedNurseForAgenda] = useState<Nurse | null>(null);
   const [isJornadaManagerOpen, setIsJornadaManagerOpen] = useState(false);
@@ -43,7 +45,6 @@ const App: React.FC = () => {
   const [isFitToScreen, setIsFitToScreen] = useState(true);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
-
 
   // State derived from shared state now
   const nurses = sharedData?.nurses ?? INITIAL_NURSES;
@@ -74,8 +75,8 @@ const App: React.FC = () => {
   
   useEffect(() => {
     // When the effective user is a nurse (either by login or impersonation),
-    // and the current view is 'balance', reset to the default 'schedule' view.
-    if (effectiveUser?.role === 'nurse' && (view === 'balance' || view === 'userManagement')) {
+    // and the current view is not 'schedule' or 'wishes' or 'profile', reset to the default 'schedule' view.
+    if (effectiveUser?.role === 'nurse' && !['schedule', 'wishes', 'profile'].includes(view)) {
       setView('schedule');
     }
   }, [effectiveUser, view]);
@@ -318,8 +319,11 @@ const App: React.FC = () => {
   };
 
   const handleOpenMyAgenda = useCallback(() => {
-    if (effectiveUser && effectiveUser.role === 'nurse') {
-        const nurseToOpen = nurses.find(n => n.id === effectiveUser.id);
+    if (effectiveUser?.role === 'nurse') {
+        // If impersonating, effectiveUser is a Nurse object, use its id.
+        // If logged in as a nurse user, effectiveUser is a User object, use its nurseId.
+        const nurseIdToOpen = (effectiveUser as User).nurseId ?? effectiveUser.id;
+        const nurseToOpen = nurses.find(n => n.id === nurseIdToOpen);
         if (nurseToOpen) {
             setSelectedNurseForAgenda(nurseToOpen);
         }
@@ -381,6 +385,10 @@ const App: React.FC = () => {
   if (!user) {
     return <LoginScreen />;
   }
+  
+  if ((user as User).mustChangePassword || (user as User).passwordResetRequired) {
+    return <ForceChangePasswordScreen />;
+  }
 
   return (
     <div className="min-h-screen">
@@ -411,7 +419,7 @@ const App: React.FC = () => {
         )}
         <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
         <main className="flex flex-col lg:flex-row gap-8 mt-8 print-main-content">
-          {view !== 'userManagement' && view === 'schedule' && (
+          {view !== 'userManagement' && view !== 'profile' && view === 'schedule' && (
              <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print">
               <Sidebar 
                 nurses={nurses} 
@@ -421,6 +429,7 @@ const App: React.FC = () => {
                 onUpdateNurseName={handleUpdateNurseName} 
                 onOpenAgenda={setSelectedNurseForAgenda}
                 onOpenMyAgenda={handleOpenMyAgenda}
+                onOpenProfile={() => setView('profile')}
                 onMassAbsenceApply={handleMassAbsenceApply} 
                 currentDate={currentDate} 
                 strasbourgAssignments={strasbourgAssignments} 
@@ -461,7 +470,8 @@ const App: React.FC = () => {
                 onWishValidationChange={(nurseId, dateKey, isValidated) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], validated: isValidated } } } })} 
                 agenda={effectiveAgenda} 
               /> 
-              ) : ( <UserManagementPage /> )}
+              ) : view === 'userManagement' ? ( <UserManagementPage nurses={nurses} /> 
+              ) : ( <ProfilePage nurses={nurses} /> )}
           </div>
         </main>
       </div>

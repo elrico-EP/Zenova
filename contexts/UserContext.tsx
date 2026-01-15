@@ -1,4 +1,3 @@
-
 import React, { useState, createContext, useContext, useMemo, useCallback, useEffect } from 'react';
 import type { User, Nurse, UserRole } from '../types';
 import * as userService from '../firebase/userService';
@@ -7,7 +6,7 @@ interface UserContextType {
   user: User | Nurse | null;
   effectiveUser: User | Nurse | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   impersonate: (nurse: Nurse | null) => void;
   isImpersonating: boolean;
@@ -17,6 +16,11 @@ interface UserContextType {
   register: (userData: Omit<User, 'id'>) => Promise<void>;
   updateUser: (userData: User | Nurse) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  forceSetPassword: (newPassword: string) => Promise<void>;
+  // FIX: Add requestPasswordReset and resetPassword to the context type
+  requestPasswordReset: (username: string) => Promise<boolean>;
+  resetPassword: (username: string, newPassword: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -38,28 +42,28 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
   }, []);
 
-  const refreshUsers = () => {
+  const refreshUsers = useCallback(() => {
     setUsers(userService.getUsers());
-  };
+  }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     setAuthError(null);
     try {
-      const loggedInUser = await userService.authenticate(email, password);
+      const loggedInUser = await userService.authenticate(username, password);
       setUser(loggedInUser);
     } catch (error) {
       setAuthError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     userService.clearCurrentUser();
     setUser(null);
     setImpersonatedNurse(null);
-  };
+  }, []);
 
   const impersonate = useCallback((nurse: Nurse | null) => {
     if (user?.role === 'admin') {
@@ -76,22 +80,47 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isImpersonating = useMemo(() => user?.role === 'admin' && !!impersonatedNurse, [user, impersonatedNurse]);
 
-  const register = async (userData: Omit<User, 'id'>) => {
+  const register = useCallback(async (userData: Omit<User, 'id'>) => {
     if (user?.role !== 'admin') throw new Error("Permission denied");
     await userService.addUser(userData);
     refreshUsers();
-  };
-  const updateUser = async (userData: User | Nurse) => {
+  }, [user, refreshUsers]);
+
+  const updateUser = useCallback(async (userData: User | Nurse) => {
     if (user?.role !== 'admin') throw new Error("Permission denied");
     await userService.updateUser(userData);
     refreshUsers();
-  };
-  const deleteUser = async (userId: string) => {
+  }, [user, refreshUsers]);
+
+  const deleteUser = useCallback(async (userId: string) => {
     if (user?.role !== 'admin') throw new Error("Permission denied");
     await userService.deleteUser(userId);
     refreshUsers();
-  }
+  }, [user, refreshUsers]);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!user) throw new Error("No hay un usuario autenticado.");
+    await userService.changePassword(user.id, currentPassword, newPassword);
+    const updatedUser = userService.getCurrentUser();
+    setUser(updatedUser);
+    refreshUsers();
+  }, [user, refreshUsers]);
+
+  const forceSetPassword = useCallback(async (newPassword: string) => {
+    if (!user) throw new Error("No hay un usuario autenticado.");
+    await userService.forceSetPassword(user.id, newPassword);
+    const updatedUser = userService.getCurrentUser();
+    setUser(updatedUser);
+  }, [user]);
+
+  // FIX: Implement requestPasswordReset and resetPassword functions
+  const requestPasswordReset = useCallback(async (username: string): Promise<boolean> => {
+      return await userService.requestPasswordReset(username);
+  }, []);
+
+  const resetPassword = useCallback(async (username: string, newPassword: string) => {
+      await userService.resetPassword(username, newPassword);
+  }, []);
 
   const contextValue = useMemo(() => ({
     user,
@@ -105,8 +134,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     users,
     register,
     updateUser,
-    deleteUser
-  }), [user, effectiveUser, isLoading, isImpersonating, authError, users]);
+    deleteUser,
+    changePassword,
+    forceSetPassword,
+    // FIX: Provide the new password reset functions in the context value
+    requestPasswordReset,
+    resetPassword,
+  }), [user, effectiveUser, isLoading, login, logout, impersonate, isImpersonating, authError, users, register, updateUser, deleteUser, changePassword, forceSetPassword, requestPasswordReset, resetPassword]);
 
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };

@@ -7,7 +7,7 @@ import { useTranslations } from '../hooks/useTranslations';
 interface AgendaPlannerProps {
   currentDate: Date;
   agenda: Agenda;
-  onAgendaChange: React.Dispatch<React.SetStateAction<Agenda>>;
+  onAgendaChange: (newAgenda: Agenda) => void;
   onWeekSelect: (date: Date) => void;
 }
 

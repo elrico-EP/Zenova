@@ -1,4 +1,3 @@
-
 import type { User, Nurse, UserRole } from '../types';
 import { INITIAL_NURSES } from '../constants';
 
@@ -7,7 +6,7 @@ const CURRENT_USER_STORAGE_KEY = 'zenova-current-user-session';
 
 const seedInitialUsers = (): (User | Nurse)[] => {
   const initialUsers: (User|Nurse)[] = [
-    { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', order: -1 },
+    { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', order: -1, mustChangePassword: false },
   ];
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initialUsers));
   return initialUsers;
@@ -24,7 +23,7 @@ export const getUsers = (): (User | Nurse)[] => {
     const adminUser = users.find((u: User) => u.id === 'admin-user');
     if (!adminUser || adminUser.password !== 'admin123') {
         const otherUsers = users.filter((u: User) => u.id !== 'admin-user');
-        const updatedAdmin = { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', order: -1 };
+        const updatedAdmin = { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', order: -1, mustChangePassword: false };
         const finalUsers = [updatedAdmin, ...otherUsers];
         saveUsers(finalUsers);
         return finalUsers;
@@ -45,6 +44,7 @@ export const authenticate = (username: string, password: string): Promise<User |
     setTimeout(() => { // Simulate network delay
       const users = getUsers();
       const user = users.find(u => u.email.toLowerCase() === username.toLowerCase());
+
       if (user && user.password === password) {
         localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.email);
         resolve(user);
@@ -70,9 +70,9 @@ export const addUser = (userData: Omit<User, 'id'>): Promise<void> => {
     return new Promise((resolve, reject) => {
         const users = getUsers();
         if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-            return reject(new Error('El correo electrónico ya está en uso.'));
+            return reject(new Error('El nombre de usuario ya está en uso.'));
         }
-        const newUser: User = { ...userData, id: `user-${Date.now()}` };
+        const newUser: User = { ...userData, id: `user-${Date.now()}`, mustChangePassword: true };
         saveUsers([...users, newUser]);
         resolve();
     });
@@ -106,5 +106,86 @@ export const deleteUser = (userId: string): Promise<void> => {
         users = users.filter(u => u.id !== userId);
         saveUsers(users);
         resolve();
+    });
+};
+
+export const changePassword = (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => { // Simulate network delay
+            let users = getUsers();
+            const userIndex = users.findIndex(u => u.id === userId);
+            if (userIndex === -1) {
+                return reject(new Error('Usuario no encontrado.'));
+            }
+            
+            const user = users[userIndex];
+            if (user.password !== currentPassword) {
+                return reject(new Error('La contraseña actual es incorrecta.'));
+            }
+
+            users[userIndex].password = newPassword;
+            users[userIndex].mustChangePassword = false;
+            saveUsers(users);
+            resolve();
+        }, 500);
+    });
+};
+
+export const forceSetPassword = (userId: string, newPassword: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => { // Simulate network delay
+            let users = getUsers();
+            const userIndex = users.findIndex(u => u.id === userId);
+            if (userIndex === -1) {
+                return reject(new Error('Usuario no encontrado.'));
+            }
+            
+            const user = users[userIndex];
+            users[userIndex] = { ...user, password: newPassword, mustChangePassword: false, passwordResetRequired: false };
+            saveUsers(users);
+            
+            const currentUser = getCurrentUser();
+            if (currentUser && currentUser.id === userId) {
+                 localStorage.setItem(CURRENT_USER_STORAGE_KEY, currentUser.email);
+            }
+            
+            resolve();
+        }, 500);
+    });
+};
+
+// FIX: Implement requestPasswordReset and resetPassword functions
+export const requestPasswordReset = (username: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+        setTimeout(() => { // Simulate network delay
+            const users = getUsers();
+            const userIndex = users.findIndex(u => u.email.toLowerCase() === username.toLowerCase());
+            if (userIndex !== -1) {
+                users[userIndex].passwordResetRequired = true;
+                saveUsers(users);
+                resolve(true); // User found
+            } else {
+                resolve(false); // User not found
+            }
+        }, 500);
+    });
+};
+
+export const resetPassword = (username: string, newPassword: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => { // Simulate network delay
+            const users = getUsers();
+            const userIndex = users.findIndex(u => u.email.toLowerCase() === username.toLowerCase());
+            if (userIndex === -1) {
+                return reject(new Error('Usuario no encontrado.'));
+            }
+            const user = users[userIndex];
+            if (!user.passwordResetRequired) {
+                return reject(new Error('No se ha solicitado el reseteo de contraseña para este usuario.'));
+            }
+            users[userIndex] = { ...user, password: newPassword, mustChangePassword: false, passwordResetRequired: false };
+            saveUsers(users);
+            resolve();
+        }, 500);
     });
 };

@@ -7,6 +7,9 @@ export interface User {
   password?: string;
   isTestUserMode?: boolean;
   impersonatedNurse?: Nurse | null;
+  nurseId?: string;
+  mustChangePassword?: boolean;
+  passwordResetRequired?: boolean;
 }
 
 export type ActivityLevel = 'NORMAL' | 'SESSION' | 'WHITE_GREEN' | 'REDUCED' | 'CLOSED';
@@ -46,6 +49,8 @@ export interface Nurse {
   role: UserRole;
   password?: string;
   order: number;
+  mustChangePassword?: boolean;
+  passwordResetRequired?: boolean;
 }
 
 export type UserRole = 'admin' | 'nurse';

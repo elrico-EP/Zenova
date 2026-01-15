@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
 import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote, SwapInfo } from '../types';
 import { SHIFTS } from '../constants';
@@ -325,7 +326,8 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
             
             if (isFitToScreen) {
                 const availableWidth = containerWidth - DAY_COL_WIDTH - PRESENT_COL_WIDTH - NOTES_COL_WIDTH - 20;
-                const newCellWidth = Math.max(80, availableWidth / nurses.length);
+                const calculatedWidth = Math.max(80, availableWidth / nurses.length);
+                const newCellWidth = Math.min(BASE_CELL_WIDTH * 1.5, calculatedWidth); // Cap at 150% zoom to prevent excessive growth
                 setCellWidth(newCellWidth);
             } else {
                 setCellWidth(BASE_CELL_WIDTH * zoomLevel);

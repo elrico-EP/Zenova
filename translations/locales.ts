@@ -1,4 +1,3 @@
-
 export const locales = {
   es: {
     // General
@@ -33,6 +32,32 @@ export const locales = {
     testUserView: 'Usuario Test',
     selectView: 'Cambiar Vista',
     optional: 'opcional',
+    myProfile: 'Mi Perfil',
+    profilePageTitle: 'Mi Perfil',
+    userInformation: 'Información de Usuario',
+    fullName: 'Nombre Completo',
+    username: 'Nombre de Usuario',
+    associatedNurse: 'Enfermero/a Asociado',
+    changePasswordSectionTitle: 'Cambiar Contraseña',
+    currentPassword: 'Contraseña Actual',
+    newPassword: 'Nueva Contraseña',
+    confirmNewPassword: 'Confirmar Nueva Contraseña',
+    passwordChangeSuccess: 'Contraseña actualizada correctamente.',
+    passwordMismatchError: 'Las nuevas contraseñas no coinciden.',
+    passwordLengthError: 'La nueva contraseña debe tener al menos 6 caracteres.',
+    languagePreferences: 'Preferencias de Idioma',
+    savePassword: 'Guardar Contraseña',
+
+    // Admin-led Password Reset Flow
+    forgotPasswordAdmin: 'Si olvidaste tu contraseña, por favor contacta a un administrador.',
+    // FIX: Add missing password reset translation keys
+    userNotFound: 'Usuario no encontrado.',
+    passwordResetTitle: 'Recuperar Contraseña',
+    passwordResetInstruction: 'Introduce tu nombre de usuario. Si existe, un administrador será notificado para proceder con el reseteo.',
+    passwordResetSuccess: 'Contraseña actualizada con éxito. Ahora puedes iniciar sesión.',
+    setNewPasswordTitle: 'Establecer Nueva Contraseña',
+    setNewPasswordInstruction: 'Por favor, introduce tu nueva contraseña.',
+    saveNewPassword: 'Guardar Nueva Contraseña',
 
     // Days of week
     day_monday: 'Lunes',
@@ -83,7 +108,6 @@ export const locales = {
     jornada_summary_END_SHIFT_4H: 'Reducción 3h al final del turno ({day})',
     jornada_summary_LEAVE_EARLY_1H_L_J: 'Salida anticipada de 1h (L-J)',
     jornada_summary_FRIDAY_PLUS_EXTRA: 'Viernes libre + 1.5h el {day}',
-    // FIX: Add missing translation keys for jornada laboral feature.
     jornada_reductionMode: 'Modo de Reducción',
     jornada_reductionMode_DAY_OFF: 'Día libre (regla 80%)',
     jornada_reductionMode_HOURS_PER_DAY: 'Horas proporcionales',
@@ -302,7 +326,7 @@ export const locales = {
             ]
         },
         {
-          title: "5. El Intercambio Visual de Turnos: La Herramienta Clave",
+          title: "5. El Intercambio Visual de Turnos: La Ferramenta Clave",
           content: [
             "Esta es la funcionalidad más importante para la gestión diaria flexible.",
             "<h4>5.1 ¿Para Qué Sirve?</h4><p>Para reflejar en la agenda un acuerdo de intercambio de turnos entre dos personas para un día concreto, <strong>sin alterar el sistema de cálculo de horas</strong>. Es un \"post-it\" digital sobre el planning oficial.</p>",
@@ -403,7 +427,33 @@ export const locales = {
     testUserView: 'Test User',
     selectView: 'Change View',
     optional: 'optional',
+    myProfile: 'My Profile',
+    profilePageTitle: 'My Profile',
+    userInformation: 'User Information',
+    fullName: 'Full Name',
+    username: 'Username',
+    associatedNurse: 'Associated Nurse',
+    changePasswordSectionTitle: 'Change Password',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    passwordChangeSuccess: 'Password updated successfully.',
+    passwordMismatchError: 'The new passwords do not match.',
+    passwordLengthError: 'New password must be at least 6 characters long.',
+    languagePreferences: 'Language Preferences',
+    savePassword: 'Save Password',
 
+    // Admin-led Password Reset Flow
+    forgotPasswordAdmin: 'If you forgot your password, please contact an administrator.',
+    // FIX: Add missing password reset translation keys
+    userNotFound: 'User not found.',
+    passwordResetTitle: 'Recover Password',
+    passwordResetInstruction: 'Enter your username. If it exists, an administrator will be notified to proceed with the reset.',
+    passwordResetSuccess: 'Password updated successfully. You can now log in.',
+    setNewPasswordTitle: 'Set New Password',
+    setNewPasswordInstruction: 'Please enter your new password.',
+    saveNewPassword: 'Save New Password',
+    
     // Days of week
     day_monday: 'Monday',
     day_tuesday: 'Tuesday',
@@ -453,7 +503,6 @@ export const locales = {
     jornada_summary_END_SHIFT_4H: '3h reduction at end of shift ({day})',
     jornada_summary_LEAVE_EARLY_1H_L_J: '1h early leave (Mon-Thu)',
     jornada_summary_FRIDAY_PLUS_EXTRA: 'Friday off + 1.5h on {day}',
-    // FIX: Add missing translation keys for jornada laboral feature.
     jornada_reductionMode: 'Reduction Mode',
     jornada_reductionMode_DAY_OFF: 'Day off (80% rule)',
     jornada_reductionMode_HOURS_PER_DAY: 'Proportional hours',
@@ -773,6 +822,33 @@ export const locales = {
     testUserView: 'Utilisateur de Test',
     selectView: 'Changer de vue',
     optional: 'optionnel',
+    myProfile: 'Mon Profil',
+    profilePageTitle: 'Mon Profil',
+    userInformation: "Informations de l'utilisateur",
+    fullName: 'Nom Complet',
+    username: "Nom d'utilisateur",
+    associatedNurse: 'Infirmier/ère Associé(e)',
+    changePasswordSectionTitle: 'Changer le mot de passe',
+    currentPassword: 'Mot de passe actuel',
+    newPassword: 'Nouveau mot de passe',
+    confirmNewPassword: 'Confirmer le nouveau mot de passe',
+    passwordChangeSuccess: 'Mot de passe mis à jour avec succès.',
+    passwordMismatchError: 'Les nouveaux mots de passe ne correspondent pas.',
+    passwordLengthError: 'Le nouveau mot de passe doit comporter au moins 6 caractères.',
+    languagePreferences: 'Préférences linguistiques',
+    savePassword: 'Enregistrer le mot de passe',
+
+    // Admin-led Password Reset Flow
+    forgotPasswordAdmin: 'Si vous avez oublié votre mot de passe, veuillez contacter un administrateur.',
+    // FIX: Add missing password reset translation keys
+    userNotFound: 'Utilisateur non trouvé.',
+    passwordResetTitle: 'Récupérer le mot de passe',
+    passwordResetInstruction: "Entrez votre nom d'utilisateur. S'il existe, un administrateur sera averti pour procéder à la réinitialisation.",
+    passwordResetSuccess: 'Mot de passe mis à jour avec succès. Vous pouvez maintenant vous connecter.',
+    setNewPasswordTitle: 'Définir un nouveau mot de passe',
+    setNewPasswordInstruction: 'Veuillez entrer votre nouveau mot de passe.',
+    saveNewPassword: 'Enregistrer le nouveau mot de passe',
+
     day_monday: 'Lundi',
     day_tuesday: 'Mardi',
     day_wednesday: 'Mercredi',
@@ -1024,7 +1100,7 @@ export const locales = {
             title: "7. Bilans et calcul des heures : Comprendre les chiffres",
             content: [
                 "Le système distingue les heures théoriques et réelles pour offrir flexibilité et équité.",
-                "<h4>7.1 Heures théoriques</h4><ul class='list-disc list-inside pl-4 space-y-1'><li>Calculées automatiquement par le système.</li><li><strong>Base :</strong> Chaque type de poste a une durée standard (ex: `TRAV M` = 8.5h du L-J et 6h le V).</li><li><strong>Modificateurs :</strong> Ajustées selon le temps de travail.</li><li><strong>Usage :</strong> Servent à générer le planning initial et comme valeur par défaut.</li></ul>",
+                "<h4>7.1 Heures théoriques</h4><ul class='list-disc list-inside pl-4 space-y-1'><li>Calculées automatiquement par le système.</li><li><strong>Base :</strong> Chaque type de poste a une durée standard (ex: `TRAV M` = 8.5h du L-J et 6h le V).</li><li><strong>Modificadores :</strong> Ajustées selon le temps de travail.</li><li><strong>Usage :</strong> Servent à générer le planning initial et comme valeur par défaut.</li></ul>",
                 "<h4>7.2 Heures réelles (saisies)</h4><ul class='list-disc list-inside pl-4 space-y-1'><li>Celles que vous entrez dans votre Planning Individuel.</li><li><strong>Elles sont la source de vérité pour votre bilan personnel.</strong></li><li><strong>Exemple :</strong> Votre poste théorique est de 8:00 à 17:00 (8.5h), mais un jour vous restez jusqu'à 17:30. Si vous saisissez \"08:00 - 17:30\", votre bilan pour ce jour sera de 9h.</li></ul>",
                 "<h4>7.3 Le bilan final</h4><p>C'est un outil <strong>informatif</strong>. Il compare les heures que vous avez effectuées avec celles que vous auriez théoriquement dû faire.</p>"
             ]
