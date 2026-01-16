@@ -1,7 +1,6 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import type { Nurse, Schedule, ScheduleCell, WorkZone, Notes, Agenda, Hours, SpecialStrasbourgEvent } from '../types';
+import type { Nurse, Schedule, ScheduleCell, WorkZone, Notes, Agenda, Hours, SpecialStrasbourgEvent, CustomShift, Shift } from '../types';
 import { SHIFTS } from '../constants';
 import { PdfExportView } from '../components/PdfExportView';
 import { LanguageProvider } from '../contexts/LanguageContext';
@@ -14,7 +13,7 @@ declare const html2canvas: any;
 declare const jspdf: any;
 
 // FIX: Change Set<WorkZone> to Set<string> to allow 'DAY_OFF_80' which is not a standard WorkZone.
-const EXCLUDED_SHIFTS = new Set(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG', 'DAY_OFF_80']);
+const EXCLUDED_SHIFTS: Set<string> = new Set(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG', 'DAY_OFF_80']);
 
 
 const getShiftParts = (cell: ScheduleCell | undefined): [ScheduleCell | null, ScheduleCell | null] => {
@@ -50,9 +49,10 @@ const tailwindToHexMap: Record<string, { bg: string, text: string }> = {
     'bg-teal-400': { bg: '#2DD4BF', text: '#064E3B' },
     'bg-cyan-200': { bg: '#A5F3FC', text: '#164E63' }, // Libero
     'bg-sky-200': { bg: '#BAE6FD', text: '#0C4A6E' },  // Recup
+    'bg-rose-300': { bg: '#fda4af', text: '#881337' }, // Strasbourg
 };
 
-export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[], currentDate: Date, agenda: Agenda, notes: Notes): Promise<void> => {
+export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[], currentDate: Date, agenda: Agenda, notes: Notes, hours: Hours): Promise<void> => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -82,7 +82,7 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' });
+        const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
         const dayOfWeek = date.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         const weekId = getWeekIdentifier(date);
@@ -98,7 +98,8 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
         const activityStyle = activityHexStyles[activityLevel];
         const dayRowBg = isHoliday ? activityHexStyles.CLOSED.bg : isWeekend ? weekendBg : activityStyle.bg;
 
-        html += `<tr><td style="padding: 4px; font-weight: bold; text-align: center; background-color: ${dayRowBg}; border-color: #E5E7EB;">${day} ${dayName}</td>`;
+        // Prepend with an apostrophe to force text format in Teams/Excel
+        html += `<tr><td style="padding: 4px; font-weight: bold; text-align: center; background-color: ${dayRowBg}; border-color: #E5E7EB;">'${day} ${dayName}</td>`;
 
         if (activityLevel === 'CLOSED' && !isWeekend) {
             const closedTextCellIndex = Math.floor(nurses.length / 2);
@@ -109,26 +110,44 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
         } else {
             nurses.forEach(nurse => {
                 const cellData = schedule[nurse.id]?.[dateKey];
-                // FIX: Pass the full `nurse` object instead of just the name.
-                const allHours = getScheduleCellHours(cellData, nurse, date, agenda[weekId] || 'NORMAL', agenda);
+                
+                const dailyHoursData = hours[nurse.id]?.[dateKey];
+                const hasManualHours = dailyHoursData?.segments?.some(s => s.startTime || s.endTime);
+
+                let allHours: string | { morning: string; afternoon: string } | string[];
+                if (hasManualHours) {
+                    allHours = dailyHoursData!.segments!.filter(s => s.startTime && s.endTime).map(s => `${s.startTime.substring(0, 5)} - ${s.endTime.substring(0, 5)}`);
+                } else {
+                    allHours = getScheduleCellHours(cellData, nurse, date, agenda[weekId] || 'NORMAL', agenda);
+                }
+
                 const [morningPart, afternoonPart] = getShiftParts(cellData);
                 let cellContent = '';
                 let cellStyle = `padding: 4px; text-align: center; vertical-align: middle; height: 50px; background-color: ${dayRowBg}; border-color: #E5E7EB;`;
                 
-                const formatPart = (part: ScheduleCell | null, hours: string, multilineTime: boolean): string => {
-                    if (typeof part !== 'string') return '';
-                    const shift = SHIFTS[part];
-                    if (!shift) return '';
-                    // FIX: Change WorkZone[] to string[] to allow for 'DAY_OFF_80'
-                    const nonHourShifts: string[] = ['CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'DAY_OFF_80', 'F', 'LIBERO'];
+                const formatPart = (part: ScheduleCell | null, partHours: string, multilineTime: boolean): string => {
+                    if (!part) return '';
+
+                    let mainLabel: string;
+                    if (typeof part === 'string') {
+                        mainLabel = SHIFTS[part as WorkZone]?.label || '';
+                    } else if (typeof part === 'object' && 'custom' in part) {
+                        if ((part as CustomShift).custom === 'STR-PREP') {
+                            return ''; // Return empty string for STR-PREP
+                        }
+                        mainLabel = (part as CustomShift).custom.split('\n')[0];
+                    } else {
+                        return '';
+                    }
                     
-                    if (!hours || nonHourShifts.includes(part)) {
-                        return shift.label;
+                    if (!mainLabel) return '';
+                    
+                    if (!partHours) {
+                        return mainLabel;
                     }
 
-                    const timeHtml = `<span style="font-size: 8pt; color: #475569;">(${hours})</span>`;
-
-                    return multilineTime ? `${shift.label}<br>${timeHtml}` : `${shift.label} ${timeHtml}`;
+                    const timeHtml = `<span style="font-size: 8pt; color: #475569;">(${partHours})</span>`;
+                    return multilineTime ? `${mainLabel}<br>${timeHtml}` : `${mainLabel} ${timeHtml}`;
                 };
                 
                 const isFullDayEquivalent = morningPart !== null && morningPart === afternoonPart;
@@ -137,10 +156,10 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
 
                 if (isFullDayEquivalent || isMorningOnly || isAfternoonOnly) {
                     const singlePart = morningPart || afternoonPart;
-                    const hoursString = typeof allHours === 'string' ? allHours : '';
+                    const hoursString = Array.isArray(allHours) ? allHours.join(' & ') : typeof allHours === 'string' ? allHours : '';
                     cellContent = formatPart(singlePart, hoursString, true);
                 } else {
-                    const hoursObject = typeof allHours === 'object' ? allHours : { morning: '', afternoon: '' };
+                    const hoursObject = typeof allHours === 'object' && 'morning' in allHours ? allHours : { morning: '', afternoon: '' };
                     const morningText = formatPart(morningPart, hoursObject.morning, false);
                     const afternoonText = formatPart(afternoonPart, hoursObject.afternoon, false);
                     cellContent = [morningText, afternoonText].filter(Boolean).join('<br>');

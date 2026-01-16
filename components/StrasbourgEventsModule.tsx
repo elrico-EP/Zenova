@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import type { Nurse, SpecialStrasbourgEvent, User } from '../types';
 
@@ -129,17 +128,17 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
                 {filteredEvents.map(event => {
                     const assignedNurses = nurses.filter(n => event.nurseIds.includes(n.id)).map(n => n.name).join(', ');
                     return (
-                        <div key={event.id} className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                        <div key={event.id} className="p-3 bg-rose-50 rounded-lg border border-rose-200">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="font-semibold text-purple-800">{event.name}</p>
-                                    <p className="text-xs text-purple-600">{event.startDate} al {event.endDate}</p>
+                                    <p className="font-semibold text-rose-800">{event.name}</p>
+                                    <p className="text-xs text-rose-600">{event.startDate} al {event.endDate}</p>
                                 </div>
                                 {isAdmin && <div className="flex gap-2"><button onClick={() => handleEdit(event)} className="p-1 text-blue-600">✏️</button><button onClick={() => handleDelete(event.id)} className="p-1 text-red-600">🗑️</button></div>}
                             </div>
                             <div className="mt-2 text-xs">
                                 <p><strong>Asignados:</strong> {assignedNurses}</p>
-                                {event.notes && <p className="mt-1 pt-1 border-t border-purple-200/50"><strong>Notas:</strong> {event.notes}</p>}
+                                {event.notes && <p className="mt-1 pt-1 border-t border-rose-200/50"><strong>Notas:</strong> {event.notes}</p>}
                             </div>
                         </div>
                     );

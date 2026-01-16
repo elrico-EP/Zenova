@@ -97,6 +97,23 @@ const App: React.FC = () => {
             eventOverrides[event.nurseId][dateKey] = { custom: event.name, type: 'STRASBOURG' };
         }
     });
+
+    specialStrasbourgEvents.forEach(event => {
+        if (!event.startDate || !event.endDate || !event.nurseIds) return;
+        for (let d = new Date(event.startDate); d <= new Date(event.endDate); d.setDate(d.getDate() + 1)) {
+            const dateKey = d.toISOString().split('T')[0];
+            event.nurseIds.forEach(nurseId => {
+                if (!eventOverrides[nurseId]) eventOverrides[nurseId] = {};
+                const timeString = event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : undefined;
+                eventOverrides[nurseId][dateKey] = {
+                    custom: event.name,
+                    type: 'STRASBOURG',
+                    time: timeString
+                };
+            });
+        }
+    });
+
     const merged = { ...eventOverrides };
     for (const nurseId in manualOverrides) {
         if (!merged[nurseId]) merged[nurseId] = {};
@@ -105,7 +122,7 @@ const App: React.FC = () => {
         }
     }
     return merged;
-  }, [manualOverrides, strasbourgEvents]);
+  }, [manualOverrides, strasbourgEvents, specialStrasbourgEvents]);
 
   useEffect(() => {
     const newSchedule = recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
@@ -396,7 +413,7 @@ const App: React.FC = () => {
             monthName={currentDate.toLocaleString(language, { month: 'long' })}
             year={year} onDateChange={setCurrentDate} currentDate={currentDate}
             isMonthClosed={isMonthClosed} onToggleMonthLock={handleToggleMonthLock}
-            schedule={schedule} nurses={nurses} notes={notes} agenda={effectiveAgenda}
+            schedule={schedule} nurses={nurses} notes={notes} agenda={effectiveAgenda} hours={hours}
             onExportPdf={async () => generateAndDownloadPdf({nurses: activeNurses, schedule, currentDate, notes, agenda: effectiveAgenda, strasbourgAssignments})}
             view={view}
             setView={setView}
@@ -463,7 +480,7 @@ const App: React.FC = () => {
                             currentDate={currentDate}
                         />
                     )}
-                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} specialStrasbourgEvents={specialStrasbourgEvents} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} visualSwaps={visualSwaps} onCellDoubleClick={handleOpenSwapPanelFromCell} />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} visualSwaps={visualSwaps} onCellDoubleClick={handleOpenSwapPanelFromCell} />
                   </div>
                 </>
               ) : view === 'balance' ? ( <BalancePage nurses={nurses} balanceData={balanceData} currentDate={currentDate} onDateChange={setCurrentDate} onOpenAgenda={setSelectedNurseForAgenda} /> ) : 

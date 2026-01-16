@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -8,7 +7,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { MonthPicker } from './MonthPicker';
 import { ExportControls } from './ExportControls';
 import { ZenovaLogo } from './ZenovaLogo';
-import type { Nurse, Schedule, Notes, Agenda, User } from '../types';
+import type { Nurse, Schedule, Notes, Agenda, User, Hours } from '../types';
 
 type AppView = 'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile';
 
@@ -120,13 +119,14 @@ interface HeaderProps {
   nurses: Nurse[];
   notes: Notes;
   agenda: Agenda;
+  hours: Hours;
   onExportPdf: () => Promise<void>;
   view: AppView;
   setView: (view: AppView) => void;
   onOpenHelp: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, onDateChange, isMonthClosed, onToggleMonthLock, schedule, nurses, notes, agenda, onExportPdf, view, setView, onOpenHelp }) => {
+export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, onDateChange, isMonthClosed, onToggleMonthLock, schedule, nurses, notes, agenda, hours, onExportPdf, view, setView, onOpenHelp }) => {
   const t = useTranslations();
   const permissions = usePermissions();
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
@@ -166,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, on
 
       <div className="flex items-center gap-2">
         {permissions.canLockMonth && ( <button onClick={onToggleMonthLock} className={userMenuButtonClass} title={isMonthClosed ? t.unlockMonth : t.lockMonth}> {isMonthClosed ? '🔓' : '🔒'} </button> )}
-        {permissions.canExport && <ExportControls {...{ schedule, nurses, currentDate, onExportPdf, agenda, notes }} />}
+        {permissions.canExport && <ExportControls {...{ schedule, nurses, currentDate, onExportPdf, agenda, notes, hours }} />}
         <button onClick={onOpenHelp} className={userMenuButtonClass} title={t.help}>?</button>
         <LanguageSwitcher buttonClass={userMenuButtonClass} />
         <UserMenu nurses={nurses} buttonClass={userMenuButtonClass} setView={setView} />

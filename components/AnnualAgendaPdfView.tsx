@@ -6,6 +6,8 @@ import { ShiftCell } from './ScheduleGrid';
 import { getScheduleCellHours } from '../utils/scheduleUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { getWeekIdentifier } from '../utils/dateUtils';
+// FIX: Import SHIFTS constant for styling special events.
+import { SHIFTS } from '../constants';
 
 interface MonthViewProps {
   year: number;
@@ -16,6 +18,20 @@ interface MonthViewProps {
   strasbourgAssignments: Record<string, string[]>;
   specialStrasbourgEvents: SpecialStrasbourgEvent[];
 }
+
+// FIX: Add helper function to calculate event hours, similar to PersonalAgendaModal.
+const calculateEventHours = (start?: string, end?: string): number => {
+    if (!start || !end) return 0;
+    try {
+        const startTime = new Date(`1970-01-01T${start}:00Z`);
+        const endTime = new Date(`1970-01-01T${end}:00Z`);
+        if (endTime <= startTime) return 0;
+        return (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+    } catch (e) {
+        console.error("Error calculating event hours:", e);
+        return 0;
+    }
+};
 
 const MonthView: React.FC<MonthViewProps> = ({ year, month, nurse, schedule, agenda, strasbourgAssignments, specialStrasbourgEvents }) => {
   const { language } = useLanguage();
@@ -61,20 +77,29 @@ const MonthView: React.FC<MonthViewProps> = ({ year, month, nurse, schedule, age
             <div key={dateKey} className={`relative p-1 border-r border-b border-slate-200 min-h-[6rem] flex flex-col ${bgColor}`}>
               <div className="text-right text-[10px] font-semibold text-slate-500">{date.getUTCDate()}</div>
               <div className="my-1 flex-grow">
-                <ShiftCell
-                  shiftCell={shiftCell}
-                  hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda)}
-                  hasManualHours={false}
-                  isWeekend={isWeekend}
-                  isClosingDay={isHoliday || activityLevel === 'CLOSED'}
-                  nurseId={nurse.id}
-                  weekId={weekId}
-                  activityLevel={activityLevel}
-                  strasbourgAssignments={strasbourgAssignments}
-                  dayOfWeek={dayOfWeek}
-                  isShortFriday={false}
-                  specialEvent={specialEvent}
-                />
+                {/* FIX: Conditionally render special events or the regular ShiftCell, removing the invalid `specialEvent` prop from ShiftCell. */}
+                {specialEvent ? (
+                    <div className="w-full h-full p-1 flex items-center justify-center relative" title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}>
+                        <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-xs text-center`}>
+                            <span className="truncate px-1">{specialEvent.name}</span>
+                            {specialEvent.startTime && specialEvent.endTime && <span className="text-[10px] opacity-80 mt-1">{calculateEventHours(specialEvent.startTime, specialEvent.endTime).toFixed(1)}h</span>}
+                        </div>
+                    </div>
+                ) : (
+                    <ShiftCell
+                      shiftCell={shiftCell}
+                      hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda)}
+                      hasManualHours={false}
+                      isWeekend={isWeekend}
+                      isClosingDay={isHoliday || activityLevel === 'CLOSED'}
+                      nurseId={nurse.id}
+                      weekId={weekId}
+                      activityLevel={activityLevel}
+                      strasbourgAssignments={strasbourgAssignments}
+                      dayOfWeek={dayOfWeek}
+                      isShortFriday={false}
+                    />
+                )}
               </div>
             </div>
           );

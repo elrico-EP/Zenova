@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect, useEffect, useMemo } from 'react';
 import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote, SwapInfo } from '../types';
 import { SHIFTS } from '../constants';
 import { getWeekIdentifier } from '../utils/dateUtils';
@@ -48,38 +48,24 @@ export const ShiftCell: React.FC<{
     weekId: string;
     activityLevel: ActivityLevel;
     strasbourgAssignments: Record<string, string[]>;
-    specialEvent?: SpecialStrasbourgEvent;
     dayOfWeek: number;
     isShortFriday: boolean;
-}> = ({ shiftCell, hours, hasManualHours, violation, isWeekend, isClosingDay, nurseId, weekId, activityLevel, strasbourgAssignments, specialEvent, dayOfWeek, isShortFriday }) => {
+}> = ({ shiftCell, hours, hasManualHours, violation, isWeekend, isClosingDay, nurseId, weekId, activityLevel, strasbourgAssignments, dayOfWeek, isShortFriday }) => {
     const t = useTranslations();
     const attendees = strasbourgAssignments[weekId] || [];
     const title = violation?.message || (typeof shiftCell === 'string' ? t[SHIFTS[shiftCell]?.description as keyof Locale] as string : '');
     const hasMultipleHourLines = Array.isArray(hours) && hours.length > 1;
 
-    if (specialEvent) {
-        return (
-            <div
-                className="w-full h-full p-1 flex items-center justify-center relative"
-                title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}
-            >
-                <div className="w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm bg-purple-200 text-purple-800 font-bold text-xs text-center">
-                    <span className="truncate px-1">{specialEvent.name}</span>
-                </div>
-            </div>
-        );
-    }
-
     const renderHours = () => {
         if (Array.isArray(hours)) {
             return hours.map((line, index) => (
                 <span key={index} className="block text-[10px] leading-tight opacity-90 text-center font-semibold">
-                    {line}
+                    ({line})
                 </span>
             ));
         }
         if (typeof hours === 'string' && hours) {
-            return <span className={`block text-[10px] leading-tight opacity-90 text-center ${hasManualHours ? 'font-semibold' : ''}`}>{hours}</span>;
+            return <span className={`block text-[10px] leading-tight opacity-90 text-center ${hasManualHours ? 'font-semibold' : 'font-mono'}`}>({hours})</span>;
         }
         return null;
     }
@@ -154,13 +140,13 @@ export const ShiftCell: React.FC<{
                 {morningShiftData && (
                     <div className={`flex-grow min-h-0 flex flex-col items-center justify-center rounded-sm text-center p-1 ${morningShiftData.color} ${morningShiftData.textColor}`}>
                         <span className="font-semibold text-xs leading-tight">{morningShiftData.label}</span>
-                        <span className="text-[10px] leading-tight opacity-90">{hours.morning}</span>
+                        <span className="text-[10px] leading-tight opacity-90">({hours.morning})</span>
                     </div>
                 )}
                 {afternoonShiftData && (
                     <div className={`flex-grow min-h-0 flex flex-col items-center justify-center rounded-sm text-center p-1 ${afternoonShiftData.color} ${afternoonShiftData.textColor}`}>
                         <span className="font-semibold text-xs leading-tight">{afternoonShiftData.label}</span>
-                        <span className="text-[10px] leading-tight opacity-90">{hours.afternoon}</span>
+                        <span className="text-[10px] leading-tight opacity-90">({hours.afternoon})</span>
                     </div>
                 )}
             </div>
@@ -284,7 +270,6 @@ interface ScheduleGridProps {
   vaccinationPeriod: { start: string; end: string } | null;
   zoomLevel: number;
   strasbourgAssignments: Record<string, string[]>;
-  specialStrasbourgEvents: SpecialStrasbourgEvent[];
   isMonthClosed: boolean;
   jornadasLaborales: JornadaLaboral[];
   visualSwaps: Record<string, Record<string, SwapInfo>>;
@@ -308,10 +293,26 @@ export const DAY_COL_WIDTH = 100;
 export const PRESENT_COL_WIDTH = 70;
 export const NOTES_COL_WIDTH = 140;
 
-export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, specialStrasbourgEvents, isMonthClosed, jornadasLaborales, visualSwaps, onCellDoubleClick }, ref) => {
+export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, visualSwaps, onCellDoubleClick }, ref) => {
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
+
+    const dayFormatter = useMemo(() => {
+        // Consistent day names, removing potential inconsistencies from toLocaleString on single dates.
+        const formatter = new Intl.DateTimeFormat(language, { weekday: 'short' });
+        // JS getDay() is Sun=0, Mon=1...
+        const daysOfWeek = [
+            formatter.format(new Date(2023, 0, 1)), // Sun
+            formatter.format(new Date(2023, 0, 2)), // Mon
+            formatter.format(new Date(2023, 0, 3)), // Tue
+            formatter.format(new Date(2023, 0, 4)), // Wed
+            formatter.format(new Date(2023, 0, 5)), // Thu
+            formatter.format(new Date(2023, 0, 6)), // Fri
+            formatter.format(new Date(2023, 0, 7)), // Sat
+        ].map(d => d.replace(/\./g, '')); // Remove all dots for consistency, e.g., "mié." -> "mié"
+        return daysOfWeek;
+    }, [language]);
     
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -341,8 +342,8 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                     {days.map(day => {
                         const date = new Date(year, month, day);
                         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const dayOfWeekStr = date.toLocaleString(language, { weekday: 'short' });
                         const dayOfWeek = date.getDay();
+                        const dayOfWeekStr = dayFormatter[dayOfWeek];
                         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                         const weekId = getWeekIdentifier(date);
                         const isHoliday = year === 2026 && holidays2026.has(dateKey);
@@ -396,8 +397,6 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                             
                             const violation = violations.find(v => (v.nurseId === nurse.id || v.nurseId === 'global') && (v.dateKey === dateKey || (v.weekId === weekId && !v.dateKey)));
                             const isShortFriday = dayOfWeek === 5 && agenda[getWeekIdentifier(new Date(date.getTime() + 3 * 24 * 60 * 60 * 1000))] !== 'SESSION';
-                            
-                            const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
 
                             let displayHours: string | { morning: string; afternoon: string } | string[];
                             const dailyHoursData = hours[nurse.id]?.[dateKey];
@@ -423,7 +422,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                                     }}
                                 >
                                     {swapInfo && <span className="absolute top-0.5 right-0.5 text-blue-600 text-xs z-10 bg-white/50 rounded-full p-0.5" aria-label="Turno intercambiado">🔁</span>}
-                                    <ShiftCell shiftCell={effectiveShiftCell} hours={displayHours} hasManualHours={!!hasManualHours} violation={violation} isWeekend={isWeekend} isClosingDay={isClosingDay} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} specialEvent={specialEvent} dayOfWeek={dayOfWeek} isShortFriday={isShortFriday} />
+                                    <ShiftCell shiftCell={effectiveShiftCell} hours={displayHours} hasManualHours={!!hasManualHours} violation={violation} isWeekend={isWeekend} isClosingDay={isClosingDay} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={isShortFriday} />
                                 </td>
                             );
                         });

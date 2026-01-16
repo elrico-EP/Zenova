@@ -1,4 +1,3 @@
-
 import type { Nurse, Schedule, WorkZone, Agenda, ScheduleCell, ActivityLevel, NurseStats, CustomShift, JornadaLaboral } from '../types';
 import { getWeekIdentifier } from './dateUtils';
 import { holidays2026 } from '../data/agenda2026';
@@ -262,11 +261,14 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
             
             availableForDutyNurses.forEach(nurse => {
                 const override = manualOverrides[nurse.id]?.[dateKey];
-                if (override) { dailyAssignments[nurse.id] = override; }
-                const attendees = strasbourgAssignments[weekId] || [];
-                if (activityLevel === 'SESSION') {
-                    if (dayOfWeek >= 1 && dayOfWeek <= 4 && attendees.includes(nurse.id)) { dailyAssignments[nurse.id] = 'STRASBOURG'; }
-                    if (dayOfWeek === 5 && attendees.includes(nurse.id)) { dailyAssignments[nurse.id] = { custom: 'STR-PREP', type: 'STRASBOURG' }; }
+                if (override) {
+                    dailyAssignments[nurse.id] = override;
+                } else {
+                    const attendees = strasbourgAssignments[weekId] || [];
+                    if (activityLevel === 'SESSION') {
+                        if (dayOfWeek >= 1 && dayOfWeek <= 4 && attendees.includes(nurse.id)) { dailyAssignments[nurse.id] = 'STRASBOURG'; }
+                        if (dayOfWeek === 5 && attendees.includes(nurse.id)) { dailyAssignments[nurse.id] = { custom: 'STR-PREP', type: 'STRASBOURG' }; }
+                    }
                 }
             });
 
@@ -435,7 +437,13 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
             nurses.forEach(nurse => {
                 if (dailyAssignments[nurse.id]) {
                     const activeJornada = getActiveJornada(nurse.id, currentDate, jornadasLaborales);
-                    if (activeJornada && !manualOverrides[nurse.id]?.[dateKey]) { dailyAssignments[nurse.id] = applyJornadaModification(dailyAssignments[nurse.id], nurse, currentDate, agenda, activeJornada); }
+                    // If a reduction is active, apply it. The `applyJornadaModification` function
+                    // is smart enough to ignore non-work shifts like 'CA' or 'FP', making it
+                    // safe to call even on manually set absences. This change allows reductions
+                    // to be applied to the manually loaded January 2026 schedule.
+                    if (activeJornada) {
+                        dailyAssignments[nurse.id] = applyJornadaModification(dailyAssignments[nurse.id], nurse, currentDate, agenda, activeJornada);
+                    }
                 }
             });
             Object.entries(dailyAssignments).forEach(([nurseId, cell]) => { schedule[nurseId][dateKey] = cell; });
