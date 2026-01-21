@@ -1,13 +1,15 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import type { Nurse, Schedule, ScheduleCell, WorkZone, Notes, Agenda, Hours, SpecialStrasbourgEvent, CustomShift, Shift } from '../types';
+import type { Nurse, Schedule, ScheduleCell, WorkZone, Notes, Agenda, Hours, SpecialStrasbourgEvent, CustomShift, Shift, JornadaLaboral } from '../types';
 import { SHIFTS } from '../constants';
 import { PdfExportView } from '../components/PdfExportView';
-import { LanguageProvider } from '../contexts/LanguageContext';
+import { LanguageProvider, Language } from '../contexts/LanguageContext';
 import { getScheduleCellHours, getShiftsFromCell } from './scheduleUtils';
 import { getWeekIdentifier } from './dateUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { AnnualAgendaPdfView } from '../components/AnnualAgendaPdfView';
+import { locales } from '../translations/locales';
 
 declare const html2canvas: any;
 declare const jspdf: any;
@@ -52,7 +54,10 @@ const tailwindToHexMap: Record<string, { bg: string, text: string }> = {
     'bg-rose-300': { bg: '#fda4af', text: '#881337' }, // Strasbourg
 };
 
-export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[], currentDate: Date, agenda: Agenda, notes: Notes, hours: Hours): Promise<void> => {
+export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[], currentDate: Date, agenda: Agenda, notes: Notes, hours: Hours, jornadasLaborales: JornadaLaboral[]): Promise<void> => {
+    const lang = (localStorage.getItem('zenova-lang') || 'en') as Language;
+    const t = locales[lang];
+    
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -72,17 +77,17 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
 
     let html = '<table border="1" style="border-collapse: collapse; font-family: sans-serif; font-size: 10pt; border-color: #E5E7EB;">';
     html += `<thead><tr>
-                <th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 100px;">Día</th>`;
+                <th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 100px;">${t.day}</th>`;
     nurses.forEach(n => { html += `<th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 120px;">${n.name}</th>`; });
-    html += `<th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 80px;">Presentes</th>`;
-    html += `<th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 160px;">Notas</th>`;
+    html += `<th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 80px;">${t.present}</th>`;
+    html += `<th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 160px;">${t.notes}</th>`;
     html += '</tr></thead><tbody>';
     
     let lastWeekId: string | null = null;
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
+        const dayName = date.toLocaleDateString(lang, { weekday: 'short' }).replace('.', '');
         const dayOfWeek = date.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         const weekId = getWeekIdentifier(date);
@@ -91,7 +96,7 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
         
         if (weekId !== lastWeekId) {
             const weekStyle = activityHexStyles[activityLevel] || activityHexStyles['NORMAL'];
-            html += `<tr><td colspan="${nurses.length + 3}" style="background-color: ${weekStyle.weekBg}; color: ${weekStyle.weekText}; text-align: center; font-weight: bold; padding: 2px; font-size: 9pt;">SEMANA ${weekId.split('-W')[1]}</td></tr>`;
+            html += `<tr><td colspan="${nurses.length + 3}" style="background-color: ${weekStyle.weekBg}; color: ${weekStyle.weekText}; text-align: center; font-weight: bold; padding: 2px; font-size: 9pt;">${t.week.toUpperCase()} ${weekId.split('-W')[1]}</td></tr>`;
             lastWeekId = weekId;
         }
 
@@ -104,7 +109,7 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
         if (activityLevel === 'CLOSED' && !isWeekend) {
             const closedTextCellIndex = Math.floor(nurses.length / 2);
             nurses.forEach((_, index) => {
-                const cellContent = index === closedTextCellIndex ? `<span style="font-weight: bold; color: ${activityStyle.text};">CERRADO</span>` : '';
+                const cellContent = index === closedTextCellIndex ? `<span style="font-weight: bold; color: ${activityStyle.text};">${t.closed}</span>` : '';
                 html += `<td style="padding: 4px; text-align: center; vertical-align: middle; height: 50px; background-color: ${activityStyle.bg}; border-color: #E5E7EB;">${cellContent}</td>`;
             });
         } else {
@@ -118,7 +123,8 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
                 if (hasManualHours) {
                     allHours = dailyHoursData!.segments!.filter(s => s.startTime && s.endTime).map(s => `${s.startTime.substring(0, 5)} - ${s.endTime.substring(0, 5)}`);
                 } else {
-                    allHours = getScheduleCellHours(cellData, nurse, date, agenda[weekId] || 'NORMAL', agenda);
+                    // FIX: Pass jornadasLaborales to getScheduleCellHours
+                    allHours = getScheduleCellHours(cellData, nurse, date, agenda[weekId] || 'NORMAL', agenda, jornadasLaborales);
                 }
 
                 const [morningPart, afternoonPart] = getShiftParts(cellData);
@@ -236,7 +242,7 @@ export const generateAndDownloadPdf = async (props: { nurses: Nurse[]; schedule:
         const { currentDate } = props;
         const year = currentDate.getFullYear();
         const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        pdf.save(`Turnos_${year}-${month}.pdf`);
+        pdf.save(`Schedule_${year}-${month}.pdf`);
     } catch (error) {
         console.error("PDF generation failed:", error);
     } finally {
@@ -296,6 +302,7 @@ export const generateAnnualAgendaPdf = async (props: {
     agenda: Agenda;
     strasbourgAssignments: Record<string, string[]>;
     specialStrasbourgEvents: SpecialStrasbourgEvent[];
+    jornadasLaborales: JornadaLaboral[];
 }): Promise<void> => {
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'absolute';
@@ -355,7 +362,7 @@ export const generateAnnualAgendaPdf = async (props: {
             pdf.addImage(imgData, 'PNG', margin, margin + headerHeight, contentWidth, finalImgHeight);
         }
 
-        pdf.save(`Agenda_Anual_${props.nurse.name.replace(/\s/g, '_')}_${props.year}.pdf`);
+        pdf.save(`Annual_Agenda_${props.nurse.name.replace(/\s/g, '_')}_${props.year}.pdf`);
 
     } catch (error) {
         console.error("Annual Agenda PDF generation failed:", error);

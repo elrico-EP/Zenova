@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { ZenovaLogo } from './ZenovaLogo';
@@ -24,7 +23,7 @@ export const ResetPasswordScreen: React.FC<{
     setSuccess('');
 
     if (!newPassword || !confirmPassword) {
-      setError('Ambos campos son obligatorios.');
+      setError(t.allFieldsRequired);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -96,7 +95,7 @@ export const ResetPasswordScreen: React.FC<{
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-zen-800 hover:bg-zen-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zen-500 disabled:opacity-50"
                 disabled={isLoading}
               >
-                {isLoading ? 'Guardando...' : t.saveNewPassword}
+                {isLoading ? t.saving : t.saveNewPassword}
               </button>
             )}
             

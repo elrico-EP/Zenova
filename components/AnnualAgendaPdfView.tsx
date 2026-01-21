@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import type { Nurse, Schedule, Agenda, SpecialStrasbourgEvent } from '../types';
+import type { Nurse, Schedule, Agenda, SpecialStrasbourgEvent, JornadaLaboral } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ShiftCell } from './ScheduleGrid';
 import { getScheduleCellHours } from '../utils/scheduleUtils';
@@ -17,6 +17,7 @@ interface MonthViewProps {
   agenda: Agenda;
   strasbourgAssignments: Record<string, string[]>;
   specialStrasbourgEvents: SpecialStrasbourgEvent[];
+  jornadasLaborales: JornadaLaboral[];
 }
 
 // FIX: Add helper function to calculate event hours, similar to PersonalAgendaModal.
@@ -33,7 +34,7 @@ const calculateEventHours = (start?: string, end?: string): number => {
     }
 };
 
-const MonthView: React.FC<MonthViewProps> = ({ year, month, nurse, schedule, agenda, strasbourgAssignments, specialStrasbourgEvents }) => {
+const MonthView: React.FC<MonthViewProps> = ({ year, month, nurse, schedule, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales }) => {
   const { language } = useLanguage();
 
   const calendarGrid = useMemo(() => {
@@ -88,7 +89,8 @@ const MonthView: React.FC<MonthViewProps> = ({ year, month, nurse, schedule, age
                 ) : (
                     <ShiftCell
                       shiftCell={shiftCell}
-                      hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda)}
+                      // FIX: Pass jornadasLaborales to getScheduleCellHours
+                      hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales)}
                       hasManualHours={false}
                       isWeekend={isWeekend}
                       isClosingDay={isHoliday || activityLevel === 'CLOSED'}
@@ -116,9 +118,10 @@ interface AnnualAgendaPdfViewProps {
     agenda: Agenda;
     strasbourgAssignments: Record<string, string[]>;
     specialStrasbourgEvents: SpecialStrasbourgEvent[];
+    jornadasLaborales: JornadaLaboral[];
 }
 
-export const AnnualAgendaPdfView: React.FC<AnnualAgendaPdfViewProps> = ({ nurse, year, allSchedules, agenda, strasbourgAssignments, specialStrasbourgEvents }) => {
+export const AnnualAgendaPdfView: React.FC<AnnualAgendaPdfViewProps> = ({ nurse, year, allSchedules, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales }) => {
     const { language } = useLanguage();
     const months = [...Array(12).keys()]; // Array [0, 1, ..., 11]
 
@@ -141,6 +144,7 @@ export const AnnualAgendaPdfView: React.FC<AnnualAgendaPdfViewProps> = ({ nurse,
                             agenda={agenda}
                             strasbourgAssignments={strasbourgAssignments}
                             specialStrasbourgEvents={specialStrasbourgEvents}
+                            jornadasLaborales={jornadasLaborales}
                         />
                     </div>
                 );

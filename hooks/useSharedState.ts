@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Nurse, Agenda, Schedule, Notes, StrasbourgEvent, Wishes, HistoryEntry, ShiftRotation, ShiftRotationAssignment, JornadaLaboral, SpecialStrasbourgEvent, SwapInfo, ScheduleCell } from '../types';
+import type { Nurse, Agenda, Schedule, Notes, StrasbourgEvent, Wishes, HistoryEntry, ShiftRotation, ShiftRotationAssignment, JornadaLaboral, SpecialStrasbourgEvent, ScheduleCell, ManualChangeLogEntry } from '../types';
 import { INITIAL_NURSES } from '../constants';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026 } from '../data/agenda2026';
 
@@ -20,7 +20,7 @@ export interface AppState {
     shiftRotations: ShiftRotation[];
     shiftRotationAssignments: ShiftRotationAssignment[];
     jornadasLaborales: JornadaLaboral[];
-    visualSwaps: Record<string, Record<string, SwapInfo>>;
+    manualChangeLog: ManualChangeLogEntry[];
 }
 
 const INITIAL_JORNADAS: JornadaLaboral[] = [
@@ -145,7 +145,7 @@ const getInitialState = (): AppState => ({
     shiftRotations: [],
     shiftRotationAssignments: [],
     jornadasLaborales: INITIAL_JORNADAS,
-    visualSwaps: {},
+    manualChangeLog: [],
 });
 
 export const useSharedState = () => {
@@ -170,7 +170,8 @@ export const useSharedState = () => {
                 }
 
                 if (!parsedData.specialStrasbourgEvents) parsedData.specialStrasbourgEvents = [];
-                if (!parsedData.visualSwaps) parsedData.visualSwaps = {};
+                if (parsedData.visualSwaps) delete parsedData.visualSwaps; // Migration: remove old visualSwaps
+                if (!parsedData.manualChangeLog) parsedData.manualChangeLog = []; // One-time reset/initialization
                 setData(parsedData);
             } else {
                 const initialState = getInitialState();

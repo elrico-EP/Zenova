@@ -1,5 +1,5 @@
 import React, { useRef, useState, useLayoutEffect, useEffect, useMemo } from 'react';
-import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote, SwapInfo } from '../types';
+import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote } from '../types';
 import { SHIFTS } from '../constants';
 import { getWeekIdentifier } from '../utils/dateUtils';
 import { getScheduleCellHours, getShiftsFromCell } from '../utils/scheduleUtils';
@@ -272,28 +272,17 @@ interface ScheduleGridProps {
   strasbourgAssignments: Record<string, string[]>;
   isMonthClosed: boolean;
   jornadasLaborales: JornadaLaboral[];
-  visualSwaps: Record<string, Record<string, SwapInfo>>;
   onCellDoubleClick: (dateKey: string, nurseId: string) => void;
 }
 
 const EXCLUDED_SHIFTS = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG']);
-
-const getShiftLabel = (cell: ScheduleCell | undefined): string => {
-    if (!cell) return 'Libre';
-    const shifts = getShiftsFromCell(cell);
-    if (shifts.length === 0) {
-        if (typeof cell === 'object' && 'custom' in cell) return cell.custom.split('\n')[0];
-        return 'N/A';
-    }
-    return shifts.map(s => SHIFTS[s]?.label || s).join(' / ');
-};
 
 export const BASE_CELL_WIDTH = 140;
 export const DAY_COL_WIDTH = 100;
 export const PRESENT_COL_WIDTH = 70;
 export const NOTES_COL_WIDTH = 140;
 
-export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, visualSwaps, onCellDoubleClick }, ref) => {
+export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, onCellDoubleClick }, ref) => {
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
@@ -384,16 +373,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
 
                         const nurseCells = nurses.map(nurse => {
                             const isClosingDay = isHoliday || activityLevel === 'CLOSED';
-                            const originalShiftCell = schedule[nurse.id]?.[dateKey];
-                            const swapInfo = visualSwaps[dateKey]?.[nurse.id];
-                            const effectiveShiftCell = swapInfo ? swapInfo.shownShift : originalShiftCell;
-
-                            let tooltip = '';
-                            if (swapInfo) {
-                                const swappedWithNurseName = nurses.find(n => n.id === swapInfo.swappedWithNurseId)?.name ?? t.unknown;
-                                const originalShiftLabel = getShiftLabel(swapInfo.originalShift);
-                                tooltip = `Intercambio visual con ${swappedWithNurseName}. Turno real: ${originalShiftLabel}`;
-                            }
+                            const shiftCell = schedule[nurse.id]?.[dateKey];
                             
                             const violation = violations.find(v => (v.nurseId === nurse.id || v.nurseId === 'global') && (v.dateKey === dateKey || (v.weekId === weekId && !v.dateKey)));
                             const isShortFriday = dayOfWeek === 5 && agenda[getWeekIdentifier(new Date(date.getTime() + 3 * 24 * 60 * 60 * 1000))] !== 'SESSION';
@@ -405,13 +385,12 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                             if (hasManualHours) {
                                 displayHours = dailyHoursData!.segments!.filter(s => s.startTime && s.endTime).map(s => `${s.startTime.substring(0, 5)} - ${s.endTime.substring(0, 5)}`);
                             } else {
-                                displayHours = getScheduleCellHours(effectiveShiftCell, nurse, date, activityLevel, agenda);
+                                displayHours = getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales);
                             }
                             
                             return (
                                 <td 
                                     key={nurse.id} 
-                                    title={tooltip} 
                                     className={`relative border-r border-b border-gray-200/80 h-16 hover:bg-nova-50/50 transition-colors ${permissions.canManageSwaps && !isMonthClosed ? 'cursor-pointer' : ''}`}
                                     style={{ width: `${BASE_CELL_WIDTH * zoomLevel}px`, minWidth: `${BASE_CELL_WIDTH * zoomLevel}px`, maxWidth: `${BASE_CELL_WIDTH * zoomLevel}px` }}
                                     onDoubleClick={(e) => {
@@ -421,8 +400,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                                         }
                                     }}
                                 >
-                                    {swapInfo && <span className="absolute top-0.5 right-0.5 text-blue-600 text-xs z-10 bg-white/50 rounded-full p-0.5" aria-label="Turno intercambiado">🔁</span>}
-                                    <ShiftCell shiftCell={effectiveShiftCell} hours={displayHours} hasManualHours={!!hasManualHours} violation={violation} isWeekend={isWeekend} isClosingDay={isClosingDay} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={isShortFriday} />
+                                    <ShiftCell shiftCell={shiftCell} hours={displayHours} hasManualHours={!!hasManualHours} violation={violation} isWeekend={isWeekend} isClosingDay={isClosingDay} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={isShortFriday} />
                                 </td>
                             );
                         });

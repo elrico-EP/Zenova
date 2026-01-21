@@ -1,11 +1,8 @@
 import React from 'react';
-import type { Nurse, Schedule, Notes, Agenda, ScheduleCell, WorkZone, CustomShift, RuleViolation, ActivityLevel } from '../types';
+import type { Nurse, Schedule, Notes, Agenda, ScheduleCell, WorkZone, CustomShift, ActivityLevel } from '../types';
 import { SHIFTS } from '../constants';
-import { getWeekIdentifier } from '../utils/dateUtils';
-import { holidays2026 } from '../data/agenda2026';
 import { useTranslations } from '../hooks/useTranslations';
 import { getShiftsFromCell } from '../utils/scheduleUtils';
-import { Locale } from '../translations/locales';
 
 // FIX: Change Set<WorkZone> to Set<string> to allow 'DAY_OFF_80' which is not a standard WorkZone.
 const EXCLUDED_SHIFTS: Set<string> = new Set(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG', 'DAY_OFF_80']);
@@ -59,7 +56,7 @@ interface PdfExportViewProps {
   strasbourgAssignments: Record<string, string[]>;
 }
 
-export const PdfExportView: React.FC<PdfExportViewProps> = ({ nurses, schedule, currentDate, notes, agenda }) => {
+export const PdfExportView: React.FC<PdfExportViewProps> = ({ nurses, schedule, currentDate, notes }) => {
     const t = useTranslations();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -68,23 +65,23 @@ export const PdfExportView: React.FC<PdfExportViewProps> = ({ nurses, schedule, 
 
     return (
         <div className="bg-white p-4" style={{ width: 'fit-content' }}>
-            <h1 className="text-2xl font-bold mb-4 text-center">Plan de Turnos - {currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}</h1>
+            <h1 className="text-2xl font-bold mb-4 text-center">{t.appTitle} - {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h1>
             <table className="min-w-full border-collapse border border-gray-300 text-xs">
                 <thead>
                     <tr className="bg-slate-200">
-                        <th className="border border-gray-300 p-2 font-bold text-slate-700 w-28">Día</th>
+                        <th className="border border-gray-300 p-2 font-bold text-slate-700 w-28">{t.day}</th>
                         {nurses.map(nurse => (
                             <th key={nurse.id} className="border border-gray-300 p-2 font-bold text-slate-700 w-24">{nurse.name}</th>
                         ))}
-                        <th className="border border-gray-300 p-2 font-bold text-slate-700 w-20">Presentes</th>
-                        <th className="border border-gray-300 p-2 font-bold text-slate-700 w-40">Notas</th>
+                        <th className="border border-gray-300 p-2 font-bold text-slate-700 w-20">{t.present}</th>
+                        <th className="border border-gray-300 p-2 font-bold text-slate-700 w-40">{t.notes}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {days.map(day => {
                         const date = new Date(year, month, day);
                         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const dayOfWeekStr = date.toLocaleString('es-ES', { weekday: 'short' });
+                        const dayOfWeekStr = date.toLocaleString('default', { weekday: 'short' });
                         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
                         let presentCount = 0;

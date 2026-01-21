@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, SpecialStrasbourgEvent } from '../types';
+import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, SpecialStrasbourgEvent, JornadaLaboral } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ShiftCell } from './ScheduleGrid';
 import { holidays2026 } from '../data/agenda2026';
@@ -16,6 +16,7 @@ interface PersonalAgendaPdfViewProps {
   agenda: Agenda;
   strasbourgAssignments: Record<string, string[]>;
   specialStrasbourgEvents: SpecialStrasbourgEvent[];
+  jornadasLaborales: JornadaLaboral[];
 }
 
 const isDateInWorkPeriod = (nurse: Nurse, date: Date): boolean => {
@@ -32,7 +33,8 @@ export const PersonalAgendaPdfView: React.FC<PersonalAgendaPdfViewProps> = ({
   schedule,
   agenda,
   strasbourgAssignments,
-  specialStrasbourgEvents
+  specialStrasbourgEvents,
+  jornadasLaborales
 }) => {
   const { language } = useLanguage();
   const year = currentDate.getFullYear();
@@ -89,7 +91,8 @@ export const PersonalAgendaPdfView: React.FC<PersonalAgendaPdfViewProps> = ({
                             ) : (
                                 <ShiftCell 
                                   shiftCell={shiftCell} 
-                                  hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda2026Data)} 
+                                  // FIX: Pass jornadasLaborales to getScheduleCellHours
+                                  hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda2026Data, jornadasLaborales)} 
                                   hasManualHours={false}
                                   isWeekend={isWeekend} 
                                   isClosingDay={isHoliday || activityLevel === 'CLOSED'} 

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -7,9 +8,10 @@ import { usePermissions } from '../hooks/usePermissions';
 import { MonthPicker } from './MonthPicker';
 import { ExportControls } from './ExportControls';
 import { ZenovaLogo } from './ZenovaLogo';
-import type { Nurse, Schedule, Notes, Agenda, User, Hours } from '../types';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import type { Nurse, Schedule, Notes, Agenda, User, Hours, JornadaLaboral } from '../types';
 
-type AppView = 'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile';
+type AppView = 'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile' | 'annual';
 
 const UserMenu: React.FC<{
     nurses: Nurse[];
@@ -58,55 +60,13 @@ const UserMenu: React.FC<{
                             </>
                         )}
                         <div className="border-t my-1"></div>
-                        <button onClick={logout} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100">Cerrar Sesión</button>
+                        <button onClick={logout} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100">{t.logout}</button>
                     </div>
                 </div>
             )}
         </div>
     );
 };
-
-const LanguageSwitcher: React.FC<{ buttonClass: string }> = ({ buttonClass }) => {
-    const { language, setLanguage } = useLanguage();
-    const t = useTranslations();
-    const [isOpen, setIsOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsOpen(false);
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const languages = { es: 'Español', en: 'English', fr: 'Français' };
-
-    return (
-        <div className="relative" ref={menuRef}>
-            <button onClick={() => setIsOpen(!isOpen)} className={`${buttonClass} !font-bold`} title={t.changeLanguage}>
-                {language.toUpperCase()}
-                 <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-            </button>
-            {isOpen && (
-                <div className="absolute right-0 mt-2 w-32 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-20">
-                    <div className="py-1 text-gray-700">
-                        {(Object.keys(languages) as Array<keyof typeof languages>).map(lang => (
-                            <button
-                                key={lang}
-                                onClick={() => { setLanguage(lang); setIsOpen(false); }}
-                                className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100"
-                            >
-                                {languages[lang]}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
 
 interface HeaderProps {
   monthName: string;
@@ -120,13 +80,16 @@ interface HeaderProps {
   notes: Notes;
   agenda: Agenda;
   hours: Hours;
+  jornadasLaborales: JornadaLaboral[];
   onExportPdf: () => Promise<void>;
   view: AppView;
   setView: (view: AppView) => void;
   onOpenHelp: () => void;
+  onOpenHistory: () => void;
+  onOpenAnnualPlanner: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, onDateChange, isMonthClosed, onToggleMonthLock, schedule, nurses, notes, agenda, hours, onExportPdf, view, setView, onOpenHelp }) => {
+export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, onDateChange, isMonthClosed, onToggleMonthLock, schedule, nurses, notes, agenda, hours, jornadasLaborales, onExportPdf, view, setView, onOpenHelp, onOpenHistory, onOpenAnnualPlanner }) => {
   const t = useTranslations();
   const permissions = usePermissions();
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
@@ -135,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, on
     { bg: 'bg-zen-800', text: 'text-white', button: 'bg-white/10 text-white hover:bg-white/20', activeViewBg: 'bg-white', activeViewText: 'text-zen-800', inactiveViewText: 'text-zen-100 hover:text-white hover:bg-white/10' } :
     { bg: 'bg-zen-800', text: 'text-white', button: 'bg-white/10 text-white hover:bg-white/20', activeViewBg: 'bg-white', activeViewText: 'text-zen-800', inactiveViewText: 'text-zen-100 hover:text-white hover:bg-white/10' };
 
-  const navButtonClass = (buttonView: typeof view) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${view === buttonView ? `${theme.activeViewBg} ${theme.activeViewText} shadow-sm` : theme.inactiveViewText}`;
+  const navButtonClass = (buttonView: AppView) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${view === buttonView ? `${theme.activeViewBg} ${theme.activeViewText} shadow-sm` : theme.inactiveViewText}`;
   const userMenuButtonClass = `inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${theme.button}`;
 
   const handlePrevMonth = () => onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -158,17 +121,19 @@ export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, on
       </div>
       
       <nav className="flex items-center gap-2 bg-black/10 p-1 rounded-lg">
-        <button onClick={() => setView('schedule')} className={navButtonClass('schedule')}>Agenda</button>
-        {permissions.isViewingAsAdmin && <button onClick={() => setView('balance')} className={navButtonClass('balance')}>Balance</button>}
+        <button onClick={() => setView('schedule')} className={navButtonClass('schedule')}>{t.nav_agenda}</button>
+        {permissions.isViewingAsAdmin && <button onClick={() => setView('balance')} className={navButtonClass('balance')}>{t.nav_balance}</button>}
+        {permissions.isViewingAsAdmin && <button onClick={onOpenAnnualPlanner} className={navButtonClass('annual')}>{t['planner.annual_planner_title']}</button>}
         <button onClick={() => setView('wishes')} className={navButtonClass('wishes')}>{t.wishesViewButton}</button>
-        {permissions.canManageUsers && <button onClick={() => setView('userManagement')} className={navButtonClass('userManagement')}>Usuarios</button>}
+        {permissions.canManageUsers && <button onClick={() => setView('userManagement')} className={navButtonClass('userManagement')}>{t.nav_users}</button>}
+        <button onClick={onOpenHistory} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${theme.inactiveViewText}`}>{t.historyLog}</button>
       </nav>
 
       <div className="flex items-center gap-2">
         {permissions.canLockMonth && ( <button onClick={onToggleMonthLock} className={userMenuButtonClass} title={isMonthClosed ? t.unlockMonth : t.lockMonth}> {isMonthClosed ? '🔓' : '🔒'} </button> )}
-        {permissions.canExport && <ExportControls {...{ schedule, nurses, currentDate, onExportPdf, agenda, notes, hours }} />}
+        {permissions.canExport && <ExportControls {...{ schedule, nurses, currentDate, onExportPdf, agenda, notes, hours, jornadasLaborales }} />}
         <button onClick={onOpenHelp} className={userMenuButtonClass} title={t.help}>?</button>
-        <LanguageSwitcher buttonClass={userMenuButtonClass} />
+        <LanguageSwitcher />
         <UserMenu nurses={nurses} buttonClass={userMenuButtonClass} setView={setView} />
       </div>
     </header>

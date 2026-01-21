@@ -1,4 +1,3 @@
-
 import { useUser } from '../contexts/UserContext';
 
 export const usePermissions = () => {
@@ -9,6 +8,7 @@ export const usePermissions = () => {
     // They control what is VISIBLE in the UI.
     const isViewingAsAdmin = viewContext?.role === 'admin';
     const isViewingAsUser = viewContext?.role === 'nurse';
+    const isViewingAsViewer = viewContext?.role === 'viewer';
 
     // Admin-level visibility flags
     const canSeeAdminModules = isViewingAsAdmin;
@@ -25,12 +25,12 @@ export const usePermissions = () => {
 
 
     // Permissions available to both view contexts
-    const canManageSwaps = true; // Create/undo visual swaps is visible for both
-    const canViewHistory = true;
-    const canEditGeneralNotes = true;
+    const canManageSwaps = !isViewingAsViewer;
+    const canViewHistory = isViewingAsAdmin; // Only admins see full history
+    const canEditGeneralNotes = isViewingAsAdmin;
 
     // Granular/context-dependent visibility
-    const canEditOwnWishes = true; // A user can always see their own wishes column as editable
+    const canEditOwnWishes = !isViewingAsViewer;
     
     /**
      * Determines if the UI for editing a personal agenda should be visible.
@@ -42,10 +42,10 @@ export const usePermissions = () => {
 
     /**
      * Determines if the button/link to open a personal agenda should be visible.
-     * Rule: Admins can see all, users can only see their own.
+     * Rule: Admins can see all, users can only see their own. Viewers see none.
      */
     const canOpenPersonalAgenda = (agendaOwnerId: string): boolean => {
-        return isViewingAsAdmin || (isViewingAsUser && viewContext.id === agendaOwnerId);
+        return !isViewingAsViewer && (isViewingAsAdmin || (isViewingAsUser && viewContext.id === agendaOwnerId));
     };
 
     // --- REAL AUTH PERMISSIONS ---
@@ -53,6 +53,7 @@ export const usePermissions = () => {
     // They should be used to authorize actual actions (e.g., database writes).
     const isRealAdmin = authUser?.role === 'admin';
     const isRealUser = authUser?.role === 'nurse';
+    const isRealViewer = authUser?.role === 'viewer';
 
     /**
      * Determines if the current authenticated user has the real permission to edit a personal agenda.
@@ -66,6 +67,7 @@ export const usePermissions = () => {
         // View Context Flags
         isViewingAsAdmin,
         isViewingAsUser,
+        isViewingAsViewer,
         
         // Admin-only UI capabilities
         canSeeAdminModules,
@@ -93,6 +95,7 @@ export const usePermissions = () => {
         // Real Authorization Flags (for guarding actions)
         isRealAdmin,
         isRealUser,
+        isRealViewer,
         canActuallyEditPersonalAgenda
     };
 };

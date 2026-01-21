@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { Nurse, JornadaLaboral } from '../types';
 import { getActiveJornada } from '../utils/jornadaUtils';
+import { useTranslations } from '../hooks/useTranslations';
 
 interface WorkConditionsBarProps {
     nurses: Nurse[];
@@ -9,6 +10,7 @@ interface WorkConditionsBarProps {
 }
 
 export const WorkConditionsBar: React.FC<WorkConditionsBarProps> = ({ nurses, jornadas, currentDate }) => {
+    const t = useTranslations();
 
     const activeReductions = useMemo(() => {
         return nurses
@@ -34,11 +36,11 @@ export const WorkConditionsBar: React.FC<WorkConditionsBarProps> = ({ nurses, jo
 
     return (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
-            <h4 className="font-semibold mb-2">Condiciones laborales activas este mes:</h4>
+            <h4 className="font-semibold mb-2">{t.activeWorkConditions}</h4>
             <ul className="flex flex-wrap gap-x-6 gap-y-1 list-disc list-inside">
                 {activeReductions.map(item => (
                     <li key={item.name}>
-                        <strong>{item.name}</strong> &rarr; Reducción {item.porcentaje}%
+                        <strong>{item.name}</strong> &rarr; {t.reduction} {item.porcentaje}%
                     </li>
                 ))}
             </ul>

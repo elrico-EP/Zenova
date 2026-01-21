@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
 import type { Nurse, Wishes, Agenda, ActivityLevel, Wish } from '../types';
 import { getWeekIdentifier } from '../utils/dateUtils';
@@ -27,6 +26,7 @@ const DayCell: React.FC<{
 }> = React.memo(({ nurseId, dateKey, wish, onTextChange, onValidate }) => {
     const { effectiveUser } = useUser();
     const permissions = usePermissions();
+    const t = useTranslations();
     const [editText, setEditText] = useState(wish?.text || '');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -76,7 +76,7 @@ const DayCell: React.FC<{
                 <button 
                     onClick={handleValidationToggle}
                     className="absolute bottom-1 right-1 p-1 rounded-full"
-                    title={isValidated ? 'Deseo Aprobado. Clic para desaprobar.' : 'Deseo Pendiente. Clic para aprobar.'}
+                    title={isValidated ? t.wishValidated : t.wishPending}
                 >
                     {isValidated ? 
                         // Is validated -> Show Green Check
@@ -89,7 +89,7 @@ const DayCell: React.FC<{
             ) : (
                 // Non-admin just sees the static status icon if validated
                 isValidated && (
-                    <span className="absolute top-1 right-1 text-green-500" title="Validado por admin">
+                    <span className="absolute top-1 right-1 text-green-500" title={t.validatedByAdmin}>
                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                    </span>
                 )
@@ -160,7 +160,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, wishes, on
                 <table className="border-collapse w-full text-sm border-separate" style={{ borderSpacing: 0, tableLayout: 'fixed' }}>
                     <thead className="sticky top-0 z-20">
                         <tr>
-                            <th className="sticky left-0 bg-slate-100 z-30 p-2 border-b-2 font-semibold text-slate-600 text-left" style={{width: '6rem'}}>Día</th>
+                            <th className="sticky left-0 bg-slate-100 z-30 p-2 border-b-2 font-semibold text-slate-600 text-left" style={{width: '6rem'}}>{t.dayHeader}</th>
                             {nurses.map(nurse => (
                                 <th key={nurse.id} className="p-2 border-b-2 font-semibold text-slate-600 text-left bg-slate-100 truncate">{nurse.name}</th>
                             ))}

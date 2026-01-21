@@ -1,4 +1,3 @@
-
 export interface User {
   id: string; 
   name: string;
@@ -53,7 +52,7 @@ export interface Nurse {
   passwordResetRequired?: boolean;
 }
 
-export type UserRole = 'admin' | 'nurse';
+export type UserRole = 'admin' | 'nurse' | 'viewer';
 
 export interface CustomShift {
   custom: string;
@@ -132,6 +131,16 @@ export type ManualChangePayload = {
     endTime?: string;
 };
 
+export interface ManualChangeLogEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  nurseId: string;
+  dateKey: string;
+  originalShift: ScheduleCell | undefined;
+  newShift: ScheduleCell | 'DELETE';
+}
+
 export type PersonalHoursChangePayload = {
   nurseId: string;
   dateKey: string;
@@ -146,12 +155,6 @@ export type SwapRequest = {
   endDate: string;
 };
 
-export interface SwapInfo {
-  shownShift: ScheduleCell;
-  swappedWithNurseId: string;
-  originalShift: ScheduleCell;
-}
-
 export interface StrasbourgEvent {
     id: string;
     name: string;
@@ -160,6 +163,8 @@ export interface StrasbourgEvent {
     nurseId: string;
     time?: string;
 }
+
+export type SpecialStrasbourgEventType = 'euroscola' | 'tuesday_permanence' | 'wednesday_permanence' | 'other';
 
 export interface SpecialStrasbourgEvent {
   id: string;
@@ -170,6 +175,7 @@ export interface SpecialStrasbourgEvent {
   notes?: string;
   startTime?: string;
   endTime?: string;
+  type?: SpecialStrasbourgEventType;
 }
 
 export interface ShiftCounts {
@@ -210,6 +216,7 @@ export interface HistoryEntry {
   user: string;
   action: string;
   details: string;
+  undoPayload?: any; // To store context for undoable actions
 }
 
 export interface Wish {
@@ -249,4 +256,11 @@ export interface JornadaLaboral {
     reductionOption?: ReductionOption;
     reductionDayOfWeek?: 1 | 2 | 3 | 4 | 5; // Monday=1, ..., Friday=5
     secondaryReductionDayOfWeek?: 1 | 2 | 3 | 4; // For 80% Friday rule
+}
+
+// FIX: Add missing SwapInfo type definition.
+export interface SwapInfo {
+  shownShift: ScheduleCell;
+  swappedWithNurseId: string;
+  originalShift: ScheduleCell;
 }

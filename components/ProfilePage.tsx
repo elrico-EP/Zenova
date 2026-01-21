@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -31,7 +30,7 @@ export const ProfilePage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) => {
         setSuccess('');
 
         if (!currentPassword || !newPassword || !confirmPassword) {
-            setError('Todos los campos son obligatorios.');
+            setError(t.allFieldsRequired);
             return;
         }
         if (newPassword !== confirmPassword) {
@@ -100,9 +99,9 @@ export const ProfilePage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) => {
                         onChange={handleLanguageChange}
                         className="w-full p-2 border border-slate-300 rounded-md bg-white focus:ring-zen-500 focus:border-zen-500"
                     >
-                        <option value="es">Español</option>
-                        <option value="en">English</option>
-                        <option value="fr">Français</option>
+                        <option value="en">{t.lang_en}</option>
+                        <option value="es">{t.lang_es}</option>
+                        <option value="fr">{t.lang_fr}</option>
                     </select>
                 </div>
 
@@ -128,7 +127,7 @@ export const ProfilePage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) => {
                         
                         <div className="flex justify-end pt-2">
                             <button type="submit" disabled={isLoading} className="px-4 py-2 bg-zen-800 text-white font-semibold rounded-md hover:bg-zen-700 disabled:opacity-50">
-                                {isLoading ? 'Guardando...' : t.savePassword}
+                                {isLoading ? t.saving : t.savePassword}
                             </button>
                         </div>
                     </form>

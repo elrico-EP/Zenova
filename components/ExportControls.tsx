@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import type { Nurse, Schedule, Notes, Agenda, Hours } from '../types';
+import type { Nurse, Schedule, Notes, Agenda, Hours, JornadaLaboral } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
 import { copyScheduleToClipboard } from '../utils/exportUtils';
 
@@ -10,10 +11,11 @@ interface ExportControlsProps {
     notes: Notes;
     agenda: Agenda;
     hours: Hours;
+    jornadasLaborales: JornadaLaboral[];
     onExportPdf: () => Promise<void>;
 }
 
-export const ExportControls: React.FC<ExportControlsProps> = ({ schedule, nurses, currentDate, onExportPdf, agenda, notes, hours }) => {
+export const ExportControls: React.FC<ExportControlsProps> = ({ schedule, nurses, currentDate, onExportPdf, agenda, notes, hours, jornadasLaborales }) => {
     const t = useTranslations();
     const [isPdfLoading, setIsPdfLoading] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -44,7 +46,7 @@ export const ExportControls: React.FC<ExportControlsProps> = ({ schedule, nurses
 
     const handleCopyToClipboard = async () => {
         setIsMenuOpen(false);
-        await copyScheduleToClipboard(schedule, nurses, currentDate, agenda, notes, hours);
+        await copyScheduleToClipboard(schedule, nurses, currentDate, agenda, notes, hours, jornadasLaborales);
         setCopyStatus('copied');
         setTimeout(() => setCopyStatus('idle'), 2000);
     };

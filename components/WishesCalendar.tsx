@@ -1,8 +1,9 @@
-
 import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
 import type { Nurse, Wishes, Agenda, ActivityLevel } from '../types';
 import { getWeekIdentifier } from '../utils/dateUtils';
 import { useUser } from '../contexts/UserContext';
+import { useTranslations } from '../hooks/useTranslations';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const activityStyles: Record<ActivityLevel, string> = {
   NORMAL: 'bg-white',
@@ -11,9 +12,6 @@ const activityStyles: Record<ActivityLevel, string> = {
   REDUCED: 'bg-amber-50',
   CLOSED: 'bg-gray-100'
 };
-
-const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const dayNames = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
 interface DayCellProps {
     nurseId: string;
@@ -76,6 +74,15 @@ interface WishesCalendarProps {
 }
 
 export const WishesCalendar: React.FC<WishesCalendarProps> = ({ nurses, year, wishes, onWishesChange, agenda }) => {
+    const { language } = useLanguage();
+    const t = useTranslations();
+
+    const { months, dayNames } = useMemo(() => {
+        const m = [...Array(12).keys()].map(i => new Date(year, i, 1).toLocaleString(language, { month: 'long' }));
+        const d = [...Array(7).keys()].map(i => new Date(2023, 0, i + 1).toLocaleString(language, { weekday: 'short' }));
+        return { months: m, dayNames: d };
+    }, [year, language]);
+
     const calendarDays = useMemo(() => {
         const days = [];
         for (let m = 0; m < 12; m++) {
@@ -86,14 +93,14 @@ export const WishesCalendar: React.FC<WishesCalendarProps> = ({ nurses, year, wi
             }
         }
         return days;
-    }, [year]);
+    }, [year, months]);
 
     return (
         <div className="overflow-auto h-full">
             <table className="border-collapse w-full text-sm border-separate border-spacing-0">
                 <thead className="sticky top-0 z-20">
                     <tr>
-                        <th className="sticky left-0 bg-slate-100 z-30 p-2 border-b-2 font-normal text-slate-600 w-32 text-left">Día</th>
+                        <th className="sticky left-0 bg-slate-100 z-30 p-2 border-b-2 font-normal text-slate-600 w-32 text-left">{t.dayHeader}</th>
                         {nurses.map(nurse => (
                             <th key={nurse.id} className="p-2 border-b-2 font-normal text-slate-600 min-w-[12rem] text-left">{nurse.name}</th>
                         ))}
@@ -104,7 +111,7 @@ export const WishesCalendar: React.FC<WishesCalendarProps> = ({ nurses, year, wi
                         if (item.isMonth) {
                             return (
                                 <tr key={`month-${item.monthName}`}>
-                                    <td colSpan={nurses.length + 1} className="sticky left-0 bg-white p-2 border-b-2 border-zen-200 font-semibold text-zen-700 z-10">
+                                    <td colSpan={nurses.length + 1} className="sticky left-0 bg-white p-2 border-b-2 border-zen-200 font-semibold text-zen-700 z-10 capitalize">
                                         {item.monthName}
                                     </td>
                                 </tr>
@@ -121,7 +128,7 @@ export const WishesCalendar: React.FC<WishesCalendarProps> = ({ nurses, year, wi
                         return (
                             <tr key={dateKey} className="hover:bg-zen-50/50">
                                 <td className={`sticky left-0 z-10 p-2 border-b font-medium w-32 ${isWeekend ? 'bg-slate-50' : 'bg-white'}`}>
-                                    <span className={isWeekend ? 'text-slate-500' : 'text-slate-800'}>
+                                    <span className={`capitalize ${isWeekend ? 'text-slate-500' : 'text-slate-800'}`}>
                                         {dayNames[dayOfWeek]} {date.getDate()}
                                     </span>
                                 </td>

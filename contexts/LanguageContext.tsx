@@ -1,7 +1,6 @@
-
 import React from 'react';
 
-type Language = 'es' | 'en' | 'fr';
+export type Language = 'es' | 'en' | 'fr';
 
 interface LanguageContextType {
   language: Language;
@@ -10,8 +9,29 @@ interface LanguageContextType {
 
 export const LanguageContext = React.createContext<LanguageContextType | undefined>(undefined);
 
+const getInitialLanguage = (): Language => {
+    try {
+        const storedLang = localStorage.getItem('zenova-lang');
+        if (storedLang && ['en', 'es', 'fr'].includes(storedLang)) {
+            return storedLang as Language;
+        }
+    } catch (e) {
+        console.error("Could not read language from local storage", e);
+    }
+    return 'en'; // Default to English
+}
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = React.useState<Language>('es');
+  const [language, setLanguageState] = React.useState<Language>(getInitialLanguage());
+
+  const setLanguage = (lang: Language) => {
+      try {
+          localStorage.setItem('zenova-lang', lang);
+      } catch (e) {
+          console.error("Could not save language to local storage", e);
+      }
+      setLanguageState(lang);
+  };
 
   const value = { language, setLanguage };
 

@@ -49,7 +49,7 @@ export const authenticate = (username: string, password: string): Promise<User |
         localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.email);
         resolve(user);
       } else {
-        reject(new Error('Credenciales incorrectas. Por favor, inténtalo de nuevo.'));
+        reject(new Error('login_error'));
       }
     }, 500);
   });
@@ -70,7 +70,7 @@ export const addUser = (userData: Omit<User, 'id'>): Promise<void> => {
     return new Promise((resolve, reject) => {
         const users = getUsers();
         if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-            return reject(new Error('El nombre de usuario ya está en uso.'));
+            return reject(new Error('usernameInUseError'));
         }
         const newUser: User = { ...userData, id: `user-${Date.now()}`, mustChangePassword: true };
         saveUsers([...users, newUser]);
@@ -83,7 +83,7 @@ export const updateUser = (userData: User | Nurse): Promise<void> => {
         let users = getUsers();
         const userIndex = users.findIndex(u => u.id === userData.id);
         if (userIndex === -1) {
-            return reject(new Error('Usuario no encontrado.'));
+            return reject(new Error('userNotFound'));
         }
         // Preserve password if not provided
         if (!userData.password) {
@@ -115,12 +115,12 @@ export const changePassword = (userId: string, currentPassword: string, newPassw
             let users = getUsers();
             const userIndex = users.findIndex(u => u.id === userId);
             if (userIndex === -1) {
-                return reject(new Error('Usuario no encontrado.'));
+                return reject(new Error('userNotFound'));
             }
             
             const user = users[userIndex];
             if (user.password !== currentPassword) {
-                return reject(new Error('La contraseña actual es incorrecta.'));
+                return reject(new Error('login_error')); // Re-use login error for wrong password
             }
 
             users[userIndex].password = newPassword;
@@ -137,7 +137,7 @@ export const forceSetPassword = (userId: string, newPassword: string): Promise<v
             let users = getUsers();
             const userIndex = users.findIndex(u => u.id === userId);
             if (userIndex === -1) {
-                return reject(new Error('Usuario no encontrado.'));
+                return reject(new Error('userNotFound'));
             }
             
             const user = users[userIndex];
@@ -177,11 +177,11 @@ export const resetPassword = (username: string, newPassword: string): Promise<vo
             const users = getUsers();
             const userIndex = users.findIndex(u => u.email.toLowerCase() === username.toLowerCase());
             if (userIndex === -1) {
-                return reject(new Error('Usuario no encontrado.'));
+                return reject(new Error('userNotFound'));
             }
             const user = users[userIndex];
             if (!user.passwordResetRequired) {
-                return reject(new Error('No se ha solicitado el reseteo de contraseña para este usuario.'));
+                return reject(new Error('passwordResetNotRequested')); // A more specific key might be needed
             }
             users[userIndex] = { ...user, password: newPassword, mustChangePassword: false, passwordResetRequired: false };
             saveUsers(users);

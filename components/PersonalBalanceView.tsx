@@ -1,6 +1,7 @@
 import React from 'react';
 import type { BalanceData, ShiftCounts } from '../types';
 import { SHIFTS } from '../constants';
+import { useTranslations } from '../hooks/useTranslations';
 
 interface PersonalBalanceViewProps {
   balanceData: BalanceData;
@@ -20,15 +21,16 @@ const balanceHeaders: { key: keyof ShiftCounts; label: string }[] = [
 ];
 
 export const PersonalBalanceView: React.FC<PersonalBalanceViewProps> = ({ balanceData }) => {
+  const t = useTranslations();
   return (
     <div className="bg-gray-50 p-4 rounded-lg">
-      <h4 className="font-semibold text-gray-700 mb-3">Balance de Turnos</h4>
+      <h4 className="font-semibold text-gray-700 mb-3">{t.personalBalanceTitle}</h4>
       <table className="w-full text-sm text-left">
         <thead className="text-xs text-gray-700 uppercase bg-gray-100">
           <tr>
-            <th scope="col" className="px-2 py-2">Turno</th>
-            <th scope="col" className="px-2 py-2 text-center">Mes</th>
-            <th scope="col" className="px-2 py-2 text-center">Año</th>
+            <th scope="col" className="px-2 py-2">{t.shift}</th>
+            <th scope="col" className="px-2 py-2 text-center">{t.month}</th>
+            <th scope="col" className="px-2 py-2 text-center">{t.year}</th>
           </tr>
         </thead>
         <tbody>
@@ -50,12 +52,12 @@ export const PersonalBalanceView: React.FC<PersonalBalanceViewProps> = ({ balanc
             );
            })}
            <tr className="bg-gray-100 font-bold">
-             <td className="px-2 py-2">Total Días Trab.</td>
+             <td className="px-2 py-2">{t.totalWorkDays}</td>
              <td className="px-2 py-2 text-center">{balanceData.monthlyTotalWorkDays}</td>
              <td className="px-2 py-2 text-center">{balanceData.annualTotalWorkDays}</td>
            </tr>
            <tr className="bg-gray-100 font-bold">
-             <td className="px-2 py-2">Total Horas</td>
+             <td className="px-2 py-2">{t.totalHours}</td>
              <td className="px-2 py-2 text-center">{balanceData.monthlyTotalHours.toFixed(1)}</td>
              <td className="px-2 py-2 text-center">{balanceData.annualTotalHours.toFixed(1)}</td>
            </tr>

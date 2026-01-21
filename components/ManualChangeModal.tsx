@@ -95,8 +95,8 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
     };
 
     const handleSubmit = async () => {
-        if (!selectedNurseId) { setError("Debes seleccionar un enfermero/a."); return; }
-        if (!startDate || !endDate) { setError("Debes seleccionar un rango de fechas."); return; }
+        if (!selectedNurseId) { setError(t.error_selectNurse); return; }
+        if (!startDate || !endDate) { setError(t.error_selectDateRange); return; }
 
         setError('');
         setIsLoading(true);
@@ -114,7 +114,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                 let customLabel = shiftInfo.label;
                 const allNotes: string[] = [];
                 if (note1) allNotes.push(note1);
-                if (startTime2 && endTime2) allNotes.push(`Interrupción: ${startTime2} - ${endTime2}`);
+                if (startTime2 && endTime2) allNotes.push(`Interruption: ${startTime2} - ${endTime2}`);
                 if (note2) allNotes.push(note2);
 
                 if (allNotes.length > 0) {
@@ -152,9 +152,9 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
             <div className="space-y-6">
                 
                 <section>
-                    <label htmlFor="nurse-select" className="block text-sm font-semibold text-gray-800 mb-2">1. Seleccionar enfermero</label>
+                    <label htmlFor="nurse-select" className="block text-sm font-semibold text-gray-800 mb-2">{t.step1_nurses}</label>
                     <select id="nurse-select" value={selectedNurseId} onChange={e => setSelectedNurseId(e.target.value)} required className="w-full p-2 border border-slate-300 rounded-md text-sm bg-white focus:ring-zen-500 focus:border-zen-500">
-                        <option value="" disabled>Selecciona un/a enfermero/a...</option>
+                        <option value="" disabled>{t.selectNursePrompt}</option>
                         {nurses.map(nurse => (
                             <option key={nurse.id} value={nurse.id}>{nurse.name}</option>
                         ))}
@@ -162,7 +162,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                 </section>
                 
                 <section>
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">5. Rango de fechas</label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">{t.step3_dates}</label>
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <label htmlFor="start-date" className="text-xs text-gray-600">{t.startDate}</label>
@@ -176,7 +176,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                 </section>
 
                 <section>
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">2. Seleccionar turno</label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">{t.step2_shift}</label>
                     <div className="grid grid-cols-3 gap-2">
                         {quickShifts.map(shiftId => {
                             const shiftInfo = SHIFTS[shiftId];
@@ -197,12 +197,12 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                             onClick={() => setSelectedShift('DELETE')}
                             className={`col-span-3 p-2 rounded-md text-center transition-all duration-150 bg-red-100 text-red-700 ${selectedShift === 'DELETE' ? 'ring-2 ring-offset-1 ring-zen-500 shadow-md' : 'hover:shadow-md'}`}
                         >
-                            <span className="font-bold text-sm">Eliminar Turno</span>
+                            <span className="font-bold text-sm">{t.deleteShift}</span>
                         </button>
                     </div>
                     <div className="text-right mt-3">
                         <button type="button" onClick={() => setIsAdvanced(true)} className="text-sm text-zen-600 hover:underline">
-                            Editar horario y añadir notas &rarr;
+                            {t.advancedEdit}
                         </button>
                     </div>
                 </section>
@@ -211,41 +211,41 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                     <>
                          <div className="text-left mb-2 border-t pt-4">
                             <button type="button" onClick={() => setIsAdvanced(false)} className="text-sm text-zen-600 hover:underline">
-                                &larr; Volver a edición rápida
+                                {t.quickEdit}
                             </button>
                         </div>
                         <section>
-                            <label className="block text-sm font-semibold text-gray-800 mb-2">3. Horario principal (Avanzado)</label>
+                            <label className="block text-sm font-semibold text-gray-800 mb-2">{t.mainSchedule}</label>
                             <div className="flex items-center gap-4">
                                 <div className="flex-1">
-                                    <label htmlFor="start-time-1" className="text-xs text-gray-600">Hora Inicio</label>
+                                    <label htmlFor="start-time-1" className="text-xs text-gray-600">{t.startTime}</label>
                                     <input type="time" id="start-time-1" value={startTime1} onChange={e => setStartTime1(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
                                 </div>
                                 <div className="flex-1">
-                                    <label htmlFor="end-time-1" className="text-xs text-gray-600">Hora Fin</label>
+                                    <label htmlFor="end-time-1" className="text-xs text-gray-600">{t.endTime}</label>
                                     <input type="time" id="end-time-1" value={endTime1} onChange={e => setEndTime1(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
                                 </div>
                             </div>
                             <div className="mt-2">
-                                <label htmlFor="note-1" className="text-xs text-gray-600">Notas (ajuste de jornada)</label>
+                                <label htmlFor="note-1" className="text-xs text-gray-600">{t.adjustmentNotes}</label>
                                 <textarea id="note-1" value={note1} onChange={e => setNote1(e.target.value)} rows={3} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"></textarea>
                             </div>
                         </section>
 
                         <section>
-                            <label className="block text-sm font-semibold text-gray-800 mb-2">4. Ausencia / interrupción intermedia (opcional)</label>
+                            <label className="block text-sm font-semibold text-gray-800 mb-2">{t.interruption}</label>
                             <div className="flex items-center gap-4">
                                 <div className="flex-1">
-                                    <label htmlFor="start-time-2" className="text-xs text-gray-600">Hora Inicio</label>
+                                    <label htmlFor="start-time-2" className="text-xs text-gray-600">{t.startTime}</label>
                                     <input type="time" id="start-time-2" value={startTime2} onChange={e => setStartTime2(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
                                 </div>
                                 <div className="flex-1">
-                                    <label htmlFor="end-time-2" className="text-xs text-gray-600">Hora Fin</label>
+                                    <label htmlFor="end-time-2" className="text-xs text-gray-600">{t.endTime}</label>
                                     <input type="time" id="end-time-2" value={endTime2} onChange={e => setEndTime2(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
                                 </div>
                             </div>
                             <div className="mt-2">
-                                <label htmlFor="note-2" className="text-xs text-gray-600">Notas (interrupción / ausencia intermedia)</label>
+                                <label htmlFor="note-2" className="text-xs text-gray-600">{t.interruptionNotes}</label>
                                 <textarea id="note-2" value={note2} onChange={e => setNote2(e.target.value)} rows={3} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"></textarea>
                             </div>
                         </section>
@@ -259,7 +259,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
         
         <footer className="p-4 bg-white border-t flex-shrink-0">
              <button onClick={handleSubmit} disabled={isLoading} className="w-full px-4 py-3 bg-zen-800 text-white font-bold rounded-md hover:bg-zen-700 disabled:bg-zen-500 transition-colors">
-                {isLoading ? 'Aplicando...' : 'Aplicar cambios'}
+                {isLoading ? t.applyingChanges : t.applyChanges}
             </button>
         </footer>
       </div>
