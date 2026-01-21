@@ -1,64 +1,50 @@
 import type { User, Nurse, UserRole } from '../types';
 import { INITIAL_NURSES } from '../constants';
 
-const USERS_STORAGE_KEY = 'zenova-users-db';
-const CURRENT_USER_STORAGE_KEY = 'zenova-current-user-session';
+// --- In-Memory Mock Database ---
+// This acts as our centralized, "server-side" user store.
+// It contains User accounts, which can be linked to Nurse profiles.
+let mockUserDatabase: User[] = [
+    // Admin User account
+    { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', mustChangePassword: false, passwordResetRequired: false },
+    // Create User accounts for each Nurse profile
+    ...INITIAL_NURSES.map(nurse => ({
+        id: `user-account-${nurse.id}`, // A unique ID for the user account
+        name: nurse.name, // The user's name is the same as the nurse's name
+        email: nurse.email, // The user's email is the same as the nurse's email
+        password: 'password123', // A default password
+        role: 'nurse' as UserRole,
+        nurseId: nurse.id, // Link this user account to the nurse profile
+        mustChangePassword: true, // Force password change on first login
+        passwordResetRequired: false,
+    }))
+];
 
-const seedInitialUsers = (): (User | Nurse)[] => {
-  const initialUsers: (User|Nurse)[] = [
-    { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', order: -1, mustChangePassword: false },
-  ];
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initialUsers));
-  return initialUsers;
+// --- In-Memory Mock Session ---
+let currentUserEmail: string | null = null;
+
+
+// --- Service Functions ---
+
+// The user management functions now operate on `User` accounts.
+// The `Nurse` profiles from `constants.ts` are treated as separate data for the scheduling logic.
+export const getUsers = (): User[] => {
+  return mockUserDatabase;
 };
 
-export const getUsers = (): (User | Nurse)[] => {
-  try {
-    const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
-    if (!usersJson) {
-      return seedInitialUsers();
-    }
-    const users = JSON.parse(usersJson);
-    
-    const adminIndex = users.findIndex((u: User) => u.id === 'admin-user');
-    let needsSave = false;
-
-    if (adminIndex === -1) {
-        // Admin user doesn't exist, add it.
-        users.push({ id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', order: -1, mustChangePassword: false });
-        needsSave = true;
-    } else {
-        // Admin user exists, check if password is correct.
-        const adminUser = users[adminIndex];
-        if (adminUser.password !== 'admin123' || adminUser.mustChangePassword !== false) {
-            users[adminIndex] = { ...adminUser, password: 'admin123', mustChangePassword: false };
-            needsSave = true;
-        }
-    }
-
-    if (needsSave) {
-        saveUsers(users);
-    }
-    
-    return users;
-  } catch (e) {
-    console.error("Failed to parse users from localStorage", e);
-    return seedInitialUsers();
-  }
+const saveUsers = (users: User[]) => {
+  mockUserDatabase = users;
 };
 
-const saveUsers = (users: (User | Nurse)[]) => {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-};
-
-export const authenticate = (username: string, password: string): Promise<User | Nurse> => {
+// Note: The return type is `Promise<User>`, not `Promise<User | Nurse>`
+export const authenticate = (username: string, password: string): Promise<User> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => { // Simulate network delay
       const users = getUsers();
       const user = users.find(u => u.email.toLowerCase() === username.toLowerCase());
 
       if (user && user.password === password) {
-        localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.email);
+        currentUserEmail = user.email;
         resolve(user);
       } else {
         reject(new Error('login_error'));
@@ -67,15 +53,14 @@ export const authenticate = (username: string, password: string): Promise<User |
   });
 };
 
-export const getCurrentUser = (): User | Nurse | null => {
-    const email = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
-    if (!email) return null;
+export const getCurrentUser = (): User | null => {
+    if (!currentUserEmail) return null;
     const users = getUsers();
-    return users.find(u => u.email === email) || null;
+    return users.find(u => u.email === currentUserEmail) || null;
 };
 
 export const clearCurrentUser = () => {
-    localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    currentUserEmail = null;
 };
 
 export const addUser = (userData: Omit<User, 'id'>): Promise<void> => {
@@ -95,7 +80,7 @@ export const addUser = (userData: Omit<User, 'id'>): Promise<void> => {
     });
 };
 
-export const updateUser = (userData: User | Nurse): Promise<void> => {
+export const updateUser = (userData: User): Promise<void> => {
     return new Promise((resolve, reject) => {
         let users = getUsers();
         const userIndex = users.findIndex(u => u.id === userData.id);
@@ -105,11 +90,6 @@ export const updateUser = (userData: User | Nurse): Promise<void> => {
         // Preserve password if not provided
         if (!userData.password) {
             userData.password = users[userIndex].password;
-        }
-        // Ensure order property exists for nurses
-        if (userData.role === 'nurse' && !(userData as Nurse).order) {
-            const maxOrder = Math.max(...users.map(u => (u as Nurse).order || 0), 0);
-            (userData as Nurse).order = maxOrder + 1;
         }
         users[userIndex] = userData;
         saveUsers(users);
@@ -137,11 +117,13 @@ export const changePassword = (userId: string, currentPassword: string, newPassw
             
             const user = users[userIndex];
             if (user.password !== currentPassword) {
-                return reject(new Error('login_error')); // Re-use login error for wrong password
+                return reject(new Error('login_error'));
             }
 
             users[userIndex].password = newPassword;
-            users[userIndex].mustChangePassword = false;
+            if (users[userIndex].mustChangePassword) {
+              users[userIndex].mustChangePassword = false;
+            }
             saveUsers(users);
             resolve();
         }, 500);
@@ -157,13 +139,12 @@ export const forceSetPassword = (userId: string, newPassword: string): Promise<v
                 return reject(new Error('userNotFound'));
             }
             
-            const user = users[userIndex];
-            users[userIndex] = { ...user, password: newPassword, mustChangePassword: false, passwordResetRequired: false };
+            users[userIndex] = { ...users[userIndex], password: newPassword, mustChangePassword: false, passwordResetRequired: false };
             saveUsers(users);
             
             const currentUser = getCurrentUser();
             if (currentUser && currentUser.id === userId) {
-                 localStorage.setItem(CURRENT_USER_STORAGE_KEY, currentUser.email);
+                 currentUserEmail = currentUser.email;
             }
             
             resolve();
@@ -171,14 +152,16 @@ export const forceSetPassword = (userId: string, newPassword: string): Promise<v
     });
 };
 
-// FIX: Implement requestPasswordReset and resetPassword functions
 export const requestPasswordReset = (username: string): Promise<boolean> => {
     return new Promise((resolve) => {
         setTimeout(() => { // Simulate network delay
             const users = getUsers();
             const userIndex = users.findIndex(u => u.email.toLowerCase() === username.toLowerCase());
             if (userIndex !== -1) {
-                users[userIndex].passwordResetRequired = true;
+                const user = users[userIndex];
+                if (user.passwordResetRequired) {
+                  user.passwordResetRequired = true;
+                }
                 saveUsers(users);
                 resolve(true); // User found
             } else {
@@ -198,7 +181,7 @@ export const resetPassword = (username: string, newPassword: string): Promise<vo
             }
             const user = users[userIndex];
             if (!user.passwordResetRequired) {
-                return reject(new Error('passwordResetNotRequested')); // A more specific key might be needed
+                return reject(new Error('passwordResetNotRequested'));
             }
             users[userIndex] = { ...user, password: newPassword, mustChangePassword: false, passwordResetRequired: false };
             saveUsers(users);

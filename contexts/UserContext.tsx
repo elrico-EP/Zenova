@@ -3,7 +3,7 @@ import type { User, Nurse, UserRole } from '../types';
 import * as userService from '../firebase/userService';
 
 interface UserContextType {
-  user: User | Nurse | null;
+  user: User | null;
   effectiveUser: User | Nurse | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -12,13 +12,12 @@ interface UserContextType {
   isImpersonating: boolean;
   authError: string | null;
   // User management functions
-  users: (User | Nurse)[];
+  users: User[];
   register: (userData: Omit<User, 'id'>) => Promise<void>;
-  updateUser: (userData: User | Nurse) => Promise<void>;
+  updateUser: (userData: User) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   forceSetPassword: (newPassword: string) => Promise<void>;
-  // FIX: Add requestPasswordReset and resetPassword to the context type
   requestPasswordReset: (username: string) => Promise<boolean>;
   resetPassword: (username: string, newPassword: string) => Promise<void>;
 }
@@ -26,19 +25,17 @@ interface UserContextType {
 export const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | Nurse | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [impersonatedNurse, setImpersonatedNurse] = useState<Nurse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [users, setUsers] = useState<(User|Nurse)[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   
   useEffect(() => {
+      // On initial load, the user is not logged in because the session is in-memory.
+      // We just load the list of available users.
       const allUsers = userService.getUsers();
       setUsers(allUsers);
-      const currentUser = userService.getCurrentUser();
-      if (currentUser) {
-          setUser(currentUser);
-      }
       setIsLoading(false);
   }, []);
 
@@ -75,6 +72,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user?.role === 'admin' && impersonatedNurse) {
       return impersonatedNurse;
     }
+    // If a nurse user is logged in, the "effective user" for permissions/display
+    // should be their corresponding Nurse profile, not their User account.
+    if (user?.role === 'nurse') {
+        // This is a temporary lookup. The app's `nurses` state is the source of truth.
+        // This context shouldn't manage nurse profiles, only user accounts.
+        return {
+            id: (user as User).nurseId || user.id,
+            name: user.name,
+            email: user.email,
+            role: 'nurse' as UserRole,
+            order: 99, // Order is managed in App state, not here.
+        }
+    }
     return user;
   }, [user, impersonatedNurse]);
 
@@ -86,7 +96,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUsers();
   }, [user, refreshUsers]);
 
-  const updateUser = useCallback(async (userData: User | Nurse) => {
+  const updateUser = useCallback(async (userData: User) => {
     if (user?.role !== 'admin') throw new Error("Permission denied");
     await userService.updateUser(userData);
     refreshUsers();
@@ -113,7 +123,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(updatedUser);
   }, [user]);
 
-  // FIX: Implement requestPasswordReset and resetPassword functions
   const requestPasswordReset = useCallback(async (username: string): Promise<boolean> => {
       return await userService.requestPasswordReset(username);
   }, []);
@@ -137,7 +146,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteUser,
     changePassword,
     forceSetPassword,
-    // FIX: Provide the new password reset functions in the context value
     requestPasswordReset,
     resetPassword,
   }), [user, effectiveUser, isLoading, login, logout, impersonate, isImpersonating, authError, users, register, updateUser, deleteUser, changePassword, forceSetPassword, requestPasswordReset, resetPassword]);
