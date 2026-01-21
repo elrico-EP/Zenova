@@ -72,7 +72,12 @@ export const addUser = (userData: Omit<User, 'id'>): Promise<void> => {
         if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
             return reject(new Error('usernameInUseError'));
         }
-        const newUser: User = { ...userData, id: `user-${Date.now()}`, mustChangePassword: true };
+        const newUser: User = { 
+            ...userData, 
+            id: `user-${Date.now()}`, 
+            mustChangePassword: true,
+            passwordResetRequired: false 
+        };
         saveUsers([...users, newUser]);
         resolve();
     });
