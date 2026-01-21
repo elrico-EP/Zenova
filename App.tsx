@@ -41,7 +41,8 @@ const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
   // UI State remains local
-  const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'>('schedule');
+  // FIX: Widen view state type to match what Header expects, avoiding a type error.
+  const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile' | 'annual'>('schedule');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [selectedNurseForAgenda, setSelectedNurseForAgenda] = useState<Nurse | null>(null);
@@ -91,7 +92,7 @@ const App: React.FC = () => {
   const [schedule, setSchedule] = useState<Schedule>({});
   
   useEffect(() => {
-    const allowedViews = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
+    const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile' | 'annual'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
     if (!allowedViews.includes(view)) {
       setView('schedule');
     }

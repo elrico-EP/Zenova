@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Nurse, SpecialStrasbourgEvent, User, SpecialStrasbourgEventType } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
@@ -221,7 +222,9 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
                 {filteredEvents.map(event => {
                     const assignedNurses = nurses.filter(n => event.nurseIds.includes(n.id)).map(n => n.name).join(', ');
                     const typeKey = `event_type_${event.type}` as keyof Locale;
-                    const typeLabel = event.type && event.type !== 'other' && t[typeKey] ? t[typeKey] : null;
+                    // FIX: Ensure translation result is a string before rendering.
+                    const translation = event.type && event.type !== 'other' && t[typeKey] ? t[typeKey] : null;
+                    const typeLabel = typeof translation === 'string' ? translation : null;
 
                     return (
                         <div key={event.id} className="p-3 bg-rose-50 rounded-lg border border-rose-200">

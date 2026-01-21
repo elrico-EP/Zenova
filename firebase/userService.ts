@@ -1,42 +1,44 @@
 import type { User, Nurse, UserRole } from '../types';
 import { INITIAL_NURSES } from '../constants';
 
-// --- In-Memory Mock Database ---
-// This acts as our centralized, "server-side" user store.
-// It contains User accounts, which can be linked to Nurse profiles.
-let mockUserDatabase: User[] = [
-    // Admin User account
+const USERS_STORAGE_KEY = 'zenova-users-db';
+const CURRENT_USER_STORAGE_KEY = 'zenova-current-user-session';
+
+const seedInitialUsers = (): User[] => {
+  const initialUsers: User[] = [
     { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', mustChangePassword: false, passwordResetRequired: false },
-    // Create User accounts for each Nurse profile
     ...INITIAL_NURSES.map(nurse => ({
-        id: `user-account-${nurse.id}`, // A unique ID for the user account
-        name: nurse.name, // The user's name is the same as the nurse's name
-        email: nurse.email, // The user's email is the same as the nurse's email
-        password: 'password123', // A default password
+        id: `user-account-${nurse.id}`,
+        name: nurse.name,
+        email: nurse.email,
+        password: 'password123',
         role: 'nurse' as UserRole,
-        nurseId: nurse.id, // Link this user account to the nurse profile
-        mustChangePassword: true, // Force password change on first login
+        nurseId: nurse.id,
+        mustChangePassword: true,
         passwordResetRequired: false,
     }))
-];
+  ];
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initialUsers));
+  return initialUsers;
+};
 
-// --- In-Memory Mock Session ---
-let currentUserEmail: string | null = null;
-
-
-// --- Service Functions ---
-
-// The user management functions now operate on `User` accounts.
-// The `Nurse` profiles from `constants.ts` are treated as separate data for the scheduling logic.
 export const getUsers = (): User[] => {
-  return mockUserDatabase;
+  try {
+    const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
+    if (!usersJson) {
+      return seedInitialUsers();
+    }
+    return JSON.parse(usersJson);
+  } catch (e) {
+    console.error("Failed to parse users from localStorage", e);
+    return seedInitialUsers();
+  }
 };
 
 const saveUsers = (users: User[]) => {
-  mockUserDatabase = users;
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
 };
 
-// Note: The return type is `Promise<User>`, not `Promise<User | Nurse>`
 export const authenticate = (username: string, password: string): Promise<User> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => { // Simulate network delay
@@ -44,7 +46,7 @@ export const authenticate = (username: string, password: string): Promise<User> 
       const user = users.find(u => u.email.toLowerCase() === username.toLowerCase());
 
       if (user && user.password === password) {
-        currentUserEmail = user.email;
+        localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.email);
         resolve(user);
       } else {
         reject(new Error('login_error'));
@@ -54,13 +56,14 @@ export const authenticate = (username: string, password: string): Promise<User> 
 };
 
 export const getCurrentUser = (): User | null => {
-    if (!currentUserEmail) return null;
+    const email = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+    if (!email) return null;
     const users = getUsers();
-    return users.find(u => u.email === currentUserEmail) || null;
+    return users.find(u => u.email === email) || null;
 };
 
 export const clearCurrentUser = () => {
-    currentUserEmail = null;
+    localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
 };
 
 export const addUser = (userData: Omit<User, 'id'>): Promise<void> => {
@@ -87,7 +90,6 @@ export const updateUser = (userData: User): Promise<void> => {
         if (userIndex === -1) {
             return reject(new Error('userNotFound'));
         }
-        // Preserve password if not provided
         if (!userData.password) {
             userData.password = users[userIndex].password;
         }
@@ -108,7 +110,7 @@ export const deleteUser = (userId: string): Promise<void> => {
 
 export const changePassword = (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-        setTimeout(() => { // Simulate network delay
+        setTimeout(() => {
             let users = getUsers();
             const userIndex = users.findIndex(u => u.id === userId);
             if (userIndex === -1) {
@@ -121,9 +123,7 @@ export const changePassword = (userId: string, currentPassword: string, newPassw
             }
 
             users[userIndex].password = newPassword;
-            if (users[userIndex].mustChangePassword) {
-              users[userIndex].mustChangePassword = false;
-            }
+            users[userIndex].mustChangePassword = false;
             saveUsers(users);
             resolve();
         }, 500);
@@ -132,7 +132,7 @@ export const changePassword = (userId: string, currentPassword: string, newPassw
 
 export const forceSetPassword = (userId: string, newPassword: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-        setTimeout(() => { // Simulate network delay
+        setTimeout(() => {
             let users = getUsers();
             const userIndex = users.findIndex(u => u.id === userId);
             if (userIndex === -1) {
@@ -144,7 +144,7 @@ export const forceSetPassword = (userId: string, newPassword: string): Promise<v
             
             const currentUser = getCurrentUser();
             if (currentUser && currentUser.id === userId) {
-                 currentUserEmail = currentUser.email;
+                 localStorage.setItem(CURRENT_USER_STORAGE_KEY, currentUser.email);
             }
             
             resolve();
@@ -154,18 +154,15 @@ export const forceSetPassword = (userId: string, newPassword: string): Promise<v
 
 export const requestPasswordReset = (username: string): Promise<boolean> => {
     return new Promise((resolve) => {
-        setTimeout(() => { // Simulate network delay
+        setTimeout(() => {
             const users = getUsers();
             const userIndex = users.findIndex(u => u.email.toLowerCase() === username.toLowerCase());
             if (userIndex !== -1) {
-                const user = users[userIndex];
-                if (user.passwordResetRequired) {
-                  user.passwordResetRequired = true;
-                }
+                users[userIndex].passwordResetRequired = true;
                 saveUsers(users);
-                resolve(true); // User found
+                resolve(true);
             } else {
-                resolve(false); // User not found
+                resolve(false);
             }
         }, 500);
     });
@@ -173,7 +170,7 @@ export const requestPasswordReset = (username: string): Promise<boolean> => {
 
 export const resetPassword = (username: string, newPassword: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-        setTimeout(() => { // Simulate network delay
+        setTimeout(() => {
             const users = getUsers();
             const userIndex = users.findIndex(u => u.email.toLowerCase() === username.toLowerCase());
             if (userIndex === -1) {

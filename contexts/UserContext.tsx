@@ -32,8 +32,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [users, setUsers] = useState<User[]>([]);
   
   useEffect(() => {
-      // On initial load, the user is not logged in because the session is in-memory.
-      // We just load the list of available users.
+      // On initial load, check for a persistent session in localStorage.
+      const currentUser = userService.getCurrentUser();
+      if (currentUser) {
+          setUser(currentUser);
+      }
       const allUsers = userService.getUsers();
       setUsers(allUsers);
       setIsLoading(false);
@@ -49,17 +52,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const loggedInUser = await userService.authenticate(username, password);
       setUser(loggedInUser);
+      refreshUsers(); // Refresh user list in case of changes
     } catch (error) {
       setAuthError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshUsers]);
 
   const logout = useCallback(() => {
     userService.clearCurrentUser();
     setUser(null);
-    setImpersonatedNurse(null);
+    setImpersonatedNurse(null); // This is crucial to prevent permission bleeding
   }, []);
 
   const impersonate = useCallback((nurse: Nurse | null) => {
@@ -72,17 +76,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user?.role === 'admin' && impersonatedNurse) {
       return impersonatedNurse;
     }
-    // If a nurse user is logged in, the "effective user" for permissions/display
-    // should be their corresponding Nurse profile, not their User account.
     if (user?.role === 'nurse') {
-        // This is a temporary lookup. The app's `nurses` state is the source of truth.
-        // This context shouldn't manage nurse profiles, only user accounts.
         return {
             id: (user as User).nurseId || user.id,
             name: user.name,
             email: user.email,
             role: 'nurse' as UserRole,
-            order: 99, // Order is managed in App state, not here.
+            order: 99,
         }
     }
     return user;
