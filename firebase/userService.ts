@@ -19,15 +19,27 @@ export const getUsers = (): (User | Nurse)[] => {
       return seedInitialUsers();
     }
     const users = JSON.parse(usersJson);
-    // Migration: ensure admin user exists with correct credentials
-    const adminUser = users.find((u: User) => u.id === 'admin-user');
-    if (!adminUser || adminUser.password !== 'admin123') {
-        const otherUsers = users.filter((u: User) => u.id !== 'admin-user');
-        const updatedAdmin = { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', order: -1, mustChangePassword: false };
-        const finalUsers = [updatedAdmin, ...otherUsers];
-        saveUsers(finalUsers);
-        return finalUsers;
+    
+    const adminIndex = users.findIndex((u: User) => u.id === 'admin-user');
+    let needsSave = false;
+
+    if (adminIndex === -1) {
+        // Admin user doesn't exist, add it.
+        users.push({ id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', order: -1, mustChangePassword: false });
+        needsSave = true;
+    } else {
+        // Admin user exists, check if password is correct.
+        const adminUser = users[adminIndex];
+        if (adminUser.password !== 'admin123' || adminUser.mustChangePassword !== false) {
+            users[adminIndex] = { ...adminUser, password: 'admin123', mustChangePassword: false };
+            needsSave = true;
+        }
     }
+
+    if (needsSave) {
+        saveUsers(users);
+    }
+    
     return users;
   } catch (e) {
     console.error("Failed to parse users from localStorage", e);
