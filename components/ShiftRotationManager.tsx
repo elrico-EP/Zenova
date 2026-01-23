@@ -11,7 +11,8 @@ const ShiftChip: React.FC<{ cell: ScheduleCell }> = ({ cell }) => {
     
     let shiftId: WorkZone | undefined;
     if (typeof cell === 'string') {
-        shiftId = cell;
+        // FIX: Explicitly cast cell to WorkZone to resolve type inference issue.
+        shiftId = cell as WorkZone;
     } else if (typeof cell === 'object' && 'custom' in cell) {
         shiftId = cell.type;
         label = SHIFTS[cell.type!]?.label || '?';

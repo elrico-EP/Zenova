@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, memoryLocalCache } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 // TODO: Replace with your app's Firebase project configuration.
@@ -16,6 +16,10 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Initialize Firestore with in-memory cache instead of persistent storage.
+// This forces an "online-only" mode and prevents the "client is offline"
+// error that can occur if the initial connection to the backend fails.
+export const db = initializeFirestore(app, { localCache: memoryLocalCache() });
+
 // Export the necessary Firebase services
-export const db = getFirestore(app);
 export const auth = getAuth(app);
