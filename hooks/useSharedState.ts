@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { AppState, Nurse, Agenda, Schedule, Notes, StrasbourgEvent, Wishes, JornadaLaboral, SpecialStrasbourgEvent, ScheduleCell, ManualChangeLogEntry } from '../types';
+import type { AppState, Nurse, Agenda, Schedule, Notes, StrasbourgEvent, Wishes, JornadaLaboral, SpecialStrasbourgEvent, ScheduleCell, ManualChangeLogEntry, ShiftRotation, ShiftRotationAssignment } from '../types';
 import { INITIAL_NURSES } from '../constants';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026 } from '../data/agenda2026';
 
@@ -125,6 +125,8 @@ const getInitialState = (): AppState => ({
     wishes: {},
     jornadasLaborales: INITIAL_JORNADAS,
     manualChangeLog: [],
+    shiftRotations: [],
+    shiftRotationAssignments: [],
 });
 
 export const useSharedState = () => {
@@ -141,8 +143,8 @@ export const useSharedState = () => {
                     delete parsedData.history;
                 }
                 
-                if (parsedData.shiftRotations) delete parsedData.shiftRotations;
-                if (parsedData.shiftRotationAssignments) delete parsedData.shiftRotationAssignments;
+                if (!parsedData.shiftRotations) parsedData.shiftRotations = [];
+                if (!parsedData.shiftRotationAssignments) parsedData.shiftRotationAssignments = [];
 
                 if (!parsedData.jornadasLaborales || parsedData.jornadasLaborales.length === 0) {
                      parsedData.jornadasLaborales = INITIAL_JORNADAS;

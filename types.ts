@@ -237,7 +237,6 @@ export interface JornadaLaboral {
     secondaryReductionDayOfWeek?: 1 | 2 | 3 | 4; // For 80% Friday rule
 }
 
-// FIX: Add missing ShiftRotation and ShiftRotationAssignment type definitions.
 export interface ShiftRotation {
   id: string;
   name: string;
@@ -264,6 +263,8 @@ export interface AppState {
     wishes: Wishes;
     jornadasLaborales: JornadaLaboral[];
     manualChangeLog: ManualChangeLogEntry[];
+    shiftRotations: ShiftRotation[];
+    shiftRotationAssignments: ShiftRotationAssignment[];
 }
 
 export interface HistoryEntry {
@@ -274,9 +275,17 @@ export interface HistoryEntry {
   details: string;
 }
 
-// FIX: Add missing SwapInfo type definition.
 export interface SwapInfo {
   shownShift: ScheduleCell;
   swappedWithNurseId: string;
   originalShift: ScheduleCell;
+}
+
+export interface LocalDayData {
+  startTime: string;
+  endTime: string;
+}
+
+export interface LocalMonthData {
+  [dateKey: string]: LocalDayData;
 }

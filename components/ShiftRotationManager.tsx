@@ -132,7 +132,7 @@ export const ShiftRotationManager: React.FC<ShiftRotationManagerProps> = ({
                          <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
                              {templateShifts.map((shift, i) => (
                                  <div key={i} className="flex items-center gap-2">
-                                     <span className="text-xs text-slate-500 w-12">Día {i+1}</span>
+                                     <span className="text-xs text-slate-500 w-12">{t.day} {i+1}</span>
                                      <select value={typeof shift === 'string' ? shift : ''} onChange={e => handleTemplateShiftChange(i, e.target.value as WorkZone)} className="flex-grow p-1 border rounded-md bg-white">
                                          {ALL_SHIFTS.map(sId => <option key={sId} value={sId}>{SHIFTS[sId].label}</option>)}
                                      </select>
@@ -158,11 +158,11 @@ export const ShiftRotationManager: React.FC<ShiftRotationManagerProps> = ({
                         return (
                             <div key={assign.id} className="p-2 bg-blue-50 border border-blue-200 rounded-md">
                                 <div className="flex justify-between items-center">
-                                    <span className="font-bold text-blue-800">{rot?.name || 'Unknown'}</span>
+                                    <span className="font-bold text-blue-800">{rot?.name || t.unknown}</span>
                                     <button onClick={() => handleDeleteAssignment(assign.id)} className="text-red-500 hover:text-red-700 text-xs font-mono">X</button>
                                 </div>
-                                <p className="text-xs text-blue-700 mt-1"><strong>Enfermeros/as:</strong> {assignedNurses}</p>
-                                <p className="text-xs text-blue-700"><strong>Desde:</strong> {assign.startDate}</p>
+                                <p className="text-xs text-blue-700 mt-1"><strong>{t.nurse}:</strong> {assignedNurses}</p>
+                                <p className="text-xs text-blue-700"><strong>{t.startDate}:</strong> {assign.startDate}</p>
                             </div>
                         )
                     })}
