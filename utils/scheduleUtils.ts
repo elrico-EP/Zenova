@@ -37,7 +37,7 @@ export const getScheduleCellHours = (
     date: Date, 
     activityLevel: ActivityLevel, 
     agenda: Agenda,
-    jornadasLaborales: JornadaLaboral[] // Prop is kept but its logic is removed from this function
+    jornadasLaborales: JornadaLaboral[]
 ): { morning: string; afternoon: string } | string => {
     if (!cell || !nurse) return '';
 
@@ -48,9 +48,9 @@ export const getScheduleCellHours = (
 
     if (typeof cell === 'object' && 'split' in cell) {
         const [morningPart, afternoonPart] = cell.split;
-        // Recursive call to resolve parts. We pass an empty array for jornadas to prevent re-application.
+        // Recursive call to resolve parts. We pass jornadasLaborales through.
         const getPartHours = (part: ScheduleCell): string => {
-            const hours = getScheduleCellHours(part, nurse, date, activityLevel, agenda, []); 
+            const hours = getScheduleCellHours(part, nurse, date, activityLevel, agenda, jornadasLaborales); 
             return typeof hours === 'string' ? hours : '';
         };
         return { morning: getPartHours(morningPart), afternoon: getPartHours(afternoonPart) };
@@ -58,7 +58,7 @@ export const getScheduleCellHours = (
     
     if (cell === 'STRASBOURG') return '';
     
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = date.getUTCDay(); // Correctly getUTCDay
     if (dayOfWeek === 0 || dayOfWeek === 6) return '';
 
     let shiftType: WorkZone | undefined;
@@ -85,7 +85,7 @@ export const getScheduleCellHours = (
             const isPreSessionFriday = date.getDay() === 5 && agenda[getWeekIdentifier(nextMonday)] === 'SESSION';
 
             if (isPreSessionFriday) {
-                if (isAfternoonShift) baseHours = '12:00 - 17:45';
+                if (isAfternoonShift) baseHours = '12:00 - 18:00';
                 else if (shiftType === 'LIBERO') baseHours = '10:00 - 16:00';
                 else baseHours = '08:00 - 14:00';
             } else if (date.getDay() === 5) {
@@ -96,7 +96,38 @@ export const getScheduleCellHours = (
                 baseHours = '08:00 - 17:00';
             }
     }
-    return baseHours;
+    
+    if (!baseHours.includes(' - ')) {
+        return baseHours;
+    }
+
+    // Apply jornada reduction to the time string
+    const activeJornada = getActiveJornada(nurse.id, date, jornadasLaborales);
+
+    if (!activeJornada || activeJornada.porcentaje === 100) {
+        return baseHours;
+    }
+    
+    let [start, end] = baseHours.split(' - ');
+    const isMonToThu = dayOfWeek >= 1 && dayOfWeek <= 4;
+    
+    if (activeJornada.porcentaje === 90) {
+        if (activeJornada.reductionOption === 'LEAVE_EARLY_1H_L_J' && isMonToThu) {
+             if (shiftType.includes('_TARDE')) start = modifyTime(start, 1);
+             else end = modifyTime(end, -1);
+        }
+        if ((activeJornada.reductionOption === 'START_SHIFT_4H' || activeJornada.reductionOption === 'END_SHIFT_4H') && dayOfWeek === activeJornada.reductionDayOfWeek) {
+             if (activeJornada.reductionOption === 'START_SHIFT_4H') start = modifyTime(start, 3);
+             else end = modifyTime(end, -3);
+        }
+    } else if (activeJornada.porcentaje === 80) {
+        if (activeJornada.reductionOption === 'FRIDAY_PLUS_EXTRA' && dayOfWeek === activeJornada.secondaryReductionDayOfWeek) {
+             if (shiftType.includes('_TARDE')) start = modifyTime(start, 1, 30);
+             else end = modifyTime(end, -1, -30);
+        }
+    }
+
+    return `${start} - ${end}`;
 };
 
 const findBestCandidate = (candidates: Nurse[], stats: Record<string, NurseStats>, primaryStat: keyof NurseStats, secondaryStat: keyof NurseStats = 'clinicalTotal'): Nurse | undefined => {
@@ -146,7 +177,8 @@ const getClinicalNeedsForDay = (date: Date, agenda: Agenda, vaccinationPeriod: {
     if (dayOfWeek === 0 || dayOfWeek === 6 || activityLevel === 'CLOSED' || holidays2026.has(dateStr)) return {};
     
     const isVaccinationDay = !!vaccinationPeriod && dateStr >= vaccinationPeriod.start && dateStr <= vaccinationPeriod.end;
-    const isPreSessionFriday = dayOfWeek === 5 && agenda[getWeekIdentifier(new Date(date.getTime() + 3 * 24 * 60 * 60 * 1000))] === 'SESSION';
+    const nextMonday = new Date(date.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const isPreSessionFriday = dayOfWeek === 5 && agenda[getWeekIdentifier(nextMonday)] === 'SESSION';
     const isNormalFriday = dayOfWeek === 5 && !isPreSessionFriday;
 
     if (isNormalFriday) {
@@ -487,245 +519,6 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
     return schedule;
 };
 
-// FIX: Add missing generateBalancedScheduleForDateRange function
-export const generateBalancedScheduleForDateRange = (
-    nurses: Nurse[],
-    startDate: Date,
-    endDate: Date,
-    agenda: Agenda,
-    manualOverrides: Schedule,
-    vaccinationPeriod: { start: string; end: string } | null,
-    strasbourgAssignments: Record<string, string[]>,
-    jornadasLaborales: JornadaLaboral[],
-    specialStrasbourgEvents: SpecialStrasbourgEvent[]
-): Schedule => {
-    const generatedSchedule: Schedule = {};
-    nurses.forEach(nurse => { generatedSchedule[nurse.id] = {}; });
-
-    const allOverrides = JSON.parse(JSON.stringify(manualOverrides));
-    specialStrasbourgEvents.forEach(event => {
-        if (!event.startDate || !event.endDate || !event.nurseIds) return;
-        for (let d = new Date(event.startDate); d <= new Date(event.endDate); d.setDate(d.getDate() + 1)) {
-            const dateKey = d.toISOString().split('T')[0];
-            event.nurseIds.forEach(nurseId => {
-                if (!allOverrides[nurseId]) allOverrides[nurseId] = {};
-                const timeString = event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : undefined;
-                allOverrides[nurseId][dateKey] = { custom: event.name, type: 'STRASBOURG', time: timeString };
-            });
-        }
-    });
-
-    const nurseStats: Record<string, NurseStats> = {};
-    nurses.forEach(nurse => { nurseStats[nurse.id] = { urgences: 0, travail: 0, admin: 0, tw: 0, clinicalTotal: 0, afternoon: 0, vaccin_am: 0, vaccin_pm: 0, tw_weekly: 0 }; });
-
-    const year = startDate.getFullYear();
-    const janSchedule = recalculateScheduleForMonth(nurses, new Date(year, 0, 1), agenda, allOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
-    const febSchedule = recalculateScheduleForMonth(nurses, new Date(year, 1, 1), agenda, allOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
-    const preStartDateSchedule: Schedule = {};
-    nurses.forEach(n => {
-        preStartDateSchedule[n.id] = { ...(janSchedule[n.id] || {}), ...(febSchedule[n.id] || {}) };
-    });
-    
-    const preStartDate = new Date(startDate);
-    preStartDate.setUTCDate(preStartDate.getUTCDate() - 1);
-
-    for (let d = new Date(Date.UTC(year, 0, 1)); d <= preStartDate; d.setUTCDate(d.getUTCDate() + 1)) {
-        const dateKey = d.toISOString().split('T')[0];
-        nurses.forEach(nurse => {
-            const cell = preStartDateSchedule[nurse.id]?.[dateKey];
-            if (!cell) return;
-            const shifts = getShiftsFromCell(cell);
-            shifts.forEach(shift => {
-                 if (shift === 'URGENCES' || shift === 'URGENCES_C') nurseStats[nurse.id].urgences++;
-                 if (shift === 'TRAVAIL' || shift === 'TRAVAIL_C') nurseStats[nurse.id].travail++;
-                 if (shift.includes('_TARDE')) nurseStats[nurse.id].afternoon++;
-                 if (shift === 'ADMIN') nurseStats[nurse.id].admin++;
-                 if (shift === 'TW') nurseStats[nurse.id].tw++;
-                 if (shift === 'VACCIN' || shift === 'VACCIN_AM') nurseStats[nurse.id].vaccin_am++;
-                 if (shift === 'VACCIN_PM') nurseStats[nurse.id].vaccin_pm++;
-            });
-            if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { nurseStats[nurse.id].clinicalTotal++; }
-        });
-    }
-
-    const weeklyStats: Record<string, Record<WorkZone, number>> = {};
-    nurses.forEach(nurse => { weeklyStats[nurse.id] = {} as Record<WorkZone, number>; });
-
-    const rotationIndices: Record<string, number> = {
-        URGENCES: 0, TRAVAIL: 0, URGENCES_TARDE: 0, TRAVAIL_TARDE: 0, LIBERO: 0, VACCIN: 0,
-        VACCIN_AM: 0, VACCIN_PM: 0, TW: 0,
-    };
-
-    for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
-        const currentDate = new Date(d);
-        const dateKey = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(currentDate.getUTCDate()).padStart(2, '0')}`;
-        const dayOfWeek = currentDate.getUTCDay();
-        const weekId = getWeekIdentifier(currentDate);
-
-        if (dayOfWeek === 1) { // Monday
-            nurses.forEach(nurse => {
-                nurseStats[nurse.id].tw_weekly = 0;
-                weeklyStats[nurse.id] = {} as Record<WorkZone, number>;
-            });
-        }
-        
-        const activityLevel = agenda[weekId] || 'NORMAL';
-        const isWorkday = !(dayOfWeek === 0 || dayOfWeek === 6 || holidays2026.has(dateKey) || activityLevel === 'CLOSED');
-
-        const dailyAssignments: Record<string, ScheduleCell> = {};
-
-        if (isWorkday) {
-            let availableForDutyNurses = [...nurses];
-            
-            availableForDutyNurses.forEach(nurse => {
-                const override = allOverrides[nurse.id]?.[dateKey];
-                if (override) {
-                    dailyAssignments[nurse.id] = override;
-                } else {
-                    const attendees = strasbourgAssignments[weekId] || [];
-                    if (activityLevel === 'SESSION') {
-                        if (dayOfWeek >= 1 && dayOfWeek <= 4 && attendees.includes(nurse.id)) { dailyAssignments[nurse.id] = 'STRASBOURG'; }
-                        if (dayOfWeek === 5 && attendees.includes(nurse.id)) { dailyAssignments[nurse.id] = { custom: 'STR-PREP', type: 'STRASBOURG' }; }
-                    }
-                }
-            });
-
-            let dutyPool = availableForDutyNurses.filter(n => !dailyAssignments[n.id]);
-            
-            let internHandledByException = false;
-            const intern = dutyPool.find(n => n.id === 'nurse-11');
-            if (intern) {
-                const month = currentDate.getUTCMonth();
-                const isOctober = month === 9;
-                const weekOfMonth = Math.ceil(currentDate.getUTCDate() / 7);
-                if (isOctober && dayOfWeek >= 1 && dayOfWeek <= 5) {
-                    if (weekOfMonth === 1) { dailyAssignments[intern.id] = 'ADMIN'; internHandledByException = true; } 
-                    else if (weekOfMonth === 2) { dailyAssignments[intern.id] = 'TRAVAIL'; internHandledByException = true; }
-                }
-            }
-            if (internHandledByException) { dutyPool = dutyPool.filter(n => n.id !== 'nurse-11'); }
-
-            const elvioInPool = dutyPool.find(n => n.id === 'nurse-1');
-            if (elvioInPool && activityLevel !== 'SESSION') {
-                dailyAssignments[elvioInPool.id] = 'ADMIN';
-                dutyPool = dutyPool.filter(n => n.id !== 'nurse-1');
-            }
-
-            const ineligibleForAfternoon = new Set<string>();
-            dutyPool.forEach(nurse => {
-                const activeJornada = getActiveJornada(nurse.id, currentDate, jornadasLaborales);
-                if (activeJornada && activeJornada.porcentaje === 90 && (activeJornada.reductionOption === 'START_SHIFT_4H' || activeJornada.reductionOption === 'END_SHIFT_4H') && dayOfWeek >= 1 && dayOfWeek <= 4 && dayOfWeek === activeJornada.reductionDayOfWeek) {
-                    ineligibleForAfternoon.add(nurse.id);
-                }
-            });
-            
-            const previousDate = new Date(currentDate.getTime());
-            previousDate.setUTCDate(previousDate.getUTCDate() - 1);
-            const previousDateKey = `${previousDate.getUTCFullYear()}-${String(previousDate.getUTCMonth() + 1).padStart(2, '0')}-${String(previousDate.getUTCDate()).padStart(2, '0')}`;
-            
-            const fullScheduleSoFar: Schedule = {};
-            nurses.forEach(nurse => {
-                fullScheduleSoFar[nurse.id] = { ...(preStartDateSchedule[nurse.id] || {}), ...(generatedSchedule[nurse.id] || {}) };
-            });
-
-            const isVaccinationDay = !!vaccinationPeriod && dateKey >= vaccinationPeriod.start && dateKey <= vaccinationPeriod.end;
-            
-            let neededShifts = Object.entries(getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod)).flatMap(([s, c]) => Array(c).fill(s)) as WorkZone[];
-            let localUnassignedPool = [...dutyPool];
-
-            for (const need of neededShifts) {
-                let eligiblePool = localUnassignedPool.filter(n => !(need.includes('_TARDE') && ineligibleForAfternoon.has(n.id)));
-                
-                const primaryStat = need.includes('URGENCES') ? 'urgences' : 'travail';
-                
-                const sortedPool = [...eligiblePool].sort((a, b) => {
-                    const statsA = nurseStats[a.id];
-                    const statsB = nurseStats[b.id];
-                    const weeklyA = weeklyStats[a.id][need] || 0;
-                    const weeklyB = weeklyStats[b.id][need] || 0;
-            
-                    const aPrimary = statsA[primaryStat as keyof NurseStats];
-                    const bPrimary = statsB[primaryStat as keyof NurseStats];
-                    if (aPrimary !== bPrimary) return aPrimary - bPrimary;
-            
-                    if (weeklyA !== weeklyB) return weeklyA - weeklyB;
-                    
-                    const aClinical = statsA.clinicalTotal;
-                    const bClinical = statsB.clinicalTotal;
-                    if (aClinical !== bClinical) return aClinical - bClinical;
-                    
-                    return a.id.localeCompare(b.id);
-                });
-
-                if (sortedPool.length > 0) {
-                    const rotationIndex = rotationIndices[need] || 0;
-                    const candidate = sortedPool[rotationIndex % sortedPool.length];
-                    
-                    if (candidate) {
-                        dailyAssignments[candidate.id] = need;
-                        localUnassignedPool = localUnassignedPool.filter(n => n.id !== candidate.id);
-                        rotationIndices[need] = rotationIndex + 1;
-                    }
-                }
-            }
-            
-            localUnassignedPool.forEach(nurse => {
-                if (!dailyAssignments[nurse.id] && nurse.id !== 'nurse-11') {
-                    dailyAssignments[nurse.id] = 'ADMIN';
-                }
-            });
-
-            const adminCount = Object.values(dailyAssignments).filter(c => getShiftsFromCell(c).includes('ADMIN')).length;
-            if (adminCount >= 2) {
-                const twCandidates = localUnassignedPool.filter(n => n.id !== 'nurse-1' && n.id !== 'nurse-2' && n.id !== 'nurse-11' && (nurseStats[n.id].tw_weekly || 0) < 1 && dailyAssignments[n.id] === 'ADMIN');
-                
-                const sortedTwCandidates = [...twCandidates].sort((a, b) => {
-                    const aIsConsecutive = getShiftsFromCell(fullScheduleSoFar[a.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
-                    const bIsConsecutive = getShiftsFromCell(fullScheduleSoFar[b.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
-                    if (aIsConsecutive !== bIsConsecutive) return aIsConsecutive ? 1 : -1;
-                    return (nurseStats[a.id].tw || 0) - (nurseStats[b.id].tw || 0);
-                });
-                
-                if(sortedTwCandidates.length > 0) {
-                    const twRecipient = sortedTwCandidates[0];
-                    dailyAssignments[twRecipient.id] = 'TW';
-                }
-            }
-        }
-
-        nurses.forEach(nurse => {
-            const override = allOverrides[nurse.id]?.[dateKey];
-            if (!isWorkday && override) {
-                dailyAssignments[nurse.id] = override;
-            }
-        });
-
-        Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
-             generatedSchedule[nurseId][dateKey] = cell;
-        });
-        
-        nurses.forEach(nurse => {
-            const cell = dailyAssignments[nurse.id];
-            if (!cell) return;
-            const shifts = getShiftsFromCell(cell);
-            shifts.forEach(shift => {
-                 if (shift === 'URGENCES' || shift === 'URGENCES_C') nurseStats[nurse.id].urgences++;
-                 if (shift === 'TRAVAIL' || shift === 'TRAVAIL_C') nurseStats[nurse.id].travail++;
-                 if (shift.includes('_TARDE')) nurseStats[nurse.id].afternoon++;
-                 if (shift === 'ADMIN') nurseStats[nurse.id].admin++;
-                 if (shift === 'TW') { nurseStats[nurse.id].tw++; nurseStats[nurse.id].tw_weekly = (nurseStats[nurse.id].tw_weekly || 0) + 1; }
-                 if (shift === 'VACCIN' || shift === 'VACCIN_AM') nurseStats[nurse.id].vaccin_am++;
-                 if (shift === 'VACCIN_PM') nurseStats[nurse.id].vaccin_pm++;
-                 
-                 weeklyStats[nurse.id][shift] = (weeklyStats[nurse.id][shift] || 0) + 1;
-            });
-             if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { nurseStats[nurse.id].clinicalTotal++; }
-        });
-    }
-
-    return generatedSchedule;
-};
-
 export const generateAndBalanceGaps = (
     nurses: Nurse[],
     year: number,
@@ -739,7 +532,6 @@ export const generateAndBalanceGaps = (
     const generatedGaps: Schedule = {};
     const fullSchedule: Schedule = JSON.parse(JSON.stringify(manualOverrides));
 
-    // This is the temporary marker for generation, which starts clean, ignoring Jan/Feb.
     const generationStats: Record<string, NurseStats> = {};
     nurses.forEach(nurse => { 
         generationStats[nurse.id] = { urgences: 0, travail: 0, admin: 0, tw: 0, clinicalTotal: 0, afternoon: 0, vaccin_am: 0, vaccin_pm: 0, tw_weekly: 0 }; 
@@ -748,13 +540,12 @@ export const generateAndBalanceGaps = (
     const weeklyStats: Record<string, Record<WorkZone, number>> = {};
     nurses.forEach(nurse => { weeklyStats[nurse.id] = {} as Record<WorkZone, number>; });
 
-    // Loop from March 1st to Dec 31st.
-    for (let d = new Date(Date.UTC(year, 2, 1)); d.getUTCFullYear() === year; d.setUTCDate(d.getUTCDate() + 1)) {
+    for (let d = new Date(Date.UTC(year, 0, 1)); d.getUTCFullYear() === year; d.setUTCDate(d.getUTCDate() + 1)) {
         const currentDate = new Date(d);
         const dateKey = currentDate.toISOString().split('T')[0];
         const dayOfWeek = currentDate.getUTCDay();
 
-        if (dayOfWeek === 1) { // Monday
+        if (dayOfWeek === 1) { 
             nurses.forEach(nurse => {
                 generationStats[nurse.id].tw_weekly = 0;
                 weeklyStats[nurse.id] = {} as Record<WorkZone, number>;
@@ -768,7 +559,6 @@ export const generateAndBalanceGaps = (
         const dailyAssignments: Record<string, ScheduleCell> = {};
 
         if (isWorkday) {
-            // First, honor any manual overrides already present from March onwards
             nurses.forEach(nurse => {
                 if (fullSchedule[nurse.id]?.[dateKey]) {
                     dailyAssignments[nurse.id] = fullSchedule[nurse.id][dateKey];
@@ -776,11 +566,9 @@ export const generateAndBalanceGaps = (
             });
             let dutyPool = nurses.filter(n => !dailyAssignments[n.id]);
 
-            // If there are nurses without assignments, run generation logic for the gaps
             if (dutyPool.length > 0) {
                 let neededShifts = Object.entries(getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod)).flatMap(([s, c]) => Array(c).fill(s)) as WorkZone[];
                 
-                // Account for needs already covered by manual assignments on this day
                 Object.values(dailyAssignments).forEach(cell => {
                     getShiftsFromCell(cell).forEach(shift => {
                         const index = neededShifts.indexOf(shift);
@@ -795,72 +583,33 @@ export const generateAndBalanceGaps = (
                         dailyAssignments[candidate.id] = need;
                         if (!generatedGaps[candidate.id]) generatedGaps[candidate.id] = {};
                         generatedGaps[candidate.id][dateKey] = need;
-                        dutyPool = dutyPool.filter(n => n.id !== candidate.id); 
+                        dutyPool = dutyPool.filter(n => n.id !== candidate.id);
                     }
                 }
                 
                 dutyPool.forEach(nurse => {
-                     if (nurse.id !== 'nurse-11') { // Interns don't get ADMIN by default
+                    if (!dailyAssignments[nurse.id]) {
                         dailyAssignments[nurse.id] = 'ADMIN';
-                        if (!generatedGaps[nurse.id]) generatedGaps[nurse.id] = {};
-                        generatedGaps[nurse.id][dateKey] = 'ADMIN';
-                     }
+                         if (!generatedGaps[nurse.id]) generatedGaps[nurse.id] = {};
+                         generatedGaps[nurse.id][dateKey] = 'ADMIN';
+                    }
                 });
-
-                const adminAssignments = Object.entries(dailyAssignments).filter(([, cell]) => getShiftsFromCell(cell).includes('ADMIN'));
-                if (adminAssignments.length >= 2) {
-                     const previousDate = new Date(currentDate.getTime());
-                     previousDate.setUTCDate(previousDate.getUTCDate() - 1);
-                     const previousDateKey = previousDate.toISOString().split('T')[0];
-                     
-                     const twCandidates = adminAssignments.map(([id]) => nurses.find(n => n.id === id)!).filter(n => n && n.id !== 'nurse-1' && n.id !== 'nurse-2' && n.id !== 'nurse-11' && generationStats[n.id].tw_weekly < 1);
-                     const priorityCandidates: Nurse[] = [], secondaryCandidates: Nurse[] = [];
-                     twCandidates.forEach(n => {
-                        const prevCell = fullSchedule[n.id]?.[previousDateKey];
-                        if (prevCell && getShiftsFromCell(prevCell).some(s => ['ADMIN', 'TW'].includes(s))) {
-                            secondaryCandidates.push(n);
-                        } else {
-                            priorityCandidates.push(n);
-                        }
-                     });
-                     
-                     let twRecipient = findBestCandidate(priorityCandidates, generationStats, 'tw') || findBestCandidate(secondaryCandidates, generationStats, 'tw');
-                     if (twRecipient) {
-                         dailyAssignments[twRecipient.id] = 'TW';
-                         generatedGaps[twRecipient.id][dateKey] = 'TW';
-                     }
-                }
             }
-
-            // Copy generated assignments to the generatedGaps object
-            Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
-                // Only add if it wasn't a pre-existing manual override
-                if (!fullSchedule[nurseId]?.[dateKey]) {
-                    if (!generatedGaps[nurseId]) generatedGaps[nurseId] = {};
-                    generatedGaps[nurseId][dateKey] = cell;
-                }
-            });
         }
         
-        // Update generationStats with all shifts for the day (manual + generated)
-        nurses.forEach(nurse => {
-            const cell = dailyAssignments[nurse.id] || fullSchedule[nurse.id]?.[dateKey];
+        Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
             if (!cell) return;
             const shifts = getShiftsFromCell(cell);
             shifts.forEach(shift => {
-                 if (shift === 'URGENCES' || shift === 'URGENCES_C') generationStats[nurse.id].urgences++;
-                 if (shift === 'TRAVAIL' || shift === 'TRAVAIL_C') generationStats[nurse.id].travail++;
-                 if (shift.includes('_TARDE')) generationStats[nurse.id].afternoon++;
-                 if (shift === 'ADMIN') generationStats[nurse.id].admin++;
-                 if (shift === 'TW') { generationStats[nurse.id].tw++; generationStats[nurse.id].tw_weekly = (generationStats[nurse.id].tw_weekly || 0) + 1; }
-                 if (shift === 'VACCIN' || shift === 'VACCIN_AM') generationStats[nurse.id].vaccin_am++;
-                 if (shift === 'VACCIN_PM') generationStats[nurse.id].vaccin_pm++;
+                 if (shift === 'URGENCES' || shift === 'URGENCES_C') generationStats[nurseId].urgences++;
+                 if (shift === 'TRAVAIL' || shift === 'TRAVAIL_C') generationStats[nurseId].travail++;
+                 if (shift.includes('_TARDE')) generationStats[nurseId].afternoon++;
+                 if (shift === 'ADMIN') generationStats[nurseId].admin++;
+                 if (shift === 'TW') { generationStats[nurseId].tw++; generationStats[nurseId].tw_weekly = (generationStats[nurseId].tw_weekly || 0) + 1; }
                  
-                 weeklyStats[nurse.id][shift] = (weeklyStats[nurse.id][shift] || 0) + 1;
+                 weeklyStats[nurseId][shift] = (weeklyStats[nurseId][shift] || 0) + 1;
             });
-            if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) {
-                 generationStats[nurse.id].clinicalTotal++;
-            }
+             if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { generationStats[nurseId].clinicalTotal++; }
         });
     }
 

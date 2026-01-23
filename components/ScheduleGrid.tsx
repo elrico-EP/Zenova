@@ -102,10 +102,14 @@ export const ShiftCell: React.FC<{
                 </div>
             );
         }
+        
+        let bgColor = 'bg-slate-200';
+        let textColor = 'text-slate-800';
 
-        const shiftStyle = customShift.type ? SHIFTS[customShift.type] : null;
-        const bgColor = shiftStyle ? shiftStyle.color : 'bg-white';
-        const textColor = shiftStyle ? shiftStyle.textColor : 'text-slate-700';
+        if (customShift.type && SHIFTS[customShift.type]) {
+            bgColor = SHIFTS[customShift.type].color;
+            textColor = SHIFTS[customShift.type].textColor;
+        }
         
         const [mainLabel, ...notes] = customShift.custom.split('\n');
 
@@ -131,22 +135,37 @@ export const ShiftCell: React.FC<{
         }
         
         const [morningPart, afternoonPart] = shiftCell.split;
-        const getShiftData = (part: ScheduleCell) => typeof part === 'string' ? SHIFTS[part as WorkZone] : null;
-        const morningShiftData = getShiftData(morningPart);
-        const afternoonShiftData = getShiftData(afternoonPart);
+        
+        const getPartDisplayInfo = (part: ScheduleCell | null) => {
+            if (!part) return null;
+            if (typeof part === 'string' && SHIFTS[part]) {
+                return { label: SHIFTS[part].label, color: SHIFTS[part].color, textColor: SHIFTS[part].textColor };
+            }
+            if (typeof part === 'object' && 'custom' in part) {
+                if (part.type && SHIFTS[part.type]) {
+                    return { label: part.custom.split('\n')[0], color: SHIFTS[part.type].color, textColor: SHIFTS[part.type].textColor };
+                }
+                return { label: part.custom.split('\n')[0], color: 'bg-slate-200', textColor: 'text-slate-800' };
+            }
+            return null;
+        };
+
+        const morningDisplayInfo = getPartDisplayInfo(morningPart);
+        const afternoonDisplayInfo = getPartDisplayInfo(afternoonPart);
+
 
         return (
             <div className="w-full h-full flex flex-col gap-0.5 p-0.5 relative" title={title}>
-                {morningShiftData && (
-                    <div className={`flex-grow min-h-0 flex flex-col items-center justify-center rounded-sm text-center p-1 ${morningShiftData.color} ${morningShiftData.textColor}`}>
-                        <span className="font-semibold text-xs leading-tight">{morningShiftData.label}</span>
-                        <span className="text-[10px] leading-tight opacity-90">({hours.morning})</span>
+                {morningDisplayInfo && (
+                    <div className={`flex-grow min-h-0 flex flex-col items-center justify-center rounded-sm text-center p-1 ${morningDisplayInfo.color} ${morningDisplayInfo.textColor}`}>
+                        <span className="font-semibold text-xs leading-tight">{morningDisplayInfo.label}</span>
+                        {hours.morning && <span className="text-[10px] leading-tight opacity-90">({hours.morning})</span>}
                     </div>
                 )}
-                {afternoonShiftData && (
-                    <div className={`flex-grow min-h-0 flex flex-col items-center justify-center rounded-sm text-center p-1 ${afternoonShiftData.color} ${afternoonShiftData.textColor}`}>
-                        <span className="font-semibold text-xs leading-tight">{afternoonShiftData.label}</span>
-                        <span className="text-[10px] leading-tight opacity-90">({hours.afternoon})</span>
+                {afternoonDisplayInfo && (
+                    <div className={`flex-grow min-h-0 flex flex-col items-center justify-center rounded-sm text-center p-1 ${afternoonDisplayInfo.color} ${afternoonDisplayInfo.textColor}`}>
+                        <span className="font-semibold text-xs leading-tight">{afternoonDisplayInfo.label}</span>
+                        {hours.afternoon && <span className="text-[10px] leading-tight opacity-90">({hours.afternoon})</span>}
                     </div>
                 )}
             </div>
@@ -275,7 +294,7 @@ interface ScheduleGridProps {
   onCellDoubleClick: (dateKey: string, nurseId: string) => void;
 }
 
-const EXCLUDED_SHIFTS = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG']);
+const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG']);
 
 export const BASE_CELL_WIDTH = 140;
 export const DAY_COL_WIDTH = 100;

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { ScheduleGrid, BASE_CELL_WIDTH, DAY_COL_WIDTH, PRESENT_COL_WIDTH, NOTES_COL_WIDTH } from './components/ScheduleGrid';
 import { Header } from './components/Header';
@@ -15,7 +14,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
-import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent } from './types';
+import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell, generateAndBalanceGaps } from './utils/scheduleUtils';
 import { calculateHoursForMonth, calculateHoursForDay, calculateHoursDifference } from './utils/hoursUtils';
@@ -41,8 +40,8 @@ const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
   // UI State remains local
-  // FIX: Widen view state type to match what Header expects, avoiding a type error.
-  const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile' | 'annual'>('schedule');
+  // FIX: Resolve a type conflict between App's `view` state and the `setView` prop expected by the Header component. The 'annual' planner is a modal, not a main view, so it has been removed from the `view` state. This aligns with the component architecture and fixes the type mismatch.
+  const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'>('schedule');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [selectedNurseForAgenda, setSelectedNurseForAgenda] = useState<Nurse | null>(null);
@@ -92,7 +91,8 @@ const App: React.FC = () => {
   const [schedule, setSchedule] = useState<Schedule>({});
   
   useEffect(() => {
-    const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile' | 'annual'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
+    // FIX: Resolve a type conflict between App's `view` state and the `setView` prop expected by the Header component. The 'annual' planner is a modal, not a main view, so it has been removed from the `view` state. This aligns with the component architecture and fixes the type mismatch.
+    const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
     if (!allowedViews.includes(view)) {
       setView('schedule');
     }
@@ -219,69 +219,27 @@ const App: React.FC = () => {
     });
   }, [nurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, year, jornadasLaborales, specialStrasbourgEvents]);
   
-  const addHistoryEntry = useCallback((action: string, details: string, undoPayload?: any) => {
+  const addHistoryEntry = useCallback((action: string, details: string) => {
     if (!user) return;
-    const newEntry: HistoryEntry = { id: Date.now().toString(), timestamp: new Date().toISOString(), user: user.name, action, details, undoPayload };
+    
+    const newEntry: HistoryEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: user.name,
+        action,
+        details,
+    };
     
     setHistory(prevHistory => {
-        const updatedHistory = [newEntry, ...prevHistory];
-
-        if (updatedHistory.length > 100) {
-            updatedHistory.pop(); 
-        }
-        
+        const updatedHistory = [newEntry, ...prevHistory].slice(0, 100);
         try {
             localStorage.setItem('nursingAppChangeHistory', JSON.stringify(updatedHistory));
         } catch (error) {
             console.error("Failed to save history to localStorage:", error);
         }
-        
         return updatedHistory;
     });
   }, [user]);
-
-  const handleUndoChange = useCallback((entryToUndo: HistoryEntry) => {
-    if (!window.confirm(t.admin_confirm_delete_change)) return;
-
-    if (!entryToUndo.undoPayload) return;
-
-    let newOverrides = JSON.parse(JSON.stringify(manualOverrides));
-    const { type, payload } = entryToUndo.undoPayload;
-
-    if (type === 'manualOverride') {
-        const { nurseIds, startDate, endDate } = payload;
-        for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
-            const dateKey = d.toISOString().split('T')[0];
-            for (const nurseId of nurseIds) {
-                if (newOverrides[nurseId] && newOverrides[nurseId][dateKey]) {
-                    delete newOverrides[nurseId][dateKey];
-                    if (Object.keys(newOverrides[nurseId]).length === 0) {
-                        delete newOverrides[nurseId];
-                    }
-                }
-            }
-        }
-    } else if (type === 'swap') {
-        const { date, nurse1Id, nurse2Id } = payload;
-        if (newOverrides[nurse1Id] && newOverrides[nurse1Id][date]) {
-            delete newOverrides[nurse1Id][date];
-        }
-        if (newOverrides[nurse2Id] && newOverrides[nurse2Id][date]) {
-            delete newOverrides[nurse2Id][date];
-        }
-    }
-    
-    updateData({ manualOverrides: newOverrides });
-
-    const newHistory = history.filter(h => h.id !== entryToUndo.id);
-    setHistory(newHistory);
-    try {
-        localStorage.setItem('nursingAppChangeHistory', JSON.stringify(newHistory));
-    } catch (error) {
-        console.error("Failed to update history in localStorage:", error);
-    }
-  }, [manualOverrides, history, updateData, t.admin_confirm_delete_change]);
-
 
   const handleClearGlobalHistory = useCallback(() => {
     const newEntry: HistoryEntry = {
@@ -301,9 +259,16 @@ const App: React.FC = () => {
   }, [user, t]);
 
   const handleManualChange = useCallback(async (payload: ManualChangePayload) => {
+    const { nurseIds, startDate, endDate } = payload;
+    let details = `Applied shift to ${nurseIds.length} nurse(s) from ${startDate} to ${endDate}`;
+    if (nurseIds.length === 1) {
+        const nurseName = nurses.find(n => n.id === nurseIds[0])?.name || 'Unknown';
+        details = `Changed shift for ${nurseName} from ${startDate} to ${endDate}`;
+    }
+    addHistoryEntry(t.history_manualChange, details);
+    
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
     const newLog: ManualChangeLogEntry[] = [...(manualChangeLog ?? [])];
-    const { nurseIds, shift, startDate, endDate } = payload;
 
     for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
         const dateKey = d.toISOString().split('T')[0];
@@ -311,12 +276,12 @@ const App: React.FC = () => {
             const originalCellForLog = currentSchedule[nurseId]?.[dateKey];
             if (!newOverrides[nurseId]) newOverrides[nurseId] = {};
             const existingCell = newOverrides[nurseId][dateKey];
-            if (JSON.stringify(existingCell) === JSON.stringify(shift)) continue;
+            if (JSON.stringify(existingCell) === JSON.stringify(payload.shift)) continue;
             
-            if (shift === 'DELETE') {
+            if (payload.shift === 'DELETE') {
                 delete newOverrides[nurseId][dateKey];
             } else {
-                newOverrides[nurseId][dateKey] = shift;
+                newOverrides[nurseId][dateKey] = payload.shift;
             }
             
             newLog.push({
@@ -326,42 +291,31 @@ const App: React.FC = () => {
                 nurseId: nurseId,
                 dateKey: dateKey,
                 originalShift: originalCellForLog,
-                newShift: shift,
+                newShift: payload.shift,
             });
         }
     }
     
     await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
-    
-    let details = `Applied shift to ${payload.nurseIds.length} nurse(s) from ${payload.startDate} to ${payload.endDate}`;
-    if (payload.nurseIds.length === 1) {
-        const nurseName = nurses.find(n => n.id === payload.nurseIds[0])?.name || 'Unknown';
-        details = `Changed shift for ${nurseName} from ${payload.startDate} to ${payload.endDate}`;
-    }
-    const undoPayload = { type: 'manualOverride', payload };
-    addHistoryEntry(t.history_manualChange, details, undoPayload);
   }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
-    // This is now a generic save function for overrides from the annual planner.
-    // It receives a complete (but potentially partial) override object and merges it.
+    addHistoryEntry(t.history_bulk_edit, t.history_bulk_edit_details);
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
     for (const nurseId in updatedOverrides) {
         if (!newOverrides[nurseId]) {
             newOverrides[nurseId] = {};
         }
-        // This will add/update shifts for the edited months
         Object.assign(newOverrides[nurseId], updatedOverrides[nurseId]);
     }
-
     await updateData({ manualOverrides: newOverrides });
-    addHistoryEntry(t.history_bulk_edit, t.history_bulk_edit_details);
   }, [manualOverrides, updateData, addHistoryEntry, t]);
 
   const handleGenerateRestOfYear = useCallback(async () => {
     if (!window.confirm(t['planner.generate_rest_year_confirm_intelligent'])) return;
 
-    // The new util function will respect manualOverrides automatically
+    addHistoryEntry(t.history_generate_rest_year, t.history_generate_rest_year_details);
+
     const generatedForGaps = generateAndBalanceGaps(
         nurses,
         year,
@@ -372,8 +326,6 @@ const App: React.FC = () => {
         jornadasLaborales,
         specialStrasbourgEvents
     );
-
-    // Merge new gaps with existing overrides
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
     for (const nurseId in generatedForGaps) {
         if (!newOverrides[nurseId]) {
@@ -381,15 +333,15 @@ const App: React.FC = () => {
         }
         Object.assign(newOverrides[nurseId], generatedForGaps[nurseId]);
     }
-    
     await updateData({ manualOverrides: newOverrides });
-    addHistoryEntry(t.history_generate_rest_year, t.history_generate_rest_year_details);
   }, [nurses, year, effectiveAgenda, manualOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, updateData, addHistoryEntry, t]);
 
   const handleDeleteManualOverride = useCallback(async (payload: { nurseId: string, dateKey: string }) => {
       const { nurseId, dateKey } = payload;
-      const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
+      const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
+      addHistoryEntry('Delete Override', `Removed override for ${nurseName} on ${dateKey}`);
       
+      const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
       if (newOverrides[nurseId] && newOverrides[nurseId][dateKey]) {
           delete newOverrides[nurseId][dateKey];
           if (Object.keys(newOverrides[nurseId]).length === 0) {
@@ -397,33 +349,47 @@ const App: React.FC = () => {
           }
           await updateData({ manualOverrides: newOverrides });
       }
-  }, [manualOverrides, updateData]);
+  }, [manualOverrides, updateData, addHistoryEntry, nurses]);
 
-  const handleNoteChange = useCallback((dateKey: string, text: string, color: string) => updateData({ notes: { ...notes, [dateKey]: { text, color } } }), [notes, updateData]);
+  const handleNoteChange = useCallback((dateKey: string, text: string, color: string) => {
+      addHistoryEntry(t.history_noteChange, `Changed note on ${dateKey}`);
+      updateData({ notes: { ...notes, [dateKey]: { text, color } } });
+  }, [notes, updateData, addHistoryEntry, t.history_noteChange]);
+
   const handleAddNurse = useCallback((name: string) => {
+    addHistoryEntry(t.history_addNurse, `Added: ${name}`);
     const maxOrder = Math.max(...nurses.map(n => n.order), 0);
     const newNurse: Nurse = { id: `nurse-${Date.now()}`, name, email: `${name.toLowerCase().replace(' ', '')}@example.com`, role: 'nurse', order: maxOrder + 1 };
     updateData({ nurses: [...nurses, newNurse].sort((a,b) => a.order - b.order) });
-    addHistoryEntry(t.history_addNurse, `Added: ${name}`);
   }, [nurses, updateData, addHistoryEntry, t]);
 
   const handleRemoveNurse = useCallback((id: string) => {
-    updateData({ nurses: nurses.filter(n => n.id !== id) });
     addHistoryEntry(t.history_removeNurse, `Removed: ${nurses.find(n => n.id === id)?.name}`);
+    updateData({ nurses: nurses.filter(n => n.id !== id) });
   }, [nurses, updateData, addHistoryEntry, t]);
   
   const handleUpdateNurseName = useCallback((id: string, newName: string) => {
+      addHistoryEntry(t.history_updateNurseName, `Renamed ${nurses.find(n=>n.id===id)?.name} to ${newName}`);
       updateData({ nurses: nurses.map(n => n.id === id ? { ...n, name: newName } : n) });
-  }, [nurses, updateData]);
+  }, [nurses, updateData, addHistoryEntry, t.history_updateNurseName]);
 
-  const handleToggleMonthLock = useCallback(() => updateData({ closedMonths: {...closedMonths, [monthKey]: !isMonthClosed} }), [closedMonths, monthKey, isMonthClosed, updateData]);
-  const handleStrasbourgUpdate = useCallback((weekId: string, nurseIds: string[]) => updateData({ strasbourgAssignments: { ...strasbourgAssignments, [weekId]: nurseIds } }), [strasbourgAssignments, updateData]);
+  const handleToggleMonthLock = useCallback(() => {
+    addHistoryEntry('Toggle Lock', `Month ${monthKey} ${!isMonthClosed ? 'locked' : 'unlocked'}`);
+    updateData({ closedMonths: {...closedMonths, [monthKey]: !isMonthClosed} });
+  }, [closedMonths, monthKey, isMonthClosed, updateData, addHistoryEntry]);
+  
+  const handleStrasbourgUpdate = useCallback((weekId: string, nurseIds: string[]) => {
+    addHistoryEntry(t.history_strasbourgUpdate, `Updated assignments for week ${weekId}`);
+    updateData({ strasbourgAssignments: { ...strasbourgAssignments, [weekId]: nurseIds } });
+  }, [strasbourgAssignments, updateData, addHistoryEntry, t.history_strasbourgUpdate]);
+
   const handleSpecialStrasbourgEventsChange = useCallback((newEvents: SpecialStrasbourgEvent[]) => {
-      updateData({ specialStrasbourgEvents: newEvents });
       addHistoryEntry(t.history_specialEvent, t.history_specialEvent);
+      updateData({ specialStrasbourgEvents: newEvents });
   }, [updateData, addHistoryEntry, t]);
 
   const handleMassAbsenceApply = useCallback((nurseIds: string[], startDate: string, endDate: string, shift: WorkZone) => {
+    addHistoryEntry(t.history_massAbsence, `Applied ${shift} to ${nurseIds.length} nurses from ${startDate} to ${endDate}.`);
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
     for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
         const dayOfWeek = d.getDay(); const dateKey = d.toISOString().split('T')[0]; const weekId = getWeekIdentifier(d);
@@ -431,61 +397,38 @@ const App: React.FC = () => {
         nurseIds.forEach(nurseId => { if (!newOverrides[nurseId]) newOverrides[nurseId] = {}; newOverrides[nurseId][dateKey] = shift; });
     }
     updateData({ manualOverrides: newOverrides });
-    addHistoryEntry(t.history_massAbsence, `Applied ${shift} to ${nurseIds.length} nurses from ${startDate} to ${endDate}.`);
   }, [manualOverrides, effectiveAgenda, updateData, addHistoryEntry, t]);
 
   const handleJornadasChange = useCallback((newJornadas: JornadaLaboral[]) => {
-    updateData({ jornadasLaborales: newJornadas });
     addHistoryEntry(t.history_jornadaChange, t.history_jornadaChange);
+    updateData({ jornadasLaborales: newJornadas });
   }, [updateData, addHistoryEntry, t]);
 
   const handleConfirmSwap = useCallback((payload: { date: string; nurse1Id: string; nurse2Id: string }) => {
     const { date, nurse1Id, nurse2Id } = payload;
+    const nurse1Name = nurses.find(n => n.id === nurse1Id)?.name || 'N/A';
+    const nurse2Name = nurses.find(n => n.id === nurse2Id)?.name || 'N/A';
+    addHistoryEntry(t.history_swapShifts, `${nurse1Name} ↔ ${nurse2Name} on ${date}`);
+    
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
     const newLog: ManualChangeLogEntry[] = [...(manualChangeLog ?? [])];
     
     if (!newOverrides[nurse1Id]) newOverrides[nurse1Id] = {};
     if (!newOverrides[nurse2Id]) newOverrides[nurse2Id] = {};
     
-    // Get the CURRENT shifts of each nurse on that day, considering existing overrides.
     const shift1 = currentSchedule[nurse1Id]?.[date];
     const shift2 = currentSchedule[nurse2Id]?.[date];
     
-    // Apply the swap to the manualOverrides object.
     const newShift1 = shift2;
     const newShift2 = shift1;
 
     if (newShift1) { newOverrides[nurse1Id][date] = newShift1; } else { delete newOverrides[nurse1Id][date]; }
     if (newShift2) { newOverrides[nurse2Id][date] = newShift2; } else { delete newOverrides[nurse2Id][date]; }
 
-    // Log the change for Nurse 1
-    newLog.push({
-        id: `log-${Date.now()}-${nurse1Id}-${date}`,
-        timestamp: new Date().toISOString(),
-        user: user?.name || 'System',
-        nurseId: nurse1Id,
-        dateKey: date,
-        originalShift: shift1,
-        newShift: newShift1 || 'DELETE',
-    });
-
-    // Log the change for Nurse 2
-    newLog.push({
-        id: `log-${Date.now()}-${nurse2Id}-${date}`,
-        timestamp: new Date().toISOString(),
-        user: user?.name || 'System',
-        nurseId: nurse2Id,
-        dateKey: date,
-        originalShift: shift2,
-        newShift: newShift2 || 'DELETE',
-    });
+    newLog.push({ id: `log-${Date.now()}-${nurse1Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse1Id, dateKey: date, originalShift: shift1, newShift: newShift1 || 'DELETE' });
+    newLog.push({ id: `log-${Date.now()}-${nurse2Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse2Id, dateKey: date, originalShift: shift2, newShift: newShift2 || 'DELETE' });
     
     updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
-    
-    const nurse1Name = nurses.find(n => n.id === nurse1Id)?.name || 'N/A';
-    const nurse2Name = nurses.find(n => n.id === nurse2Id)?.name || 'N/A';
-    const undoPayload = { type: 'swap', payload };
-    addHistoryEntry(t.history_swapShifts, `${nurse1Name} ↔ ${nurse2Name} on ${date}`, undoPayload);
   }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
   const handleOpenSwapPanelFromCell = (dateKey: string, nurseId: string) => {
@@ -513,10 +456,9 @@ const App: React.FC = () => {
         const monthDate = new Date(year, month, 1);
         const isInternActive = month >= 9 || month <= 1;
         const activeNursesForMonth = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
-        const monthSchedule = recalculateScheduleForMonth( activeNursesForMonth, monthDate, effectiveAgenda, overridesToUse, vaccinationPeriod, strasbourgAssignments, jornadasLaborales );
+        const monthSchedule = recalculateScheduleForMonth( activeNursesForMonth, monthDate, effectiveAgenda, overridesToUse, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
         allSchedules[month] = monthSchedule[nurse.id] || {};
     }
-    // FIX: Pass jornadasLaborales to generateAnnualAgendaPdf
     await generateAnnualAgendaPdf({ nurse, year, allSchedules, agenda: effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales });
   }, [nurses, currentDate, effectiveAgenda, baseOverrides, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents]);
 
@@ -531,6 +473,16 @@ const App: React.FC = () => {
     }
     return months;
   }, [manualOverrides]);
+
+  const handleAgendaChange = useCallback((newAgenda: Agenda) => {
+      addHistoryEntry('Agenda Update', 'Updated annual activity levels.');
+      updateData({ agenda: newAgenda });
+  }, [addHistoryEntry, updateData]);
+
+  const handleVaccinationPeriodChange = useCallback((period: { start: string, end: string } | null) => {
+      addHistoryEntry(t.history_vaccinationPeriodChange, `Period set to ${period ? `${period.start} to ${period.end}` : 'None'}`);
+      updateData({ vaccinationPeriod: period });
+  }, [addHistoryEntry, updateData, t.history_vaccinationPeriodChange]);
 
   if (isAuthLoading || isStateLoading) { return ( <div className="min-h-screen flex items-center justify-center bg-zen-50"> <div className="text-center"> <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> <p className="mt-2 text-zen-600">{t.loadingData}</p> </div> </div> ); }
   if (!user) { return <LoginScreen />; }
@@ -600,7 +552,7 @@ const App: React.FC = () => {
             />
         )}
         <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
-        <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} onUndo={handleUndoChange} />
+        <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} />
         <main className="flex flex-col lg:flex-row gap-8 mt-8 print-main-content">
           {!permissions.isViewingAsViewer && view === 'schedule' && (
              <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print">
@@ -620,7 +572,7 @@ const App: React.FC = () => {
                 specialStrasbourgEvents={specialStrasbourgEvents} 
                 onSpecialStrasbourgEventsChange={handleSpecialStrasbourgEventsChange} 
                 vaccinationPeriod={vaccinationPeriod} 
-                onVaccinationPeriodChange={(period) => updateData({ vaccinationPeriod: period })} 
+                onVaccinationPeriodChange={handleVaccinationPeriodChange} 
                 isMonthClosed={isMonthClosed} 
                 onOpenJornadaManager={() => setIsJornadaManagerOpen(true)}
                 schedule={schedule}
@@ -634,7 +586,7 @@ const App: React.FC = () => {
                 <>
                   <div className="no-print">
                     <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
-                    <AgendaPlanner currentDate={currentDate} agenda={agenda} onAgendaChange={(newAgenda) => updateData({ agenda: newAgenda })} onWeekSelect={setCurrentDate} />
+                    <AgendaPlanner currentDate={currentDate} agenda={agenda} onAgendaChange={handleAgendaChange} onWeekSelect={setCurrentDate} />
                   </div>
                   <div className="mt-6">
                     {permissions.isViewingAsAdmin && (

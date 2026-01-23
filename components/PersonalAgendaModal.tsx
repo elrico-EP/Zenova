@@ -9,9 +9,9 @@ import { ShiftCell } from './ScheduleGrid'; // Re-use for consistent shift displ
 import { PersonalBalanceView } from './PersonalBalanceView';
 import { holidays2026 } from '../data/agenda2026';
 import { agenda2026Data } from '../data/agenda2026'; // To get activity level
-import { getWeekIdentifier } from '../utils/dateUtils';
-import { getScheduleCellHours } from '../utils/scheduleUtils';
-import { calculateHoursForDay, calculateHoursDifference, calculateNurseTheoreticalHoursForMonth } from '../utils/hoursUtils';
+import { getWeekIdentifier, getDateOfWeek } from '../utils/dateUtils';
+import { getScheduleCellHours, recalculateScheduleForMonth } from '../utils/scheduleUtils';
+import { calculateHoursForDay, calculateHoursDifference } from '../utils/hoursUtils';
 import { SHIFTS } from '../constants';
 import { generatePersonalAgendaPdf } from '../utils/exportUtils';
 import { getActiveJornada } from '../utils/jornadaUtils';
@@ -57,7 +57,6 @@ const MonthPickerPopover: React.FC<{
 interface LocalDayData {
   startTime: string;
   endTime: string;
-  note: string;
 }
 
 interface LocalMonthData {
@@ -104,6 +103,44 @@ interface PersonalAgendaModalProps {
   onExportAnnual: (nurse: Nurse, useOriginal: boolean) => Promise<void>;
   jornadasLaborales: JornadaLaboral[];
 }
+
+const CommentModal: React.FC<{
+    dateKey: string;
+    initialValue: string;
+    onSave: (comment: string) => void;
+    onClose: () => void;
+}> = ({ dateKey, initialValue, onSave, onClose }) => {
+    const t = useTranslations();
+    const [comment, setComment] = useState(initialValue);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        textareaRef.current?.focus();
+    }, []);
+
+    const handleSave = () => {
+        onSave(comment);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-4 m-4 max-w-sm w-full relative">
+                <h3 className="text-lg font-semibold mb-2">{t['comment.add_for_day']}</h3>
+                <textarea
+                    ref={textareaRef}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={4}
+                    className="w-full p-2 border rounded-md"
+                />
+                <div className="flex justify-end gap-2 mt-4">
+                    <button onClick={onClose} className="px-4 py-2 text-sm bg-slate-200 rounded-md">{t.cancel}</button>
+                    <button onClick={handleSave} className="px-4 py-2 text-sm bg-zen-800 text-white rounded-md">{t.save}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ShiftDisplay: React.FC<{ cell: ScheduleCell | 'DELETE' | undefined }> = ({ cell }) => {
     const t = useTranslations();
@@ -170,6 +207,8 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   }, [currentDate]);
 
   const [localData, setLocalData] = useState<LocalMonthData>({});
+  const [comments, setComments] = useState<Record<string, string>>({});
+  const [commentModalState, setCommentModalState] = useState<{ dateKey: string } | null>(null);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const monthPickerRef = useRef<HTMLDivElement>(null);
   const [isExportingMonth, setIsExportingMonth] = useState(false);
@@ -181,15 +220,21 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   useEffect(() => {
     try {
       const storageKey = `individualSchedule-${nurse.id}-${monthKey}`;
+      const commentsStorageKey = `individualComments-${nurse.id}-${monthKey}`;
+      
       const storedData = localStorage.getItem(storageKey);
-      if (storedData) {
-        setLocalData(JSON.parse(storedData));
-      } else {
-        setLocalData({});
-      }
+      const storedComments = localStorage.getItem(commentsStorageKey);
+
+      if (storedData) setLocalData(JSON.parse(storedData));
+      else setLocalData({});
+      
+      if (storedComments) setComments(JSON.parse(storedComments));
+      else setComments({});
+
     } catch (error) {
       console.error("Error loading data from localStorage:", error);
       setLocalData({});
+      setComments({});
     }
   }, [nurse.id, monthKey]);
   
@@ -215,7 +260,13 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
             console.error("Error saving data to localStorage:", error);
         }
     }
-  }, [localData, nurse.id, monthKey, authUser]);
+    try {
+        const storageKey = `individualComments-${nurse.id}-${monthKey}`;
+        localStorage.setItem(storageKey, JSON.stringify(comments));
+    } catch (error) {
+        console.error("Error saving comments to localStorage:", error);
+    }
+  }, [localData, comments, nurse.id, monthKey, authUser]);
 
   const handleDataChange = (dateKey: string, field: keyof LocalDayData, value: string) => {
     setLocalData(prev => ({
@@ -223,10 +274,22 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
       [dateKey]: {
         startTime: prev[dateKey]?.startTime || '',
         endTime: prev[dateKey]?.endTime || '',
-        note: prev[dateKey]?.note || '',
         [field]: value
       }
     }));
+  };
+  
+  const handleSaveComment = (dateKey: string, comment: string) => {
+    setComments(prev => {
+        const newComments = { ...prev };
+        if (comment.trim()) {
+            newComments[dateKey] = comment.trim();
+        } else {
+            delete newComments[dateKey];
+        }
+        return newComments;
+    });
+    setCommentModalState(null);
   };
 
   const year = currentDate.getFullYear();
@@ -243,44 +306,144 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     return grid;
   }, [year, month]);
 
+  const weeklyBalances = useMemo(() => {
+    if (activeTab !== 'current') return [];
+    const balances: { theoretical: number; manual: number; diff: number }[] = [];
+    
+    for (let i = 0; i < calendarGrid.length; i += 7) {
+        const weekDates = calendarGrid.slice(i, i + 7);
+        const firstDayOfWeek = weekDates.find(d => d);
+
+        if (!firstDayOfWeek) {
+            balances.push({ theoretical: 0, manual: 0, diff: 0 });
+            continue;
+        }
+
+        const activeJornada = getActiveJornada(nurse.id, firstDayOfWeek, jornadasLaborales);
+        let weekTheoreticalFixed = 40;
+        if (activeJornada) {
+            if (activeJornada.porcentaje === 90) weekTheoreticalFixed = 36;
+            else if (activeJornada.porcentaje === 80) weekTheoreticalFixed = 32;
+        }
+        
+        let weekManual = 0;
+        let weekRealTotal = 0;
+
+        weekDates.forEach(date => {
+            if (date) {
+                const dateKey = date.toISOString().split('T')[0];
+                const shiftCell = displayedSchedule?.[dateKey];
+                const dayData = localData[dateKey] || { startTime: '', endTime: ''};
+                const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
+                
+                const dailyTheoretical = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
+                const dailyManual = calculateHoursDifference(dayData.startTime, dayData.endTime);
+
+                if (dailyManual > 0) {
+                    weekManual += dailyManual;
+                    weekRealTotal += dailyManual;
+                } else {
+                    weekRealTotal += dailyTheoretical;
+                }
+            }
+        });
+
+        if (weekRealTotal > 0 || weekManual > 0) {
+             balances.push({
+                theoretical: weekTheoreticalFixed,
+                manual: weekManual,
+                diff: weekRealTotal - weekTheoreticalFixed,
+            });
+        } else {
+            balances.push({ theoretical: 0, manual: 0, diff: 0});
+        }
+    }
+    return balances;
+}, [calendarGrid, activeTab, displayedSchedule, localData, nurse, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales]);
+
+  const totalMonthlyBalance = useMemo(() => {
+    if (activeTab !== 'current') return 0;
+    return weeklyBalances.reduce((sum, week) => sum + week.diff, 0);
+  }, [weeklyBalances, activeTab]);
+
+  const previousMonthDate = useMemo(() => {
+      const d = new Date(currentDate);
+      d.setUTCMonth(d.getUTCMonth() - 1, 1);
+      return d;
+  }, [currentDate]);
+
+  const previousMonthTotalDifference = useMemo(() => {
+    if (activeTab !== 'current') return 0;
+    
+    const prevMonth = previousMonthDate.getUTCMonth();
+    
+    const isInternActive = prevMonth >= 9 || prevMonth <= 1;
+    const activeNursesForPrevMonth = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
+
+    const combinedOverrides: Schedule = JSON.parse(JSON.stringify(manualOverrides));
+    specialStrasbourgEvents.forEach(event => {
+        if (!event.startDate || !event.endDate || !event.nurseIds) return;
+        for (let d = new Date(event.startDate); d <= new Date(event.endDate); d.setDate(d.getDate() + 1)) {
+            const dateKey = d.toISOString().split('T')[0];
+            event.nurseIds.forEach(nurseId => {
+                if (!combinedOverrides[nurseId]) combinedOverrides[nurseId] = {};
+                const timeString = event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : undefined;
+                combinedOverrides[nurseId][dateKey] = { custom: event.name, type: 'STRASBOURG', time: timeString };
+            });
+        }
+    });
+
+    const prevMonthSchedule = recalculateScheduleForMonth(
+        activeNursesForPrevMonth,
+        previousMonthDate,
+        agenda,
+        combinedOverrides,
+        null, // Vaccination period - assuming not relevant for past summary
+        strasbourgAssignments,
+        jornadasLaborales
+    );
+
+    const nurseScheduleForPrevMonth = prevMonthSchedule[nurse.id] || {};
+    
+    const prevMonthKey = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    const storageKey = `individualSchedule-${nurse.id}-${prevMonthKey}`;
+    let prevMonthLocalData: LocalMonthData = {};
+    try {
+      const storedData = localStorage.getItem(storageKey);
+      if (storedData) {
+        prevMonthLocalData = JSON.parse(storedData);
+      }
+    } catch (error) {
+      console.error("Error loading previous month data from localStorage:", error);
+    }
+    
+    let totalDiff = 0;
+    const daysInPrevMonth = new Date(previousMonthDate.getFullYear(), previousMonthDate.getMonth() + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInPrevMonth; day++) {
+        const date = new Date(Date.UTC(previousMonthDate.getFullYear(), previousMonthDate.getMonth(), day));
+        const dateKey = date.toISOString().split('T')[0];
+        
+        const shiftCell = nurseScheduleForPrevMonth[dateKey];
+        const dayData = prevMonthLocalData[dateKey] || { startTime: '', endTime: ''};
+        const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
+
+        const calculatedDailyHours = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
+        const dailyHours = calculateHoursDifference(dayData.startTime, dayData.endTime);
+        
+        const realDailyHours = dailyHours > 0 ? dailyHours : calculatedDailyHours;
+        const difference = realDailyHours - calculatedDailyHours;
+        totalDiff += difference;
+    }
+    return totalDiff;
+  }, [activeTab, previousMonthDate, nurses, manualOverrides, specialStrasbourgEvents, agenda, strasbourgAssignments, jornadasLaborales, nurse.id]);
+
+
   const dayNames = useMemo(() => {
       const formatter = new Intl.DateTimeFormat(language, { weekday: 'long' });
       return [...Array(7).keys()].map(i => formatter.format(new Date(2023, 0, i + 2)));
   }, [language]);
-  
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  const totalMonthlyHours = useMemo(() => {
-    return daysArray.reduce((total, day) => {
-        const date = new Date(Date.UTC(year, month, day));
-        if (!isDateInWorkPeriod(nurse, date)) return total;
-
-        const dateKey = date.toISOString().split('T')[0];
-
-        // For "Current" tab, prioritize manually entered hours
-        if (activeTab === 'current') {
-            const dayData = localData[dateKey];
-            if (dayData && dayData.startTime && dayData.endTime) {
-                return total + calculateHoursDifference(dayData.startTime, dayData.endTime);
-            }
-        }
-        
-        // For "Original" tab or if no manual hours on "Current", calculate from the schedule
-        const scheduleCell = displayedSchedule?.[dateKey];
-        const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
-        const calculatedHours = calculateHoursForDay(nurse, scheduleCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
-        
-        return total + calculatedHours;
-    }, 0);
-  }, [daysArray, year, month, nurse, activeTab, localData, displayedSchedule, specialStrasbourgEvents, agenda, strasbourgAssignments, jornadasLaborales]);
-
-  const theoreticalHours = useMemo(() => {
-    return calculateNurseTheoreticalHoursForMonth(nurse, year, month, agenda, jornadasLaborales);
-  }, [nurse, year, month, agenda, jornadasLaborales]);
-  
-  const difference = totalMonthlyHours - theoreticalHours;
-  
   const handlePrevMonth = () => onNavigate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => onNavigate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   
@@ -314,6 +477,14 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
 
   return (
     <div className={`personal-agenda-modal-wrapper fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-all duration-300 ${!isMaximized ? 'p-4' : ''}`}>
+        {commentModalState && canEditHours && (
+            <CommentModal
+                dateKey={commentModalState.dateKey}
+                initialValue={comments[commentModalState.dateKey] || ''}
+                onSave={(comment) => handleSaveComment(commentModalState.dateKey, comment)}
+                onClose={() => setCommentModalState(null)}
+            />
+        )}
         <div ref={modalContentRef} className={`personal-agenda-modal-content bg-white shadow-xl relative transform transition-all flex flex-col ${isMaximized ? 'w-screen h-screen rounded-none p-6' : 'rounded-lg p-6 m-4 max-w-7xl w-full h-[95vh]'}`}>
             <header className="flex items-start justify-between pb-4 border-b mb-4 flex-shrink-0">
                 <h2 className="text-2xl font-bold text-gray-800">{nurse.name}</h2>
@@ -354,80 +525,129 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                             {t.individual_original_planning}
                         </button>
                     </div>
-                    <div className="grid grid-cols-7 sticky top-0 bg-slate-100 z-10 border-b-2 border-slate-200">
+                    <div className={`grid ${activeTab === 'current' ? 'grid-cols-8' : 'grid-cols-7'} sticky top-0 bg-slate-100 z-10 border-b-2 border-slate-200`}>
                         {dayNames.map(dayName => <div key={dayName} className="p-2 text-center font-semibold text-slate-600 text-sm capitalize">{dayName}</div>)}
+                         {activeTab === 'current' && <div className="p-2 text-center font-semibold text-slate-600 text-sm">{t.nav_balance}</div>}
                     </div>
-                    <div className="grid grid-cols-7 border-l border-t border-slate-200">
-                        {calendarGrid.map((date, index) => {
-                            if (!date) return <div key={`empty-${index}`} className="border-r border-b border-slate-200 bg-slate-50 min-h-[12rem]"></div>;
-                            const dateKey = date.toISOString().split('T')[0];
-                            const dayOfWeek = date.getUTCDay();
-                            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                            const weekId = getWeekIdentifier(date);
-                            const activityLevel = agenda2026Data[weekId] || 'NORMAL';
-                            const isHoliday = holidays2026.has(dateKey);
-                            const shiftCell = displayedSchedule?.[dateKey];
-                            const dayData = localData[dateKey] || { startTime: '', endTime: '', note: '' };
-                            const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
-                            const dailyHours = calculateHoursDifference(dayData.startTime, dayData.endTime);
-                            const isDayActive = isDateInWorkPeriod(nurse, date);
-                            const bgColor = isWeekend ? 'bg-slate-50' : 'bg-white';
-                            const inactiveClasses = !isDayActive ? 'bg-slate-100 text-slate-400' : 'hover:bg-zen-50';
-                            const hasManualHours = !!(dayData.startTime && dayData.endTime);
-                            
-                            const activeJornada = getActiveJornada(nurse.id, date, jornadasLaborales);
-                            const reductionTooltip = activeJornada && activeJornada.porcentaje < 100 && (shiftCell || specialEvent) ? getRuleDescription(activeJornada, t) : '';
-
-                            return (
-                                <div key={dateKey} className={`relative p-1 border-r border-b border-slate-200 min-h-[12rem] flex flex-col ${inactiveClasses} ${bgColor}`}>
-                                    <div className="text-right text-xs font-semibold text-slate-500">{date.getUTCDate()}</div>
-                                    <div className="my-1 h-14 relative">
-                                        {specialEvent && activeTab === 'current' ? (
-                                            <div className="w-full h-full p-1 flex items-center justify-center relative" title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}>
-                                                <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-xs text-center`}><span className="truncate px-1">{specialEvent.name}</span>{specialEvent.startTime && specialEvent.endTime && <span className="text-[10px] opacity-80 mt-1">{calculateEventHours(specialEvent.startTime, specialEvent.endTime).toFixed(1)}h</span>}</div>
-                                            </div>
-                                        ) : <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda2026Data, jornadasLaborales)} hasManualHours={hasManualHours} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false}/></div>}
-                                        {reductionTooltip && (
-                                            <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm ring-1 ring-white" title={reductionTooltip}>
-                                                R
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1 text-xs mt-auto">
-                                        {isDayActive && activeTab === 'current' ? (<>
-                                            <div className="flex items-center gap-1"><input type="time" value={dayData.startTime} onChange={e => handleDataChange(dateKey, 'startTime', e.target.value)} className="w-full text-center p-0.5 border rounded-md text-xs bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed" disabled={!canEditHours} /><span className="text-slate-400">-</span><input type="time" value={dayData.endTime} onChange={e => handleDataChange(dateKey, 'endTime', e.target.value)} className="w-full text-center p-0.5 border rounded-md text-xs bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed" disabled={!canEditHours} /></div>
-                                            <div className="text-center font-bold text-slate-700 h-4">{dailyHours > 0 ? `${dailyHours.toFixed(2)}h` : ''}</div>
-                                            <input type="text" placeholder={canEditHours ? t.note + "..." : ""} value={dayData.note} onChange={e => handleDataChange(dateKey, 'note', e.target.value)} className="w-full text-xs p-1 border rounded-md bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed" disabled={!canEditHours} />
-                                        </>) : <div className="h-16"></div>}
-                                    </div>
+                    <div className={`grid ${activeTab === 'current' ? 'grid-cols-8' : 'grid-cols-7'} border-l border-t border-slate-200`}>
+                        {activeTab === 'current' && (
+                            <>
+                                <div className="col-span-7 p-2 border-r border-b bg-slate-100 font-semibold text-slate-700 text-sm flex items-center">{t.individual_previous_month}</div>
+                                <div className={`col-span-1 p-2 border-r border-b bg-slate-100 font-bold text-center flex items-center justify-center ${
+                                    previousMonthTotalDifference > 0.01 ? 'text-green-600' :
+                                    previousMonthTotalDifference < -0.01 ? 'text-red-600' :
+                                    'text-slate-500'
+                                }`}>
+                                    {previousMonthTotalDifference > 0.01 ? '+' : ''}{previousMonthTotalDifference.toFixed(2)}h
                                 </div>
+                            </>
+                        )}
+                        {calendarGrid.flatMap((date, index) => {
+                            const dayCell = date ? (
+                                (() => {
+                                    const dateKey = date.toISOString().split('T')[0];
+                                    const dayOfWeek = date.getUTCDay();
+                                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                                    const weekId = getWeekIdentifier(date);
+                                    const activityLevel = agenda2026Data[weekId] || 'NORMAL';
+                                    const isHoliday = holidays2026.has(dateKey);
+                                    const shiftCell = displayedSchedule?.[dateKey];
+                                    const dayData = localData[dateKey] || { startTime: '', endTime: ''};
+                                    const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
+                                    const isDayActive = isDateInWorkPeriod(nurse, date);
+                                    const bgColor = isWeekend ? 'bg-slate-50' : 'bg-white';
+                                    const inactiveClasses = !isDayActive ? 'bg-slate-100 text-slate-400' : 'hover:bg-zen-50';
+                                    
+                                    const activeJornada = getActiveJornada(nurse.id, date, jornadasLaborales);
+                                    const reductionTooltip = activeJornada && activeJornada.porcentaje < 100 && (shiftCell || specialEvent) ? getRuleDescription(activeJornada, t) : '';
+
+                                    return (
+                                        <div 
+                                          key={dateKey} 
+                                          className={`relative p-1 border-r border-b border-slate-200 min-h-[12rem] flex flex-col ${inactiveClasses} ${bgColor}`}
+                                          onDoubleClick={() => {
+                                              if (activeTab === 'current' && isDayActive && canEditHours) {
+                                                  setCommentModalState({ dateKey });
+                                              }
+                                          }}
+                                          title={comments[dateKey] ? `${t['comment.hover']} ${comments[dateKey]}`: ''}
+                                        >
+                                            <div className="text-xs font-semibold text-slate-500 flex justify-between items-center">
+                                                {comments[dateKey] && activeTab === 'current' && <span className="text-sm">📝</span>}
+                                                <span>{date.getUTCDate()}</span>
+                                            </div>
+                                            <div className="my-1 h-14 relative">
+                                                {specialEvent && activeTab === 'current' ? (
+                                                    <div className="w-full h-full p-1 flex items-center justify-center relative" title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}>
+                                                        <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-xs text-center`}><span className="truncate px-1">{specialEvent.name}</span>{specialEvent.startTime && specialEvent.endTime && <span className="text-[10px] opacity-80 mt-1">{calculateEventHours(specialEvent.startTime, specialEvent.endTime).toFixed(1)}h</span>}</div>
+                                                    </div>
+                                                ) : <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda2026Data, jornadasLaborales)} hasManualHours={!!(dayData.startTime && dayData.endTime)} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false}/></div>}
+                                                {reductionTooltip && (
+                                                    <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm ring-1 ring-white" title={reductionTooltip}>
+                                                        R
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-grow"></div>
+                                            <div className="space-y-1 text-xs mt-auto">
+                                                {isDayActive && activeTab === 'current' ? (<>
+                                                    <div className="flex items-center gap-1"><input type="time" value={dayData.startTime} onChange={e => handleDataChange(dateKey, 'startTime', e.target.value)} className="w-full text-center p-0.5 border rounded-md text-xs bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed" disabled={!canEditHours} /><span className="text-slate-400">-</span><input type="time" value={dayData.endTime} onChange={e => handleDataChange(dateKey, 'endTime', e.target.value)} className="w-full text-center p-0.5 border rounded-md text-xs bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed" disabled={!canEditHours} /></div>
+                                                </>) : <div className="h-7"></div>}
+                                            </div>
+                                        </div>
+                                    );
+                                })()
+                            ) : (
+                                <div key={`empty-${index}`} className="border-r border-b border-slate-200 bg-slate-50 min-h-[12rem]"></div>
                             );
+
+                            if (activeTab === 'current' && (index + 1) % 7 === 0) {
+                                const weekIndex = Math.floor(index / 7);
+                                const balance = weeklyBalances[weekIndex];
+                                
+                                const summaryCell = (
+                                    <div key={`summary-${index}`} className="border-r border-b border-slate-200 bg-slate-100/70 min-h-[12rem] flex flex-col justify-center p-1 text-[11px]">
+                                        {balance && (balance.theoretical > 0 || balance.manual > 0) ? (
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center px-1">
+                                                    <span className="text-slate-500">{t.balance_planned}:</span>
+                                                    <span className="font-semibold text-slate-700">{balance.theoretical.toFixed(2)}h</span>
+                                                </div>
+                                                <div className="flex justify-between items-center px-1">
+                                                    <span className="text-slate-500">{t.balance_manual}:</span>
+                                                    <span className="font-semibold text-slate-700">{balance.manual > 0 ? balance.manual.toFixed(2) + 'h' : '-'}</span>
+                                                </div>
+                                                <div className={`pt-1 mt-1 border-t font-bold flex justify-between items-center px-1 text-xs ${balance.diff > 0.01 ? 'text-green-600' : balance.diff < -0.01 ? 'text-red-600' : 'text-slate-800'}`}>
+                                                    <span className="">{t.balance_weekly}:</span>
+                                                    <span className="">{balance.diff > 0.01 ? '+' : ''}{balance.diff.toFixed(2)}h</span>
+                                                </div>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                );
+                                return [dayCell, summaryCell];
+                            }
+                            return [dayCell];
                         })}
+                        {activeTab === 'current' && (
+                            <>
+                                <div className="col-span-7 p-2 border-r border-t bg-slate-100 font-semibold text-slate-700 text-sm flex items-center">{t.individual_month_total}</div>
+                                <div className={`col-span-1 p-2 border-r border-t bg-slate-100 font-bold text-center flex items-center justify-center text-lg ${
+                                    totalMonthlyBalance > 0.01 ? 'text-green-600' :
+                                    totalMonthlyBalance < -0.01 ? 'text-red-600' :
+                                    'text-slate-800'
+                                }`}>
+                                    {totalMonthlyBalance > 0.01 ? '+' : ''}{totalMonthlyBalance.toFixed(2)}h
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
                 <aside className="w-1/3 lg:w-1/4 flex-shrink-0 overflow-y-auto space-y-6 bg-slate-50/70 p-4 rounded-lg no-print">
                     <h4 className="font-bold text-lg text-slate-800">{t.summaryAndBalance}</h4>
                     <div><PersonalBalanceView balanceData={balanceData} /></div>
-                    <div className="bg-white p-4 rounded-lg text-sm shadow-sm border">
-                        <h4 className="font-semibold text-gray-700 mb-2">{t.monthlyHoursSummary}</h4>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-baseline">
-                                <span className="text-slate-600">{t.individual_hours_worked}:</span>
-                                <span className="font-bold text-lg text-slate-800">{totalMonthlyHours.toFixed(2)}h</span>
-                            </div>
-                            <div className="flex justify-between items-baseline pt-2 border-t">
-                                <span className="text-slate-600">{t.theoreticalHoursMonth}:</span>
-                                <span className="font-bold text-slate-800">{theoreticalHours.toFixed(1)}h</span>
-                            </div>
-                            <div className="flex justify-between items-baseline pt-2 border-t bg-slate-50 -mx-4 px-4 pb-1 rounded-b-lg">
-                                <span className="font-semibold text-slate-600">{t.individual_hours_difference}:</span>
-                                <span className={`font-bold text-lg ${difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {difference >= 0 ? '+' : ''}{difference.toFixed(2)}h
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+
                     <div className="bg-white p-4 rounded-lg text-sm space-y-2 shadow-sm border">
                         <div className="flex justify-between items-center">
                             <h4 className="font-semibold text-gray-700">{t.individual_manual_changes_month}</h4>

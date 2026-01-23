@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -11,7 +12,6 @@ import { ZenovaLogo } from './ZenovaLogo';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import type { Nurse, Schedule, Notes, Agenda, User, Hours, JornadaLaboral } from '../types';
 
-// FIX: 'annual' is not a view state but a modal trigger. Removing it from AppView resolves type conflict.
 export type AppView = 'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile';
 
 const UserMenu: React.FC<{

@@ -1,27 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Nurse, Agenda, Schedule, Notes, StrasbourgEvent, Wishes, HistoryEntry, ShiftRotation, ShiftRotationAssignment, JornadaLaboral, SpecialStrasbourgEvent, ScheduleCell, ManualChangeLogEntry } from '../types';
+import type { AppState, Nurse, Agenda, Schedule, Notes, StrasbourgEvent, Wishes, JornadaLaboral, SpecialStrasbourgEvent, ScheduleCell, ManualChangeLogEntry } from '../types';
 import { INITIAL_NURSES } from '../constants';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026 } from '../data/agenda2026';
 
 const STORAGE_KEY = 'zenova-schedule-data';
-
-export interface AppState {
-    nurses: Nurse[];
-    agenda: Agenda;
-    manualOverrides: Schedule;
-    notes: Notes;
-    vaccinationPeriod: { start: string; end: string } | null;
-    strasbourgAssignments: Record<string, string[]>;
-    strasbourgEvents: StrasbourgEvent[];
-    specialStrasbourgEvents: SpecialStrasbourgEvent[];
-    closedMonths: Record<string, boolean>;
-    wishes: Wishes;
-    history: HistoryEntry[];
-    shiftRotations: ShiftRotation[];
-    shiftRotationAssignments: ShiftRotationAssignment[];
-    jornadasLaborales: JornadaLaboral[];
-    manualChangeLog: ManualChangeLogEntry[];
-}
 
 const INITIAL_JORNADAS: JornadaLaboral[] = [
   // Tanja (nurse-2): 90%, sale 3h antes los miércoles
@@ -141,9 +123,6 @@ const getInitialState = (): AppState => ({
     specialStrasbourgEvents: [],
     closedMonths: {},
     wishes: {},
-    history: [],
-    shiftRotations: [],
-    shiftRotationAssignments: [],
     jornadasLaborales: INITIAL_JORNADAS,
     manualChangeLog: [],
 });
@@ -157,9 +136,14 @@ export const useSharedState = () => {
             const storedData = localStorage.getItem(STORAGE_KEY);
             if (storedData) {
                 const parsedData = JSON.parse(storedData);
-                // Ensure new properties exist for migration
-                if (!parsedData.shiftRotations) parsedData.shiftRotations = [];
-                if (!parsedData.shiftRotationAssignments) parsedData.shiftRotationAssignments = [];
+                // Migration to remove history from the main data object
+                if (parsedData.history) {
+                    delete parsedData.history;
+                }
+                
+                if (parsedData.shiftRotations) delete parsedData.shiftRotations;
+                if (parsedData.shiftRotationAssignments) delete parsedData.shiftRotationAssignments;
+
                 if (!parsedData.jornadasLaborales || parsedData.jornadasLaborales.length === 0) {
                      parsedData.jornadasLaborales = INITIAL_JORNADAS;
                 }

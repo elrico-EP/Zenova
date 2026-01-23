@@ -12,6 +12,9 @@ const quickShifts: WorkZone[] = [
     'ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP'
 ];
 
+const absenceShifts = new Set<WorkZone>(['CA', 'SICK_LEAVE', 'FP']);
+
+
 interface ManualChangeModalProps {
   nurses: Nurse[];
   schedule: Schedule;
@@ -22,33 +25,43 @@ interface ManualChangeModalProps {
   onSetPersonalHours: (payload: PersonalHoursChangePayload) => Promise<void>;
   initialNurseId: string | null;
   initialDateKey: string | null;
+  vaccinationPeriod: { start: string; end: string } | null;
 }
 
-export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, schedule, onManualChange, initialNurseId, initialDateKey }) => {
+export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, schedule, onManualChange, initialNurseId, initialDateKey, vaccinationPeriod }) => {
     const t = useTranslations();
     const { user } = useUser();
     
     // State for the new form structure
-    const [isAdvanced, setIsAdvanced] = useState(false);
+    const [isManualSplit, setIsManualSplit] = useState(false);
     const [selectedNurseId, setSelectedNurseId] = useState<string>('');
     const [selectedShift, setSelectedShift] = useState<WorkZone | 'DELETE'>('TRAVAIL');
-    const [startTime1, setStartTime1] = useState('');
-    const [endTime1, setEndTime1] = useState('');
-    const [note1, setNote1] = useState('');
-    const [startTime2, setStartTime2] = useState('');
-    const [endTime2, setEndTime2] = useState('');
-    const [note2, setNote2] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    // State for manual split
+    const [morningShift, setMorningShift] = useState<WorkZone | 'CUSTOM'>('TRAVAIL');
+    const [morningCustom, setMorningCustom] = useState('');
+    const [morningStart, setMorningStart] = useState('');
+    const [morningEnd, setMorningEnd] = useState('');
+    const [afternoonShift, setAfternoonShift] = useState<WorkZone | 'CUSTOM'>('TRAVAIL_TARDE');
+    const [afternoonCustom, setAfternoonCustom] = useState('');
+    const [afternoonStart, setAfternoonStart] = useState('');
+    const [afternoonEnd, setAfternoonEnd] = useState('');
     
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    const isOutsideCampaign = useMemo(() => {
+        if (!vaccinationPeriod || !startDate) return true;
+        return startDate < vaccinationPeriod.start || startDate > vaccinationPeriod.end;
+    }, [startDate, vaccinationPeriod]);
 
     useEffect(() => {
         setSelectedNurseId(initialNurseId || '');
         setStartDate(initialDateKey || '');
         setEndDate(initialDateKey || '');
-        setIsAdvanced(false); // Always start in quick mode
+        setIsManualSplit(false);
 
         if (initialNurseId && initialDateKey) {
             const existingCell = schedule[initialNurseId]?.[initialDateKey];
@@ -58,40 +71,46 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
             if (quickShifts.includes(primaryShift)) {
                 setSelectedShift(primaryShift);
             } else {
-                setSelectedShift('TRAVAIL'); // Default for complex shifts
+                setSelectedShift('TRAVAIL'); 
             }
-
-            if (typeof existingCell === 'object' && 'time' in existingCell && existingCell.time) {
-                const [start, end] = existingCell.time.split(' - ');
-                setStartTime1(start || '');
-                setEndTime1(end || '');
-            } else {
-                setStartTime1('');
-                setEndTime1('');
-            }
-            // Reset advanced fields
-            setStartTime2('');
-            setEndTime2('');
-            setNote1('');
-            setNote2('');
-
         }
-         setError('');
+        
+        setMorningShift('TRAVAIL');
+        setMorningStart('');
+        setMorningEnd('');
+        setAfternoonShift('TRAVAIL_TARDE');
+        setAfternoonStart('');
+        setAfternoonEnd('');
+        setError('');
     }, [initialNurseId, initialDateKey, schedule]);
+    
+    // When toggling manual split, reset other modes
+    useEffect(() => {
+        if(isManualSplit) {
+            setSelectedShift('TRAVAIL');
+        } else {
+            setMorningStart('');
+            setMorningEnd('');
+            setAfternoonStart('');
+            setAfternoonEnd('');
+        }
+    }, [isManualSplit]);
 
     const resetForm = () => {
         setSelectedNurseId('');
         setSelectedShift('TRAVAIL');
-        setStartTime1('');
-        setEndTime1('');
-        setNote1('');
-        setStartTime2('');
-        setEndTime2('');
-        setNote2('');
         setStartDate('');
         setEndDate('');
         setError('');
-        setIsAdvanced(false);
+        setIsManualSplit(false);
+        setMorningShift('TRAVAIL');
+        setMorningCustom('');
+        setMorningStart('');
+        setMorningEnd('');
+        setAfternoonShift('TRAVAIL_TARDE');
+        setAfternoonCustom('');
+        setAfternoonStart('');
+        setAfternoonEnd('');
     };
 
     const handleSubmit = async () => {
@@ -103,32 +122,33 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
 
         let shiftPayload: ScheduleCell | 'DELETE';
 
-        if (selectedShift === 'DELETE') {
+        if (isManualSplit) {
+             let part1: WorkZone | CustomShift;
+             if (morningShift === 'CUSTOM') {
+                 if (!morningCustom.trim()) { setError(t.error_morningCustomEmpty); setIsLoading(false); return; }
+                 part1 = { custom: morningCustom.trim(), time: (morningStart && morningEnd) ? `${morningStart} - ${morningEnd}` : undefined, manualSplit: true };
+             } else {
+                 const isMorningWork = !absenceShifts.has(morningShift);
+                 if (isMorningWork && (!morningStart || !morningEnd)) { setError(t.error_morningTimeRequired); setIsLoading(false); return; }
+                 part1 = isMorningWork ? { custom: SHIFTS[morningShift].label, type: morningShift, time: `${morningStart} - ${morningEnd}`, manualSplit: true } : morningShift;
+             }
+
+             let part2: WorkZone | CustomShift;
+             if (afternoonShift === 'CUSTOM') {
+                 if (!afternoonCustom.trim()) { setError(t.error_afternoonCustomEmpty); setIsLoading(false); return; }
+                 part2 = { custom: afternoonCustom.trim(), time: (afternoonStart && afternoonEnd) ? `${afternoonStart} - ${afternoonEnd}` : undefined, manualSplit: true };
+             } else {
+                 const isAfternoonWork = !absenceShifts.has(afternoonShift);
+                 if (isAfternoonWork && (!afternoonStart || !afternoonEnd)) { setError(t.error_afternoonTimeRequired); setIsLoading(false); return; }
+                 part2 = isAfternoonWork ? { custom: SHIFTS[afternoonShift].label, type: afternoonShift, time: `${afternoonStart} - ${afternoonEnd}`, manualSplit: true } : afternoonShift;
+             }
+             
+            shiftPayload = { split: [part1, part2] };
+
+        } else if (selectedShift === 'DELETE') {
             shiftPayload = 'DELETE';
         } else {
-            const shiftInfo = SHIFTS[selectedShift as WorkZone];
-            const isCustomTime = startTime1 && endTime1;
-            const hasNotes = note1 || (startTime2 && endTime2) || note2;
-
-            if (isAdvanced && (isCustomTime || hasNotes)) {
-                let customLabel = shiftInfo.label;
-                const allNotes: string[] = [];
-                if (note1) allNotes.push(note1);
-                if (startTime2 && endTime2) allNotes.push(`Interruption: ${startTime2} - ${endTime2}`);
-                if (note2) allNotes.push(note2);
-
-                if (allNotes.length > 0) {
-                    customLabel += `\n${allNotes.join(' | ')}`;
-                }
-
-                shiftPayload = {
-                    custom: customLabel,
-                    type: selectedShift as WorkZone,
-                    time: isCustomTime ? `${startTime1} - ${endTime1}` : undefined
-                };
-            } else {
-                shiftPayload = selectedShift as WorkZone;
-            }
+             shiftPayload = selectedShift as WorkZone;
         }
 
 
@@ -166,7 +186,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <label htmlFor="start-date" className="text-xs text-gray-600">{t.startDate}</label>
-                            <input type="date" id="start-date" value={startDate} onChange={e => setStartDate(e.target.value)} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
+                            <input type="date" id="start-date" value={startDate} onChange={e => { setStartDate(e.target.value); if (!endDate) setEndDate(e.target.value); }} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
                         </div>
                         <div className="flex-1">
                             <label htmlFor="end-date" className="text-xs text-gray-600">{t.endDate}</label>
@@ -174,82 +194,94 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                         </div>
                     </div>
                 </section>
-
-                <section>
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">{t.step2_shift}</label>
-                    <div className="grid grid-cols-3 gap-2">
-                        {quickShifts.map(shiftId => {
-                            const shiftInfo = SHIFTS[shiftId];
-                            const isSelected = selectedShift === shiftId;
-                            return (
-                                <button
-                                    key={shiftId}
-                                    type="button"
-                                    onClick={() => setSelectedShift(shiftId)}
-                                    className={`p-2 rounded-md text-center transition-all duration-150 ${shiftInfo.color} ${shiftInfo.textColor} ${isSelected ? 'ring-2 ring-offset-1 ring-zen-500 shadow-md' : 'hover:shadow-md'}`}
-                                >
-                                    <span className="font-bold text-sm">{shiftInfo.label}</span>
-                                </button>
-                            );
-                        })}
-                         <button
-                            type="button"
-                            onClick={() => setSelectedShift('DELETE')}
-                            className={`col-span-3 p-2 rounded-md text-center transition-all duration-150 bg-red-100 text-red-700 ${selectedShift === 'DELETE' ? 'ring-2 ring-offset-1 ring-zen-500 shadow-md' : 'hover:shadow-md'}`}
-                        >
-                            <span className="font-bold text-sm">{t.deleteShift}</span>
-                        </button>
+                
+                {isOutsideCampaign && (
+                    <div className="pt-4 border-t">
+                        <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-md hover:bg-slate-100">
+                            <input type="checkbox" checked={isManualSplit} onChange={(e) => setIsManualSplit(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-zen-600 focus:ring-zen-500"/>
+                            <span className="font-semibold text-slate-700">{t.manualSplit_create}</span>
+                        </label>
                     </div>
-                    <div className="text-right mt-3">
-                        <button type="button" onClick={() => setIsAdvanced(true)} className="text-sm text-zen-600 hover:underline">
-                            {t.advancedEdit}
-                        </button>
-                    </div>
-                </section>
+                )}
 
-                {isAdvanced && (
-                    <>
-                         <div className="text-left mb-2 border-t pt-4">
-                            <button type="button" onClick={() => setIsAdvanced(false)} className="text-sm text-zen-600 hover:underline">
-                                {t.quickEdit}
+                {isManualSplit ? (
+                    <section className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+                        <div className="space-y-2">
+                           <label className="block text-sm font-semibold text-gray-800">{t.manualSplit_morningShift}</label>
+                           <select value={morningShift} onChange={e => { setMorningShift(e.target.value as WorkZone | 'CUSTOM'); if(e.target.value !== 'CUSTOM') setMorningCustom(''); }} className="w-full p-2 border-slate-300 rounded-md bg-white">
+                                {quickShifts.map(sId => <option key={sId} value={sId}>{SHIFTS[sId].label}</option>)}
+                                <option value="CUSTOM">{t.manualSplit_other}</option>
+                           </select>
+                           {morningShift === 'CUSTOM' && (
+                                <input type="text" value={morningCustom} onChange={e => setMorningCustom(e.target.value)} placeholder={t.manualSplit_placeholder_morning} className="mt-1 w-full p-2 border-slate-300 rounded-md"/>
+                           )}
+                           {morningShift !== 'CUSTOM' && !absenceShifts.has(morningShift) && (
+                               <div className="flex items-center gap-2">
+                                   <input type="time" value={morningStart} onChange={e => setMorningStart(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_startTime}/>
+                                   <span>-</span>
+                                   <input type="time" value={morningEnd} onChange={e => setMorningEnd(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_endTime}/>
+                               </div>
+                           )}
+                           {morningShift === 'CUSTOM' && (
+                               <div className="flex items-center gap-2">
+                                  <input type="time" value={morningStart} onChange={e => setMorningStart(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_startTimeOptional}/>
+                                  <span>-</span>
+                                  <input type="time" value={morningEnd} onChange={e => setMorningEnd(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_endTimeOptional}/>
+                               </div>
+                           )}
+                        </div>
+                         <div className="space-y-2">
+                           <label className="block text-sm font-semibold text-gray-800">{t.manualSplit_afternoonShift}</label>
+                           <select value={afternoonShift} onChange={e => { setAfternoonShift(e.target.value as WorkZone | 'CUSTOM'); if(e.target.value !== 'CUSTOM') setAfternoonCustom(''); }} className="w-full p-2 border-slate-300 rounded-md bg-white">
+                                {quickShifts.map(sId => <option key={sId} value={sId}>{SHIFTS[sId].label}</option>)}
+                                <option value="CUSTOM">{t.manualSplit_other}</option>
+                           </select>
+                            {afternoonShift === 'CUSTOM' && (
+                                <input type="text" value={afternoonCustom} onChange={e => setAfternoonCustom(e.target.value)} placeholder={t.manualSplit_placeholder_afternoon} className="mt-1 w-full p-2 border-slate-300 rounded-md"/>
+                           )}
+                           {afternoonShift !== 'CUSTOM' && !absenceShifts.has(afternoonShift) && (
+                               <div className="flex items-center gap-2">
+                                   <input type="time" value={afternoonStart} onChange={e => setAfternoonStart(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_startTime}/>
+                                   <span>-</span>
+                                   <input type="time" value={afternoonEnd} onChange={e => setAfternoonEnd(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_endTime}/>
+                               </div>
+                           )}
+                           {afternoonShift === 'CUSTOM' && (
+                               <div className="flex items-center gap-2">
+                                  <input type="time" value={afternoonStart} onChange={e => setAfternoonStart(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_startTimeOptional}/>
+                                  <span>-</span>
+                                  <input type="time" value={afternoonEnd} onChange={e => setAfternoonEnd(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_endTimeOptional}/>
+                               </div>
+                           )}
+                        </div>
+                    </section>
+                ) : (
+                    <section>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">{t.step2_shift}</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {quickShifts.map(shiftId => {
+                                const shiftInfo = SHIFTS[shiftId];
+                                const isSelected = selectedShift === shiftId;
+                                return (
+                                    <button
+                                        key={shiftId}
+                                        type="button"
+                                        onClick={() => setSelectedShift(shiftId)}
+                                        className={`p-2 rounded-md text-center transition-all duration-150 ${shiftInfo.color} ${shiftInfo.textColor} ${isSelected ? 'ring-2 ring-offset-1 ring-zen-500 shadow-md' : 'hover:shadow-md'}`}
+                                    >
+                                        <span className="font-bold text-sm">{shiftInfo.label}</span>
+                                    </button>
+                                );
+                            })}
+                             <button
+                                type="button"
+                                onClick={() => setSelectedShift('DELETE')}
+                                className={`col-span-3 p-2 rounded-md text-center transition-all duration-150 bg-red-100 text-red-700 ${selectedShift === 'DELETE' ? 'ring-2 ring-offset-1 ring-zen-500 shadow-md' : 'hover:shadow-md'}`}
+                            >
+                                <span className="font-bold text-sm">{t.deleteShift}</span>
                             </button>
                         </div>
-                        <section>
-                            <label className="block text-sm font-semibold text-gray-800 mb-2">{t.mainSchedule}</label>
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1">
-                                    <label htmlFor="start-time-1" className="text-xs text-gray-600">{t.startTime}</label>
-                                    <input type="time" id="start-time-1" value={startTime1} onChange={e => setStartTime1(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
-                                </div>
-                                <div className="flex-1">
-                                    <label htmlFor="end-time-1" className="text-xs text-gray-600">{t.endTime}</label>
-                                    <input type="time" id="end-time-1" value={endTime1} onChange={e => setEndTime1(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
-                                </div>
-                            </div>
-                            <div className="mt-2">
-                                <label htmlFor="note-1" className="text-xs text-gray-600">{t.adjustmentNotes}</label>
-                                <textarea id="note-1" value={note1} onChange={e => setNote1(e.target.value)} rows={3} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"></textarea>
-                            </div>
-                        </section>
-
-                        <section>
-                            <label className="block text-sm font-semibold text-gray-800 mb-2">{t.interruption}</label>
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1">
-                                    <label htmlFor="start-time-2" className="text-xs text-gray-600">{t.startTime}</label>
-                                    <input type="time" id="start-time-2" value={startTime2} onChange={e => setStartTime2(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
-                                </div>
-                                <div className="flex-1">
-                                    <label htmlFor="end-time-2" className="text-xs text-gray-600">{t.endTime}</label>
-                                    <input type="time" id="end-time-2" value={endTime2} onChange={e => setEndTime2(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
-                                </div>
-                            </div>
-                            <div className="mt-2">
-                                <label htmlFor="note-2" className="text-xs text-gray-600">{t.interruptionNotes}</label>
-                                <textarea id="note-2" value={note2} onChange={e => setNote2(e.target.value)} rows={3} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"></textarea>
-                            </div>
-                        </section>
-                    </>
+                    </section>
                 )}
                 
                 {error && <p className="text-sm text-red-600 p-2 bg-red-100 rounded-md">{error}</p>}

@@ -58,6 +58,7 @@ export interface CustomShift {
   custom: string;
   type?: WorkZone; 
   time?: string; 
+  manualSplit?: boolean;
 }
 
 export type ScheduleCell = WorkZone | CustomShift | { split: [WorkZone | CustomShift, WorkZone | CustomShift] };
@@ -210,15 +211,6 @@ export interface BalanceData {
     hasConsecutiveAdmTw: boolean;
 }
 
-export interface HistoryEntry {
-  id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  details: string;
-  undoPayload?: any; // To store context for undoable actions
-}
-
 export interface Wish {
   text: string;
   validated: boolean;
@@ -228,19 +220,6 @@ export interface Wishes {
   [nurseId: string]: {
     [dateKey: string]: Wish;
   };
-}
-
-export interface ShiftRotation {
-  id: string;
-  name: string;
-  shifts: ScheduleCell[];
-}
-
-export interface ShiftRotationAssignment {
-  id: string;
-  rotationId: string;
-  nurseIds: string[];
-  startDate: string; // YYYY-MM-DD
 }
 
 export type ReductionOption = 'FULL_DAY_OFF' | 'START_SHIFT_4H' | 'END_SHIFT_4H' | 'LEAVE_EARLY_1H_L_J' | 'FRIDAY_PLUS_EXTRA';
@@ -256,6 +235,43 @@ export interface JornadaLaboral {
     reductionOption?: ReductionOption;
     reductionDayOfWeek?: 1 | 2 | 3 | 4 | 5; // Monday=1, ..., Friday=5
     secondaryReductionDayOfWeek?: 1 | 2 | 3 | 4; // For 80% Friday rule
+}
+
+// FIX: Add missing ShiftRotation and ShiftRotationAssignment type definitions.
+export interface ShiftRotation {
+  id: string;
+  name: string;
+  shifts: ScheduleCell[];
+}
+
+export interface ShiftRotationAssignment {
+  id: string;
+  rotationId: string;
+  nurseIds: string[];
+  startDate: string;
+}
+
+export interface AppState {
+    nurses: Nurse[];
+    agenda: Agenda;
+    manualOverrides: Schedule;
+    notes: Notes;
+    vaccinationPeriod: { start: string; end: string } | null;
+    strasbourgAssignments: Record<string, string[]>;
+    strasbourgEvents: StrasbourgEvent[];
+    specialStrasbourgEvents: SpecialStrasbourgEvent[];
+    closedMonths: Record<string, boolean>;
+    wishes: Wishes;
+    jornadasLaborales: JornadaLaboral[];
+    manualChangeLog: ManualChangeLogEntry[];
+}
+
+export interface HistoryEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string;
+  details: string;
 }
 
 // FIX: Add missing SwapInfo type definition.

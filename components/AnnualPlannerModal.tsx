@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslations } from '../hooks/useTranslations';
 import type { Nurse, Schedule, ScheduleCell, WorkZone, CustomShift } from '../types';
@@ -110,7 +111,11 @@ const ShiftEditorPopover: React.FC<{
             setTime2(typeof part2 === 'object' && 'time' in part2 ? part2.time || '' : '');
         } else {
             setIsSplit(false);
-            const shifts = getShiftsFromCell(initialCell);
+            // FIX: Ensure 'initialCell' is a valid 'ScheduleCell' before passing to 'getShiftsFromCell'.
+            // 'initialCell' can be '' or 'DELETE', which are not valid ScheduleCell types.
+            const shifts = getShiftsFromCell(
+                initialCell && initialCell !== 'DELETE' ? (initialCell as ScheduleCell) : undefined
+            );
             setShift1(shifts.length > 0 ? shifts[0] : '');
             setTime1(typeof initialCell === 'object' && 'time' in initialCell ? initialCell.time || '' : '');
             setShift2('');
@@ -487,7 +492,7 @@ export const AnnualPlannerModal: React.FC<AnnualPlannerModalProps> = ({ isOpen, 
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
                             {t['planner.edit_manual_selected_months']}
                         </button>
-                        <button onClick={() => { onGenerate(); onClose(); }} title={t['planner.generate_remaining_tooltip']} className="flex items-center gap-3 px-6 py-3 text-base font-semibold text-white bg-nova-600 rounded-lg shadow-md hover:bg-nova-700 transition-all min-w-[200px] justify-center">
+                        <button onClick={() => { onGenerate(); onClose(); }} title={t['planner.generate_remaining_tooltip']} className="flex items-center gap-3 px-6 py-3 text-base font-semibold text-nova-600 rounded-lg shadow-md hover:bg-nova-700 transition-all min-w-[200px] justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" /></svg>
                             {t['planner.generate_remaining_months']}
                         </button>

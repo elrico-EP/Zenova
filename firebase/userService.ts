@@ -10,11 +10,11 @@ const seedInitialUsers = (): User[] => {
     ...INITIAL_NURSES.map(nurse => ({
         id: `user-account-${nurse.id}`,
         name: nurse.name,
-        email: nurse.email,
-        password: 'password123',
+        email: nurse.name, // Use nurse's name as username
+        password: '12345', // Set initial temporary password
         role: 'nurse' as UserRole,
         nurseId: nurse.id,
-        mustChangePassword: true,
+        mustChangePassword: true, // Force password change on first login
         passwordResetRequired: false,
     }))
   ];

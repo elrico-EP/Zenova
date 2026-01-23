@@ -6,10 +6,9 @@ import { usePermissions } from '../hooks/usePermissions';
 
 interface HistoryLogProps {
   history: HistoryEntry[];
-  onUndo: (entry: HistoryEntry) => void;
 }
 
-export const HistoryLog: React.FC<HistoryLogProps> = ({ history, onUndo }) => {
+export const HistoryLog: React.FC<HistoryLogProps> = ({ history }) => {
   const t = useTranslations();
   const { language } = useLanguage();
   const permissions = usePermissions();
@@ -33,15 +32,10 @@ export const HistoryLog: React.FC<HistoryLogProps> = ({ history, onUndo }) => {
           <div key={entry.id} className="text-xs p-2 bg-slate-50 rounded-md border border-slate-200/80">
             <p className="font-semibold text-slate-700">{entry.action}</p>
             <p className="text-slate-600">{entry.details}</p>
-            <div className="flex justify-between items-center mt-1">
+            <div className="mt-1">
                 <p className="text-slate-400">
                     {entry.user} - {formatDate(entry.timestamp)}
                 </p>
-                {permissions.isViewingAsAdmin && entry.undoPayload && (
-                    <button onClick={() => onUndo(entry)} className="font-semibold text-blue-600 hover:text-blue-800 hover:underline">
-                        {t.history_undo}
-                    </button>
-                )}
             </div>
           </div>
         ))

@@ -7,10 +7,9 @@ interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   history: HistoryEntry[];
-  onUndo: (entry: HistoryEntry) => void;
 }
 
-export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, onUndo }) => {
+export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history }) => {
   const t = useTranslations();
 
   if (!isOpen) {
@@ -40,7 +39,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
         </header>
 
         <main className="overflow-y-auto pr-2">
-          <HistoryLog history={history} onUndo={onUndo} />
+          <HistoryLog history={history} />
         </main>
       </div>
     </div>

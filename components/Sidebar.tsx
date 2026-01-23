@@ -21,7 +21,7 @@ const CollapsibleModule: React.FC<{ title: React.ReactNode; children: React.Reac
                 <span className="flex items-center gap-2">{title}</span>
                 <svg className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-[1000px]' : 'max-h-0'}`}><div className="p-4 border-t border-slate-200/80">{children}</div></div>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-[2000px]' : 'max-h-0'}`}><div className="p-4 border-t border-slate-200/80">{children}</div></div>
         </div>
     );
 };
@@ -219,6 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
                     hours={{} as any}
                     onSwapShifts={async () => {}}
                     onSetPersonalHours={async () => {}}
+                    vaccinationPeriod={props.vaccinationPeriod}
                 />
             </CollapsibleModule>
         )}
