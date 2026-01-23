@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+// FIX: Remove Firebase imports as they are causing errors and the project uses localStorage for persistence.
+// import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
+// import { db } from '../firebase/config';
 import type { AppState, Nurse, Agenda, Schedule, Notes, StrasbourgEvent, Wishes, JornadaLaboral, SpecialStrasbourgEvent, ScheduleCell, ManualChangeLogEntry, ShiftRotation, ShiftRotationAssignment } from '../types';
 import { INITIAL_NURSES } from '../constants';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026 } from '../data/agenda2026';
 
-// This file is now refactored to use Firebase Firestore for real-time collaboration.
-// The logic for initial state and data structure remains the same.
+// This file is now refactored to use localStorage for state management instead of Firebase Firestore.
+// This aligns with how `userService.ts` handles user data and resolves the build errors.
 
 const INITIAL_JORNADAS: JornadaLaboral[] = [
   { id: 'j-tanja-1', nurseId: 'nurse-2', porcentaje: 90, fechaInicio: '2026-01-01', fechaFin: '2026-12-31', reductionOption: 'END_SHIFT_4H', reductionDayOfWeek: 3 },
@@ -66,78 +67,68 @@ const getInitialState = (): AppState => ({
     shiftRotationAssignments: [],
 });
 
-// A single document in Firestore will hold our entire app state.
-const scheduleDocRef = doc(db, "schedules", "main_schedule_2026");
+// A single key in localStorage will hold our entire app state.
+const STATE_STORAGE_KEY = "main_schedule_2026";
 
 export const useSharedState = () => {
     const [data, setData] = useState<AppState | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // This effect sets up the real-time listener.
-        // It handles both fetching initial data and seeding the database if it's empty.
-        let seeded = false; // Prevents multiple seeding attempts on flaky connections
-
-        const unsubscribe = onSnapshot(scheduleDocRef, async (doc) => {
-            if (doc.exists()) {
-                const firestoreData = doc.data() as AppState;
+        // This effect reads from localStorage instead of Firestore.
+        // It handles both fetching initial data and seeding localStorage if it's empty.
+        try {
+            const storedJson = localStorage.getItem(STATE_STORAGE_KEY);
+            if (storedJson) {
+                const storedData = JSON.parse(storedJson) as AppState;
                 
-                // To ensure forward compatibility, we merge the fetched data with
-                // the default structure. If a new property is added to the app
-                // but isn't in Firestore yet, it will get its default value.
+                // To ensure forward compatibility, merge the fetched data with the default structure.
                 const defaults = getInitialState();
                 const finalData = {
                     ...defaults,
-                    ...firestoreData,
-                    // Explicitly handle potentially missing nested objects/arrays
-                    nurses: firestoreData.nurses || defaults.nurses,
-                    manualOverrides: firestoreData.manualOverrides || defaults.manualOverrides,
-                    notes: firestoreData.notes || defaults.notes,
-                    strasbourgAssignments: firestoreData.strasbourgAssignments || defaults.strasbourgAssignments,
-                    specialStrasbourgEvents: firestoreData.specialStrasbourgEvents || defaults.specialStrasbourgEvents,
-                    jornadasLaborales: firestoreData.jornadasLaborales || defaults.jornadasLaborales,
-                    manualChangeLog: firestoreData.manualChangeLog || defaults.manualChangeLog,
-                    shiftRotations: firestoreData.shiftRotations || defaults.shiftRotations,
-                    shiftRotationAssignments: firestoreData.shiftRotationAssignments || defaults.shiftRotationAssignments,
+                    ...storedData,
+                    nurses: storedData.nurses || defaults.nurses,
+                    manualOverrides: storedData.manualOverrides || defaults.manualOverrides,
+                    notes: storedData.notes || defaults.notes,
+                    strasbourgAssignments: storedData.strasbourgAssignments || defaults.strasbourgAssignments,
+                    specialStrasbourgEvents: storedData.specialStrasbourgEvents || defaults.specialStrasbourgEvents,
+                    jornadasLaborales: storedData.jornadasLaborales || defaults.jornadasLaborales,
+                    manualChangeLog: storedData.manualChangeLog || defaults.manualChangeLog,
+                    shiftRotations: storedData.shiftRotations || defaults.shiftRotations,
+                    shiftRotationAssignments: storedData.shiftRotationAssignments || defaults.shiftRotationAssignments,
                 };
                 setData(finalData);
             } else {
-                // Document doesn't exist. This likely means it's the first run.
-                // We seed the database once.
-                if (!seeded) {
-                    seeded = true;
-                    console.log("Document not found, seeding database with initial state...");
-                    try {
-                        await setDoc(scheduleDocRef, getInitialState());
-                        // The onSnapshot listener will be triggered again automatically by setDoc,
-                        // which will then run the doc.exists() block.
-                    } catch (e) {
-                        console.error("Error seeding database:", e);
-                        // If seeding fails, fallback to the local initial state to keep the app functional.
-                        setData(getInitialState());
-                    }
-                }
+                // localStorage is empty. This is likely the first run.
+                // We seed the storage once.
+                console.log("No data in localStorage, seeding with initial state...");
+                const initialState = getInitialState();
+                localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(initialState));
+                setData(initialState);
             }
+        } catch (error) {
+            console.error("Error reading from localStorage, seeding with initial state:", error);
+            // If parsing fails, fallback to a fresh initial state.
+            const initialState = getInitialState();
+            localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(initialState));
+            setData(initialState);
+        } finally {
             setLoading(false);
-        }, (error) => {
-            console.error("Firestore snapshot error:", error);
-            // If the listener fails (e.g., permissions, network), fallback to local initial state.
-            setData(getInitialState());
-            setLoading(false);
-        });
-
-        // Cleanup subscription on unmount
-        return () => unsubscribe();
+        }
     }, []); // Empty dependency array ensures this runs only once on mount
 
-    const updateData = useCallback(async (updates: Partial<AppState>) => {
-        // This function writes partial updates to Firestore.
-        // The `onSnapshot` listener will automatically update the local state for all clients.
-        try {
-            await updateDoc(scheduleDocRef, updates);
-        } catch (e) {
-            console.error("Error updating document in Firestore:", e);
-        }
+    const updateData = useCallback((updates: Partial<AppState>) => {
+        // This function updates the state and writes the new state to localStorage.
+        setData(currentData => {
+            if (!currentData) return null;
+            const updatedData = { ...currentData, ...updates };
+            try {
+                localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(updatedData));
+            } catch (e) {
+                console.error("Error updating localStorage:", e);
+            }
+            return updatedData;
+        });
     }, []);
 
     return { data, loading, updateData };
