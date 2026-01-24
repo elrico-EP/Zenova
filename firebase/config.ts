@@ -34,10 +34,15 @@ export function saveConfigAndReload(config: object) {
         throw new Error("La configuración es inválida.");
     }
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-    window.location.reload();
+    
+    // Da tiempo a la UI para mostrar el mensaje de éxito antes de recargar.
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
+
   } catch (error) {
     console.error("Error al guardar la configuración:", error);
-    alert("No se pudo guardar la configuración. Revisa la consola para más detalles.");
+    throw error;
   }
 }
 
