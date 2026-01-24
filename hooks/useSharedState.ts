@@ -26,8 +26,10 @@ export const useSharedState = () => {
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
+        // FIX: If Firebase isn't ready, treat it as an error state instead of proceeding with default data.
+        // This prevents the app from getting stuck on "Loading..." when the connection is slow or fails.
         if (!db) {
-            setData(getInitialState());
+            setError(new Error("No se pudo conectar a la base de datos. Por favor, revisa tu configuración de Firebase y tu conexión de red."));
             setLoading(false);
             return;
         }
@@ -35,8 +37,10 @@ export const useSharedState = () => {
         const scheduleDocRef = doc(db, "schedules", "main_schedule_2026");
 
         const timeoutId = setTimeout(() => {
-            setError(new Error("La conexión con la base de datos ha fallado. Por favor, comprueba tu conexión a internet y recarga la página."));
-            setLoading(false);
+            if (loading) { // Only trigger timeout if still loading
+                setError(new Error("La conexión con la base de datos ha tardado demasiado. Por favor, comprueba tu conexión a internet y recarga la página."));
+                setLoading(false);
+            }
         }, 15000); // 15-second timeout
 
         const unsubscribe = onSnapshot(scheduleDocRef, 
@@ -47,11 +51,12 @@ export const useSharedState = () => {
                 } else {
                     console.log("Document not found, seeding database with initial state...");
                     const initialState = getInitialState();
-                    setDoc(scheduleDocRef, initialState).catch(seedError => {
+                    setDoc(scheduleDocRef, initialState).then(() => {
+                        setData(initialState);
+                    }).catch(seedError => {
                         console.error("Error seeding database:", seedError);
                         setError(seedError as Error);
                     });
-                    setData(initialState);
                 }
                 setLoading(false);
             }, 
