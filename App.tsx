@@ -42,7 +42,8 @@ const App: React.FC = () => {
 
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   const permissions = usePermissions();
-  const { data: sharedData, loading: isStateLoading, error: stateError, updateData } = useSharedState();
+  // FIX: Defer shared state loading until authentication is complete to prevent race conditions.
+  const { data: sharedData, loading: isStateLoading, error: stateError, updateData } = useSharedState(isAuthLoading);
 
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
@@ -59,7 +60,23 @@ const App: React.FC = () => {
   const { language } = useLanguage();
   const t = useTranslations();
 
-  if (isAuthLoading || isStateLoading) { 
+  // Add a global timeout error as a safety net for any loading hangs.
+  const [appTimeoutError, setAppTimeoutError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isAuthLoading || isStateLoading) {
+        console.error(`App timeout reached. isAuthLoading: ${isAuthLoading}, isStateLoading: ${isStateLoading}`);
+        setAppTimeoutError(new Error("La aplicación tardó demasiado en cargar los datos. Esto puede deberse a un problema de red. Por favor, recarga la página."));
+      }
+    }, 20000); // 20-second global timeout
+
+    return () => clearTimeout(timer);
+  }, [isAuthLoading, isStateLoading]);
+  
+  const combinedError = stateError || appTimeoutError;
+
+  if ((isAuthLoading || isStateLoading) && !combinedError) { 
     return ( 
       <div className="min-h-screen flex items-center justify-center bg-zen-50"> 
           <div className="text-center"> 
@@ -73,12 +90,12 @@ const App: React.FC = () => {
     ); 
   }
   
-  if (stateError) {
+  if (combinedError) {
       return (
           <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
               <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md">
                   <h2 className="text-xl font-bold text-red-700">Error al Cargar Datos</h2>
-                  <p className="mt-2 text-red-600">{stateError.message}</p>
+                  <p className="mt-2 text-red-600">{combinedError.message}</p>
                   <button 
                       onClick={() => window.location.reload()}
                       className="mt-6 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"

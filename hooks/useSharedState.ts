@@ -20,14 +20,21 @@ const getInitialState = (): AppState => ({
     manualChangeLog: [],
 });
 
-export const useSharedState = () => {
+export const useSharedState = (skip: boolean) => {
     const [data, setData] = useState<AppState | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-        // FIX: If Firebase isn't ready, treat it as an error state instead of proceeding with default data.
-        // This prevents the app from getting stuck on "Loading..." when the connection is slow or fails.
+        // If the skip flag is true (e.g., auth is still loading), do nothing.
+        // The loading state will remain true until this effect can run.
+        if (skip) {
+            // Ensure loading is true if we are skipping
+            if (!loading) setLoading(true);
+            return;
+        }
+
+        // When skip becomes false, this logic will execute.
         if (!db) {
             setError(new Error("No se pudo conectar a la base de datos. Por favor, revisa tu configuración de Firebase y tu conexión de red."));
             setLoading(false);
@@ -35,9 +42,10 @@ export const useSharedState = () => {
         }
 
         const scheduleDocRef = doc(db, "schedules", "main_schedule_2026");
+        let isSubscribed = true;
 
         const timeoutId = setTimeout(() => {
-            if (loading) { // Only trigger timeout if still loading
+            if (isSubscribed) {
                 setError(new Error("La conexión con la base de datos ha tardado demasiado. Por favor, comprueba tu conexión a internet y recarga la página."));
                 setLoading(false);
             }
@@ -45,6 +53,7 @@ export const useSharedState = () => {
 
         const unsubscribe = onSnapshot(scheduleDocRef, 
             (docSnap) => {
+                if (!isSubscribed) return;
                 clearTimeout(timeoutId);
                 if (docSnap.exists()) {
                     setData(docSnap.data() as AppState);
@@ -52,15 +61,18 @@ export const useSharedState = () => {
                     console.log("Document not found, seeding database with initial state...");
                     const initialState = getInitialState();
                     setDoc(scheduleDocRef, initialState).then(() => {
-                        setData(initialState);
+                        if(isSubscribed) setData(initialState);
                     }).catch(seedError => {
-                        console.error("Error seeding database:", seedError);
-                        setError(seedError as Error);
+                        if(isSubscribed) {
+                           console.error("Error seeding database:", seedError);
+                           setError(seedError as Error);
+                        }
                     });
                 }
                 setLoading(false);
             }, 
             (err) => {
+                if (!isSubscribed) return;
                 clearTimeout(timeoutId);
                 console.error("Firestore snapshot error:", err);
                 setError(err);
@@ -69,10 +81,11 @@ export const useSharedState = () => {
         );
 
         return () => {
+            isSubscribed = false;
             clearTimeout(timeoutId);
             unsubscribe();
         };
-    }, []);
+    }, [skip]); // This effect is now controlled by the skip flag.
 
     const updateData = useCallback(async (updates: Partial<AppState>) => {
         if (!db) {
@@ -87,7 +100,8 @@ export const useSharedState = () => {
         }
     }, []);
     
+    // Return initial state while loading to prevent errors from undefined data.
     const displayData = data ?? getInitialState();
 
-    return { data: displayData, loading, error, updateData };
+    return { data: displayData, loading: skip || loading, error, updateData };
 };
