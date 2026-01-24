@@ -1,3 +1,4 @@
+
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -20,11 +21,13 @@ export const getAppUser = async (firebaseUser: FirebaseUser): Promise<User> => {
     if (userDoc.exists()) {
         return userDoc.data() as User;
     } else {
+        // If user document doesn't exist, create one based on their email
         const email = firebaseUser.email || '';
         const name = firebaseUser.displayName || email.split('@')[0];
         const associatedNurse = INITIAL_NURSES.find(n => n.email.toLowerCase() === email.toLowerCase());
 
         let role: UserRole = 'viewer';
+        // Simple logic: if 'admin' is in the email, assign admin role.
         if (email.toLowerCase().includes('admin')) {
             role = 'admin';
         } else if (associatedNurse) {
@@ -39,6 +42,7 @@ export const getAppUser = async (firebaseUser: FirebaseUser): Promise<User> => {
             nurseId: associatedNurse?.id
         };
 
+        // Save the new user profile to Firestore
         await setDoc(userDocRef, newUser);
         return newUser;
     }

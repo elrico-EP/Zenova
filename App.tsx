@@ -36,7 +36,7 @@ import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { BulkEditModal } from './components/BulkEditModal';
 
 const MainApp: React.FC = () => {
-  const { user, effectiveUser } = useUser();
+  const { user, effectiveUser, logout } = useUser();
   const permissions = usePermissions();
   const { data: sharedData, loading: isStateLoading, error: stateError, updateData } = useSharedState(false); // Auth is already complete
 
@@ -55,7 +55,20 @@ const MainApp: React.FC = () => {
   const { language } = useLanguage();
   const t = useTranslations();
 
-  if (isStateLoading) { 
+  useEffect(() => {
+    if (stateError) {
+        console.error("Error crítico al cargar los datos principales de la aplicación. Cerrando sesión.", stateError);
+        // Este es el problema principal. Si tenemos una sesión de usuario pero no podemos cargar
+        // los datos del calendario (quizás por las reglas de Firestore o problemas de red),
+        // nos quedamos atascados. Forzar el cierre de sesión rompe este bucle y devuelve al usuario
+        // a la pantalla de inicio de sesión para re-autenticarse correctamente.
+        logout();
+    }
+  }, [stateError, logout]);
+
+
+  if (isStateLoading || stateError) { 
+    // Show a loading spinner while loading or before the logout effect kicks in.
     return ( 
       <div className="min-h-screen flex items-center justify-center bg-zen-50"> 
           <div className="text-center"> 
@@ -67,23 +80,6 @@ const MainApp: React.FC = () => {
           </div> 
       </div> 
     ); 
-  }
-  
-  if (stateError) {
-      return (
-          <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
-              <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md">
-                  <h2 className="text-xl font-bold text-red-700">Error al Cargar Datos</h2>
-                  <p className="mt-2 text-red-600">{stateError.message}</p>
-                  <button 
-                      onClick={() => window.location.reload()}
-                      className="mt-6 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                  >
-                      Recargar Página
-                  </button>
-              </div>
-          </div>
-      );
   }
 
   // State derived from shared state now
