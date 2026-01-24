@@ -26,15 +26,6 @@ export const useSharedState = (skip: boolean) => {
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-        // If the skip flag is true (e.g., auth is still loading), do nothing.
-        // The loading state will remain true until this effect can run.
-        if (skip) {
-            // Ensure loading is true if we are skipping
-            if (!loading) setLoading(true);
-            return;
-        }
-
-        // When skip becomes false, this logic will execute.
         if (!db) {
             setError(new Error("No se pudo conectar a la base de datos. Por favor, revisa tu configuración de Firebase y tu conexión de red."));
             setLoading(false);
@@ -85,7 +76,7 @@ export const useSharedState = (skip: boolean) => {
             clearTimeout(timeoutId);
             unsubscribe();
         };
-    }, [skip]); // This effect is now controlled by the skip flag.
+    }, []); 
 
     const updateData = useCallback(async (updates: Partial<AppState>) => {
         if (!db) {
@@ -100,8 +91,7 @@ export const useSharedState = (skip: boolean) => {
         }
     }, []);
     
-    // Return initial state while loading to prevent errors from undefined data.
     const displayData = data ?? getInitialState();
 
-    return { data: displayData, loading: skip || loading, error, updateData };
+    return { data: displayData, loading, error, updateData };
 };

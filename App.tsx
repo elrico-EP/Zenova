@@ -35,15 +35,10 @@ import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { BulkEditModal } from './components/BulkEditModal';
 
-const App: React.FC = () => {
-  if (!db || !auth) {
-    return <FirebaseSetupScreen />;
-  }
-
-  const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
+const MainApp: React.FC = () => {
+  const { user, effectiveUser } = useUser();
   const permissions = usePermissions();
-  // FIX: Defer shared state loading until authentication is complete to prevent race conditions.
-  const { data: sharedData, loading: isStateLoading, error: stateError, updateData } = useSharedState(isAuthLoading);
+  const { data: sharedData, loading: isStateLoading, error: stateError, updateData } = useSharedState(false); // Auth is already complete
 
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
@@ -60,23 +55,7 @@ const App: React.FC = () => {
   const { language } = useLanguage();
   const t = useTranslations();
 
-  // Add a global timeout error as a safety net for any loading hangs.
-  const [appTimeoutError, setAppTimeoutError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isAuthLoading || isStateLoading) {
-        console.error(`App timeout reached. isAuthLoading: ${isAuthLoading}, isStateLoading: ${isStateLoading}`);
-        setAppTimeoutError(new Error("La aplicación tardó demasiado en cargar los datos. Esto puede deberse a un problema de red. Por favor, recarga la página."));
-      }
-    }, 20000); // 20-second global timeout
-
-    return () => clearTimeout(timer);
-  }, [isAuthLoading, isStateLoading]);
-  
-  const combinedError = stateError || appTimeoutError;
-
-  if ((isAuthLoading || isStateLoading) && !combinedError) { 
+  if (isStateLoading) { 
     return ( 
       <div className="min-h-screen flex items-center justify-center bg-zen-50"> 
           <div className="text-center"> 
@@ -90,12 +69,12 @@ const App: React.FC = () => {
     ); 
   }
   
-  if (combinedError) {
+  if (stateError) {
       return (
           <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
               <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md">
                   <h2 className="text-xl font-bold text-red-700">Error al Cargar Datos</h2>
-                  <p className="mt-2 text-red-600">{combinedError.message}</p>
+                  <p className="mt-2 text-red-600">{stateError.message}</p>
                   <button 
                       onClick={() => window.location.reload()}
                       className="mt-6 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -121,7 +100,6 @@ const App: React.FC = () => {
   const jornadasLaborales = sharedData.jornadasLaborales;
   const manualChangeLog = sharedData.manualChangeLog;
   
-  // FIX: Create memoized filtered arrays for different log entry types to pass to child components.
   const manualChangeLogEntries = useMemo(
     () => manualChangeLog.filter((log): log is ManualChangeLogEntry => 'newShift' in log),
     [manualChangeLog]
@@ -502,7 +480,6 @@ const App: React.FC = () => {
       updateData({ vaccinationPeriod: period });
   }, [addHistoryEntry, updateData, t.history_vaccinationPeriodChange]);
 
-  if (!user) { return <LoginScreen />; }
   if ((user as User).mustChangePassword) { return <ForceChangePasswordScreen />; }
 
   return (
@@ -634,4 +611,35 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+
+const App: React.FC = () => {
+  if (!db || !auth) {
+    return <FirebaseSetupScreen />;
+  }
+
+  const { user, isLoading: isAuthLoading } = useUser();
+  const t = useTranslations();
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zen-50">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="mt-2 text-zen-600">{t.loadingData}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
+  
+  return <MainApp />;
+};
+
 export default App;
