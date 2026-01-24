@@ -42,7 +42,7 @@ const App: React.FC = () => {
 
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   const permissions = usePermissions();
-  const { data: sharedData, loading: isStateLoading, updateData } = useSharedState();
+  const { data: sharedData, loading: isStateLoading, error: stateError, updateData } = useSharedState();
 
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
@@ -55,20 +55,54 @@ const App: React.FC = () => {
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
   const [isAnnualPlannerOpen, setIsAnnualPlannerOpen] = useState(false);
+  
+  const { language } = useLanguage();
+  const t = useTranslations();
+
+  if (isAuthLoading || isStateLoading) { 
+    return ( 
+      <div className="min-h-screen flex items-center justify-center bg-zen-50"> 
+          <div className="text-center"> 
+              <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> 
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> 
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> 
+              </svg> 
+              <p className="mt-2 text-zen-600">{t.loadingData}</p> 
+          </div> 
+      </div> 
+    ); 
+  }
+  
+  if (stateError) {
+      return (
+          <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
+              <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md">
+                  <h2 className="text-xl font-bold text-red-700">Error al Cargar Datos</h2>
+                  <p className="mt-2 text-red-600">{stateError.message}</p>
+                  <button 
+                      onClick={() => window.location.reload()}
+                      className="mt-6 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                      Recargar Página
+                  </button>
+              </div>
+          </div>
+      );
+  }
 
   // State derived from shared state now
-  const nurses = sharedData?.nurses ?? INITIAL_NURSES;
-  const agenda = sharedData?.agenda ?? {};
-  const manualOverrides = sharedData?.manualOverrides ?? {};
-  const notes = sharedData?.notes ?? {};
-  const vaccinationPeriod = sharedData?.vaccinationPeriod ?? null;
-  const strasbourgAssignments = sharedData?.strasbourgAssignments ?? {};
-  const strasbourgEvents = sharedData?.strasbourgEvents ?? [];
-  const specialStrasbourgEvents = sharedData?.specialStrasbourgEvents ?? [];
-  const closedMonths = sharedData?.closedMonths ?? {};
-  const wishes = sharedData?.wishes ?? {};
-  const jornadasLaborales = sharedData?.jornadasLaborales ?? [];
-  const manualChangeLog = sharedData?.manualChangeLog ?? [];
+  const nurses = sharedData.nurses;
+  const agenda = sharedData.agenda;
+  const manualOverrides = sharedData.manualOverrides;
+  const notes = sharedData.notes;
+  const vaccinationPeriod = sharedData.vaccinationPeriod;
+  const strasbourgAssignments = sharedData.strasbourgAssignments;
+  const strasbourgEvents = sharedData.strasbourgEvents;
+  const specialStrasbourgEvents = sharedData.specialStrasbourgEvents;
+  const closedMonths = sharedData.closedMonths;
+  const wishes = sharedData.wishes;
+  const jornadasLaborales = sharedData.jornadasLaborales;
+  const manualChangeLog = sharedData.manualChangeLog;
   
   // FIX: Create memoized filtered arrays for different log entry types to pass to child components.
   const manualChangeLogEntries = useMemo(
@@ -82,9 +116,6 @@ const App: React.FC = () => {
   );
   
   const [hours, setHours] = useState<Hours>({});
-  
-  const { language } = useLanguage();
-  const t = useTranslations();
   
   const year = useMemo(() => currentDate.getFullYear(), [currentDate]);
   const monthKey = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
@@ -256,9 +287,7 @@ const App: React.FC = () => {
         details,
     };
     
-    // Con Firestore, el historial ahora es parte del 'manualChangeLog' o una colección separada.
-    // Para simplificar, lo añadimos a `manualChangeLog` por ahora.
-    updateData({ manualChangeLog: [newEntry, ...(manualChangeLog ?? [])].slice(0, 100) });
+    updateData({ manualChangeLog: [newEntry, ...manualChangeLog].slice(0, 100) });
   }, [user, manualChangeLog, updateData]);
 
   const handleManualChange = useCallback(async (payload: ManualChangePayload) => {
@@ -270,8 +299,7 @@ const App: React.FC = () => {
     }
     
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
-    // FIX: Infer type of newLog to be (ManualChangeLogEntry | HistoryEntry)[]
-    const newLog = [...(manualChangeLog ?? [])];
+    const newLog = [...manualChangeLog];
 
     for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
         const dateKey = d.toISOString().split('T')[0];
@@ -385,8 +413,7 @@ const App: React.FC = () => {
     const nurse2Name = nurses.find(n => n.id === nurse2Id)?.name || 'N/A';
     
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
-    // FIX: Infer type of newLog to be (ManualChangeLogEntry | HistoryEntry)[]
-    const newLog = [...(manualChangeLog ?? [])];
+    const newLog = [...manualChangeLog];
     
     if (!newOverrides[nurse1Id]) newOverrides[nurse1Id] = {};
     if (!newOverrides[nurse2Id]) newOverrides[nurse2Id] = {};
@@ -458,7 +485,6 @@ const App: React.FC = () => {
       updateData({ vaccinationPeriod: period });
   }, [addHistoryEntry, updateData, t.history_vaccinationPeriodChange]);
 
-  if (isAuthLoading || isStateLoading) { return ( <div className="min-h-screen flex items-center justify-center bg-zen-50"> <div className="text-center"> <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> <p className="mt-2 text-zen-600">{t.loadingData}</p> </div> </div> ); }
   if (!user) { return <LoginScreen />; }
   if ((user as User).mustChangePassword) { return <ForceChangePasswordScreen />; }
 

@@ -21,49 +21,52 @@ const getInitialState = (): AppState => ({
 });
 
 export const useSharedState = () => {
-    const [data, setData] = useState<AppState | null>(getInitialState());
+    const [data, setData] = useState<AppState | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-        // Si Firebase no está configurado, no hacemos nada.
         if (!db) {
+            setData(getInitialState());
             setLoading(false);
             return;
         }
 
         const scheduleDocRef = doc(db, "schedules", "main_schedule_2026");
 
-        const checkAndSeedDatabase = async () => {
-            try {
-                const docSnap = await getDoc(scheduleDocRef);
-                if (!docSnap.exists()) {
+        const timeoutId = setTimeout(() => {
+            setError(new Error("La conexión con la base de datos ha fallado. Por favor, comprueba tu conexión a internet y recarga la página."));
+            setLoading(false);
+        }, 15000); // 15-second timeout
+
+        const unsubscribe = onSnapshot(scheduleDocRef, 
+            (docSnap) => {
+                clearTimeout(timeoutId);
+                if (docSnap.exists()) {
+                    setData(docSnap.data() as AppState);
+                } else {
                     console.log("Document not found, seeding database with initial state...");
-                    await setDoc(scheduleDocRef, getInitialState());
+                    const initialState = getInitialState();
+                    setDoc(scheduleDocRef, initialState).catch(seedError => {
+                        console.error("Error seeding database:", seedError);
+                        setError(seedError as Error);
+                    });
+                    setData(initialState);
                 }
-            } catch (e) {
-                console.error("Error checking/seeding database:", e);
-                setError(e as Error);
+                setLoading(false);
+            }, 
+            (err) => {
+                clearTimeout(timeoutId);
+                console.error("Firestore snapshot error:", err);
+                setError(err);
+                setLoading(false);
             }
+        );
+
+        return () => {
+            clearTimeout(timeoutId);
+            unsubscribe();
         };
-
-        checkAndSeedDatabase();
-
-        const unsubscribe = onSnapshot(scheduleDocRef, (doc) => {
-            if (doc.exists()) {
-                setData(doc.data() as AppState);
-            } else {
-                console.log("Document does not exist. Waiting for seeding...");
-                setData(getInitialState());
-            }
-            setLoading(false);
-        }, (err) => {
-            console.error("Firestore snapshot error:", err);
-            setError(err);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
     }, []);
 
     const updateData = useCallback(async (updates: Partial<AppState>) => {
@@ -78,6 +81,8 @@ export const useSharedState = () => {
             console.error("Error updating document in Firestore:", e);
         }
     }, []);
+    
+    const displayData = data ?? getInitialState();
 
-    return { data, loading, error, updateData };
+    return { data: displayData, loading, error, updateData };
 };
