@@ -123,11 +123,6 @@ const App: React.FC = () => {
     return merged;
   }, [specialStrasbourgEvents]);
 
-  // Original schedule (base logic without any manual overrides)
-  const originalSchedule = useMemo(() => {
-    return recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
-  }, [activeNurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
-  
   // Combined overrides WITH manual changes for the "Current Planning"
   const combinedOverrides = useMemo(() => {
     const merged: Schedule = JSON.parse(JSON.stringify(manualOverrides));
@@ -145,7 +140,40 @@ const App: React.FC = () => {
     return merged;
   }, [manualOverrides, specialStrasbourgEvents]);
 
-  // Current schedule (with manual overrides applied)
+  const { fullOriginalSchedule, fullCurrentSchedule } = useMemo(() => {
+    const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    const nextMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    
+    const dates = [prevMonthDate, currentDate, nextMonthDate];
+    const originalSchedules: Schedule[] = [];
+    const currentSchedules: Schedule[] = [];
+
+    dates.forEach(date => {
+        const month = date.getMonth();
+        const isInternActive = month >= 9 || month <= 1;
+        const activeNursesForDate = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
+
+        originalSchedules.push(recalculateScheduleForMonth(activeNursesForDate, date, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales));
+        currentSchedules.push(recalculateScheduleForMonth(activeNursesForDate, date, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales));
+    });
+    
+    const mergeSchedules = (schedules: Schedule[]): Schedule => {
+        const merged: Schedule = {};
+        schedules.forEach(sch => {
+            for (const nurseId in sch) {
+                if (!merged[nurseId]) merged[nurseId] = {};
+                Object.assign(merged[nurseId], sch[nurseId]);
+            }
+        });
+        return merged;
+    };
+    
+    return {
+        fullOriginalSchedule: mergeSchedules(originalSchedules),
+        fullCurrentSchedule: mergeSchedules(currentSchedules)
+    };
+}, [nurses, currentDate, effectiveAgenda, baseOverrides, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
+  
   const currentSchedule = useMemo(() => {
     return recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
   }, [activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
@@ -521,8 +549,8 @@ const App: React.FC = () => {
             <PersonalAgendaModal 
                 nurse={selectedNurseForAgenda} 
                 currentDate={currentDate} 
-                originalSchedule={originalSchedule[selectedNurseForAgenda.id] || {}}
-                currentSchedule={currentSchedule[selectedNurseForAgenda.id] || {}}
+                originalSchedule={fullOriginalSchedule[selectedNurseForAgenda.id] || {}}
+                currentSchedule={fullCurrentSchedule[selectedNurseForAgenda.id] || {}}
                 manualOverrides={manualOverrides}
                 manualChangeLog={manualChangeLog}
                 hours={hours} 

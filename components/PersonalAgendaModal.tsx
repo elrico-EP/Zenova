@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, BalanceData, SpecialStrasbourgEvent, HistoryEntry, JornadaLaboral, ManualChangeLogEntry, LocalMonthData } from '../types';
+import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, BalanceData, SpecialStrasbourgEvent, HistoryEntry, JornadaLaboral, ManualChangeLogEntry } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
@@ -10,14 +10,12 @@ import { PersonalBalanceView } from './PersonalBalanceView';
 import { holidays2026 } from '../data/agenda2026';
 import { agenda2026Data } from '../data/agenda2026'; // To get activity level
 import { getWeekIdentifier, getDateOfWeek } from '../utils/dateUtils';
-import { getScheduleCellHours, recalculateScheduleForMonth } from '../utils/scheduleUtils';
-import { calculateHoursForDay, calculateHoursDifference, calculateNurseTheoreticalHoursForDay } from '../utils/hoursUtils';
+import { getScheduleCellHours, recalculateScheduleForMonth, getShiftsFromCell } from '../utils/scheduleUtils';
+import { calculateHoursForDay, calculateHoursDifference } from '../utils/hoursUtils';
 import { SHIFTS } from '../constants';
 import { generatePersonalAgendaPdf } from '../utils/exportUtils';
 import { getActiveJornada } from '../utils/jornadaUtils';
 import { Locale } from '../translations/locales';
-
-const CARRY_OVER_STORAGE_KEY = 'zenova-carry-over-hours';
 
 const MonthPickerPopover: React.FC<{
     currentDate: Date;
@@ -55,6 +53,15 @@ const MonthPickerPopover: React.FC<{
         </div>
     );
 };
+
+interface LocalDayData {
+  startTime: string;
+  endTime: string;
+}
+
+interface LocalMonthData {
+  [dateKey: string]: LocalDayData;
+}
 
 const isDateInWorkPeriod = (nurse: Nurse, date: Date): boolean => {
     if (nurse.id === 'nurse-11') {
@@ -201,7 +208,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
 
   const [localData, setLocalData] = useState<LocalMonthData>({});
   const [comments, setComments] = useState<Record<string, string>>({});
-  const [carryOverHours, setCarryOverHours] = useState<Record<string, number>>({});
+  const [manualPreviousBalanceInput, setManualPreviousBalanceInput] = useState<string>('0');
   const [commentModalState, setCommentModalState] = useState<{ dateKey: string } | null>(null);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const monthPickerRef = useRef<HTMLDivElement>(null);
@@ -215,29 +222,39 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     try {
       const storageKey = `individualSchedule-${nurse.id}-${monthKey}`;
       const commentsStorageKey = `individualComments-${nurse.id}-${monthKey}`;
-      const carryOverStorageKey = CARRY_OVER_STORAGE_KEY;
       
       const storedData = localStorage.getItem(storageKey);
       const storedComments = localStorage.getItem(commentsStorageKey);
-      const storedCarryOver = localStorage.getItem(carryOverStorageKey);
 
-      if (storedData) setLocalData(JSON.parse(storedData));
-      else setLocalData({});
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        if (parsed && typeof parsed === 'object') {
+          setLocalData(parsed);
+        } else {
+          setLocalData({});
+        }
+      } else {
+        setLocalData({});
+      }
       
-      if (storedComments) setComments(JSON.parse(storedComments));
-      else setComments({});
-      
-      if (storedCarryOver) setCarryOverHours(JSON.parse(storedCarryOver));
-      else setCarryOverHours({});
-
+      if (storedComments) {
+        const parsedComments = JSON.parse(storedComments);
+        if (parsedComments && typeof parsedComments === 'object') {
+          setComments(parsedComments);
+        } else {
+          setComments({});
+        }
+      } else {
+        setComments({});
+      }
     } catch (error) {
       console.error("Error loading data from localStorage:", error);
       setLocalData({});
       setComments({});
-      setCarryOverHours({});
     }
+    setManualPreviousBalanceInput('0');
   }, [nurse.id, monthKey]);
-  
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
         if (monthPickerRef.current && !monthPickerRef.current.contains(event.target as Node)) {
@@ -252,28 +269,21 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
 
   useEffect(() => {
     if (authUser?.role === 'admin') { return; }
-    if (Object.keys(localData).length > 0) {
-        try {
-            const storageKey = `individualSchedule-${nurse.id}-${monthKey}`;
-            localStorage.setItem(storageKey, JSON.stringify(localData));
-        } catch (error) {
-            console.error("Error saving data to localStorage:", error);
-        }
-    }
     try {
-        const storageKey = `individualComments-${nurse.id}-${monthKey}`;
-        localStorage.setItem(storageKey, JSON.stringify(comments));
+      if (Object.keys(localData).length > 0) {
+        localStorage.setItem(`individualSchedule-${nurse.id}-${monthKey}`, JSON.stringify(localData));
+      }
+      localStorage.setItem(`individualComments-${nurse.id}-${monthKey}`, JSON.stringify(comments));
     } catch (error) {
-        console.error("Error saving comments to localStorage:", error);
+        console.error("Error saving data to localStorage:", error);
     }
   }, [localData, comments, nurse.id, monthKey, authUser]);
 
-  const handleDataChange = (dateKey: string, field: keyof LocalMonthData, value: string) => {
+  const handleDataChange = (dateKey: string, field: keyof LocalDayData, value: string) => {
     setLocalData(prev => ({
       ...prev,
       [dateKey]: {
-        startTime: prev[dateKey]?.startTime || '',
-        endTime: prev[dateKey]?.endTime || '',
+        ...(prev[dateKey] || { startTime: '', endTime: '' }),
         [field]: value
       }
     }));
@@ -291,75 +301,38 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     });
     setCommentModalState(null);
   };
-  
-  const handleCarryOverChange = (nurseId: string, value: string) => {
-      const numericValue = value === '' ? 0 : parseFloat(value);
-      if (isNaN(numericValue)) return;
-      
-      const newCarryOver = { ...carryOverHours, [nurseId]: numericValue };
-      setCarryOverHours(newCarryOver);
-      try {
-          localStorage.setItem(CARRY_OVER_STORAGE_KEY, JSON.stringify(newCarryOver));
-      } catch (error) {
-          console.error("Error saving carry-over hours to localStorage:", error);
-      }
-  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const isJanuary2026 = year === 2026 && month === 0;
 
   const calendarGrid = useMemo(() => {
-    const grid = [];
+    const grid: (Date | null)[] = [];
     const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
-    for (let i = 0; i < startDayOfWeek; i++) grid.push(null);
-    for (let day = 1; day <= daysInMonth; day++) grid.push(new Date(Date.UTC(year, month, day)));
-    while (grid.length % 7 !== 0) grid.push(null);
-    return grid;
-  }, [year, month]);
+    const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0));
 
-  // This calculates the balance for each month of the year.
-  const monthlyBalances = useMemo(() => {
-    const balances: number[] = [];
-    for (let m = 0; m < 12; m++) {
-        const monthDate = new Date(Date.UTC(year, m, 1));
-        const isInternActive = m >= 9 || m <= 1;
-        const activeNursesForMonth = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
-        const monthSchedule = recalculateScheduleForMonth(activeNursesForMonth, monthDate, agenda, manualOverrides, null, strasbourgAssignments, jornadasLaborales);
-        const nurseScheduleForMonth = monthSchedule[nurse.id] || {};
-        
-        const monthKey = `${year}-${String(m + 1).padStart(2, '0')}`;
-        const storageKey = `individualSchedule-${nurse.id}-${monthKey}`;
-        let monthLocalData: LocalMonthData = {};
-        try {
-          const storedData = localStorage.getItem(storageKey);
-          if (storedData) monthLocalData = JSON.parse(storedData);
-        } catch (error) { console.error(`Error loading local data for month ${m + 1}:`, error); }
-        
-        let totalDiff = 0;
-        const daysInMonth = new Date(year, m + 1, 0).getDate();
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(Date.UTC(year, m, day));
-            const dateKey = date.toISOString().split('T')[0];
-            const shiftCell = nurseScheduleForMonth[dateKey];
-            const dayData = monthLocalData[dateKey] || { startTime: '', endTime: ''};
-            const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
-
-            const calculatedDailyHours = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
-            const manualDailyHours = calculateHoursDifference(dayData.startTime, dayData.endTime);
-            const realDailyHours = manualDailyHours > 0 ? manualDailyHours : calculatedDailyHours;
-            const theoreticalDayHours = calculateNurseTheoreticalHoursForDay(nurse, date, agenda, jornadasLaborales);
-            
-            const difference = realDailyHours - theoreticalDayHours;
-            totalDiff += difference;
-        }
-        balances.push(totalDiff);
+    const firstDayOfWeek_MonIsZero = (firstDayOfMonth.getUTCDay() + 6) % 7;
+    const loopStartDate = new Date(firstDayOfMonth);
+    loopStartDate.setUTCDate(firstDayOfMonth.getUTCDate() - firstDayOfWeek_MonIsZero);
+    
+    let renderStartDate = new Date(loopStartDate);
+    if (renderStartDate.getUTCMonth() !== month) {
+        renderStartDate.setUTCDate(renderStartDate.getUTCDate() + 7);
     }
-    return balances;
-  }, [year, nurse.id, nurses, manualOverrides, specialStrasbourgEvents, agenda, strasbourgAssignments, jornadasLaborales]);
+    
+    const lastDayOfWeek_MonIsZero = (lastDayOfMonth.getUTCDay() + 6) % 7;
+    const loopEndDate = new Date(lastDayOfMonth);
+    loopEndDate.setUTCDate(loopEndDate.getUTCDate() + (6 - lastDayOfWeek_MonIsZero));
+    
+    for (let d = new Date(loopStartDate); d <= loopEndDate; d.setUTCDate(d.getUTCDate() + 1)) {
+        if (d < renderStartDate) {
+            grid.push(null);
+        } else {
+            grid.push(new Date(d));
+        }
+    }
 
+    return grid;
+}, [year, month]);
 
   const weeklyBalances = useMemo(() => {
     if (activeTab !== 'current') return [];
@@ -374,35 +347,56 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
             continue;
         }
 
+        const activeJornada = getActiveJornada(nurse.id, firstDayOfWeek, jornadasLaborales);
+        let weekTheoreticalFixed = 40;
+        if (activeJornada) {
+            if (activeJornada.porcentaje === 90) weekTheoreticalFixed = 36;
+            else if (activeJornada.porcentaje === 80) weekTheoreticalFixed = 32;
+        }
+        
         let weekManual = 0;
         let weekRealTotal = 0;
-        let weekTheoreticalTotal = 0;
 
         weekDates.forEach(date => {
             if (date) {
                 const dateKey = date.toISOString().split('T')[0];
-                const shiftCell = displayedSchedule?.[dateKey];
                 const dayData = localData[dateKey] || { startTime: '', endTime: ''};
-                const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
                 
-                const dailyTheoretical = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
                 const dailyManual = calculateHoursDifference(dayData.startTime, dayData.endTime);
-                
+
                 if (dailyManual > 0) {
                     weekManual += dailyManual;
                     weekRealTotal += dailyManual;
                 } else {
-                    weekRealTotal += dailyTheoretical;
+                    const dayOfWeek = date.getUTCDay();
+                    const weekId = getWeekIdentifier(date);
+                    const activityLevel = agenda[weekId] || 'NORMAL';
+                    const isHoliday = holidays2026.has(dateKey);
+                    const shiftCell = displayedSchedule?.[dateKey];
+                    const shifts = getShiftsFromCell(shiftCell);
+                    const isSickDay = shifts.includes('SICK_LEAVE');
+
+                    let dailyHours = 0;
+                    if (activityLevel === 'CLOSED' || isHoliday || isSickDay) {
+                        if (dayOfWeek >= 1 && dayOfWeek <= 4) { // Mon-Thu
+                            dailyHours = 8.5;
+                        } else if (dayOfWeek === 5) { // Fri
+                            dailyHours = 6.0;
+                        }
+                    } else {
+                        const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
+                        dailyHours = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
+                    }
+                    weekRealTotal += dailyHours;
                 }
-                weekTheoreticalTotal += calculateNurseTheoreticalHoursForDay(nurse, date, agenda, jornadasLaborales);
             }
         });
 
-        if (weekRealTotal > 0 || weekManual > 0 || weekTheoreticalTotal > 0) {
+        if (weekRealTotal > 0 || weekManual > 0) {
              balances.push({
-                theoretical: weekTheoreticalTotal,
+                theoretical: weekTheoreticalFixed,
                 manual: weekManual,
-                diff: weekRealTotal - weekTheoreticalTotal,
+                diff: weekRealTotal - weekTheoreticalFixed,
             });
         } else {
             balances.push({ theoretical: 0, manual: 0, diff: 0});
@@ -411,17 +405,26 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     return balances;
 }, [calendarGrid, activeTab, displayedSchedule, localData, nurse, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales]);
 
-  const previousMonthCumulativeBalance = useMemo(() => {
-    const carryOver = carryOverHours[nurse.id] || 0;
-    if (month === 0) return carryOver;
-    return carryOver + monthlyBalances.slice(0, month).reduce((sum, b) => sum + b, 0);
-  }, [carryOverHours, nurse.id, month, monthlyBalances]);
+    const manualPreviousBalance = useMemo(() => {
+        const numValue = parseFloat(manualPreviousBalanceInput);
+        return isNaN(numValue) ? 0 : numValue;
+    }, [manualPreviousBalanceInput]);
 
-  const totalMonthlyBalance = useMemo(() => {
-    if (activeTab !== 'current') return 0;
-    const currentMonthBalance = weeklyBalances.reduce((sum, week) => sum + week.diff, 0);
-    return previousMonthCumulativeBalance + currentMonthBalance;
-  }, [weeklyBalances, activeTab, previousMonthCumulativeBalance]);
+    const monthCalculatedBalance = useMemo(() => {
+        if (activeTab !== 'current') return 0;
+        return weeklyBalances.reduce((sum, week) => sum + week.diff, 0);
+    }, [weeklyBalances, activeTab]);
+
+    const totalMonthlyBalance = monthCalculatedBalance + manualPreviousBalance;
+    const differenceBalance = monthCalculatedBalance;
+  
+  useEffect(() => {
+    if (activeTab === 'current') {
+      const balanceCacheKey = `totalBalanceCache-${nurse.id}-${monthKey}`;
+      const valueToPersist = totalMonthlyBalance;
+      localStorage.setItem(balanceCacheKey, JSON.stringify(valueToPersist));
+    }
+  }, [totalMonthlyBalance, nurse.id, monthKey, activeTab]);
 
   const dayNames = useMemo(() => {
       const formatter = new Intl.DateTimeFormat(language, { weekday: 'long' });
@@ -514,41 +517,21 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                          {activeTab === 'current' && <div className="p-2 text-center font-semibold text-slate-600 text-sm">{t.nav_balance}</div>}
                     </div>
                     <div className={`grid ${activeTab === 'current' ? 'grid-cols-8' : 'grid-cols-7'} border-l border-t border-slate-200`}>
-                        {activeTab === 'current' && (
-                            <>
-                                <div className="col-span-7 p-2 border-r border-b bg-slate-100 font-semibold text-slate-700 text-sm flex items-center">{t.individual_previous_month}</div>
-                                <div className={`col-span-1 p-2 border-r border-b bg-slate-100 font-bold text-center flex items-center justify-center`}>
-                                   {isJanuary2026 && canEditHours ? (
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            value={carryOverHours[nurse.id] || ''}
-                                            onChange={e => handleCarryOverChange(nurse.id, e.target.value)}
-                                            className="w-full text-center p-1 border rounded-md text-sm bg-white"
-                                            placeholder='Balance 2025'
-                                        />
-                                   ) : (
-                                        <span className={`${previousMonthCumulativeBalance > 0.01 ? 'text-green-600' : previousMonthCumulativeBalance < -0.01 ? 'text-red-600' : 'text-slate-500'}`}>
-                                            {previousMonthCumulativeBalance > 0.01 ? '+' : ''}{previousMonthCumulativeBalance.toFixed(2)}h
-                                        </span>
-                                   )}
-                                </div>
-                            </>
-                        )}
                         {calendarGrid.flatMap((date, index) => {
                             const dayCell = date ? (
                                 (() => {
+                                    const isCurrentMonth = date.getUTCMonth() === month;
                                     const dateKey = date.toISOString().split('T')[0];
                                     const dayOfWeek = date.getUTCDay();
                                     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                                     const weekId = getWeekIdentifier(date);
-                                    const activityLevel = agenda2026Data[weekId] || 'NORMAL';
+                                    const activityLevel = agenda[weekId] || 'NORMAL';
                                     const isHoliday = holidays2026.has(dateKey);
                                     const shiftCell = displayedSchedule?.[dateKey];
                                     const dayData = localData[dateKey] || { startTime: '', endTime: ''};
                                     const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
                                     const isDayActive = isDateInWorkPeriod(nurse, date);
-                                    const bgColor = isWeekend ? 'bg-slate-50' : 'bg-white';
+                                    const bgColor = isWeekend ? 'bg-slate-50' : isCurrentMonth ? 'bg-white' : 'bg-slate-50/70';
                                     const inactiveClasses = !isDayActive ? 'bg-slate-100 text-slate-400' : 'hover:bg-zen-50';
                                     
                                     const activeJornada = getActiveJornada(nurse.id, date, jornadasLaborales);
@@ -565,7 +548,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                           }}
                                           title={comments[dateKey] ? `${t['comment.hover']} ${comments[dateKey]}`: ''}
                                         >
-                                            <div className="text-xs font-semibold text-slate-500 flex justify-between items-center">
+                                            <div className={`text-xs font-semibold flex justify-between items-center ${isCurrentMonth ? 'text-slate-500' : 'text-slate-400'}`}>
                                                 {comments[dateKey] && activeTab === 'current' && <span className="text-sm">📝</span>}
                                                 <span>{date.getUTCDate()}</span>
                                             </div>
@@ -574,7 +557,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                                     <div className="w-full h-full p-1 flex items-center justify-center relative" title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}>
                                                         <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-xs text-center`}><span className="truncate px-1">{specialEvent.name}</span>{specialEvent.startTime && specialEvent.endTime && <span className="text-[10px] opacity-80 mt-1">{calculateEventHours(specialEvent.startTime, specialEvent.endTime).toFixed(1)}h</span>}</div>
                                                     </div>
-                                                ) : <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda2026Data, jornadasLaborales)} hasManualHours={!!(dayData.startTime && dayData.endTime)} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false}/></div>}
+                                                ) : <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales)} hasManualHours={!!(dayData.startTime && dayData.endTime)} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false}/></div>}
                                                 {reductionTooltip && (
                                                     <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm ring-1 ring-white" title={reductionTooltip}>
                                                         R
@@ -600,15 +583,15 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                 
                                 const summaryCell = (
                                     <div key={`summary-${index}`} className="border-r border-b border-slate-200 bg-slate-100/70 min-h-[12rem] flex flex-col justify-center p-1 text-[11px]">
-                                        {balance && (balance.theoretical > 0 || balance.manual > 0 || balance.diff !== 0) ? (
+                                        {balance && (balance.theoretical > 0 || balance.manual > 0) ? (
                                             <div className="space-y-1">
                                                 <div className="flex justify-between items-center px-1">
                                                     <span className="text-slate-500">{t.balance_planned}:</span>
                                                     <span className="font-semibold text-slate-700">{balance.theoretical.toFixed(2)}h</span>
                                                 </div>
                                                 <div className="flex justify-between items-center px-1">
-                                                    <span className="text-slate-500">{t.individual_total_worked}:</span>
-                                                    <span className="font-semibold text-slate-700">{(balance.theoretical + balance.diff).toFixed(2)}h</span>
+                                                    <span className="text-slate-500">{t.balance_manual}:</span>
+                                                    <span className="font-semibold text-slate-700">{balance.manual > 0 ? balance.manual.toFixed(2) + 'h' : '-'}</span>
                                                 </div>
                                                 <div className={`pt-1 mt-1 border-t font-bold flex justify-between items-center px-1 text-xs ${balance.diff > 0.01 ? 'text-green-600' : balance.diff < -0.01 ? 'text-red-600' : 'text-slate-800'}`}>
                                                     <span className="">{t.balance_weekly}:</span>
@@ -622,6 +605,40 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                             }
                             return [dayCell];
                         })}
+                        
+                        {activeTab === 'current' && (
+                            <>
+                                <div className="col-span-7 p-2 border-r border-t bg-slate-100 font-semibold text-slate-700 text-sm flex items-center">
+                                    {t.individual_previous_month}
+                                </div>
+                                <div className="col-span-1 p-1 border-r border-t bg-slate-100 flex items-center justify-center">
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={manualPreviousBalanceInput}
+                                        onChange={e => setManualPreviousBalanceInput(e.target.value)}
+                                        className={`w-full text-center p-1 border rounded-md text-sm font-bold ${
+                                            manualPreviousBalance > 0.01 ? 'text-green-600' : 
+                                            manualPreviousBalance < -0.01 ? 'text-red-600' : 
+                                            'text-slate-800'}`}
+                                    />
+                                </div>
+                            </>
+                        )}
+                        
+                        {activeTab === 'current' && (
+                            <>
+                                <div className="col-span-7 p-2 border-r border-t bg-slate-100 font-semibold text-slate-700 text-sm flex items-center">{t.individual_difference}</div>
+                                <div className={`col-span-1 p-2 border-r border-t bg-slate-100 font-bold text-center flex items-center justify-center text-lg ${
+                                    differenceBalance > 0.01 ? 'text-green-600' :
+                                    differenceBalance < -0.01 ? 'text-red-600' :
+                                    'text-slate-800'
+                                }`}>
+                                    {differenceBalance > 0.01 ? '+' : ''}{differenceBalance.toFixed(2)}h
+                                </div>
+                            </>
+                        )}
+                        
                         {activeTab === 'current' && (
                             <>
                                 <div className="col-span-7 p-2 border-r border-t bg-slate-100 font-semibold text-slate-700 text-sm flex items-center">{t.individual_month_total}</div>
@@ -640,7 +657,6 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                 <aside className="w-1/3 lg:w-1/4 flex-shrink-0 overflow-y-auto space-y-6 bg-slate-50/70 p-4 rounded-lg no-print">
                     <h4 className="font-bold text-lg text-slate-800">{t.summaryAndBalance}</h4>
                     <div><PersonalBalanceView balanceData={balanceData} /></div>
-
                     <div className="bg-white p-4 rounded-lg text-sm space-y-2 shadow-sm border">
                         <div className="flex justify-between items-center">
                             <h4 className="font-semibold text-gray-700">{t.individual_manual_changes_month}</h4>

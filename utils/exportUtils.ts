@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import type { Nurse, Schedule, ScheduleCell, WorkZone, Notes, Agenda, Hours, SpecialStrasbourgEvent, CustomShift, Shift, JornadaLaboral } from '../types';

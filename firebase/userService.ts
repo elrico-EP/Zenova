@@ -28,17 +28,7 @@ export const getUsers = (): User[] => {
     if (!usersJson) {
       return seedInitialUsers();
     }
-    // FIX: Ensure existing users are correctly mapped before returning.
-    const users = JSON.parse(usersJson) as User[];
-    const nurseUsersExist = users.some(u => u.role === 'nurse');
-    
-    // If there are no nurse users, it means we're on an old data structure. Re-seed.
-    // Also re-seed if the number of nurse users doesn't match the current team list.
-    if (!nurseUsersExist || users.filter(u => u.role === 'nurse').length !== INITIAL_NURSES.length) {
-        return seedInitialUsers();
-    }
-    
-    return users;
+    return JSON.parse(usersJson);
   } catch (e) {
     console.error("Failed to parse users from localStorage", e);
     return seedInitialUsers();

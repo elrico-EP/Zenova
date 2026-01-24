@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import type { Nurse, Schedule, Agenda, SpecialStrasbourgEvent, JornadaLaboral } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
