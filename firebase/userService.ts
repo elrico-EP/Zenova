@@ -7,7 +7,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, getDocs, collection } from 'firebase/firestore';
 import { auth, db } from './config';
-import type { User, Nurse } from '../types';
+import type { User, Nurse, UserRole } from '../types';
 import { INITIAL_NURSES } from '../constants';
 
 // Función para obtener el perfil de la aplicación (con rol) desde Firestore
@@ -24,11 +24,18 @@ export const getAppUser = async (firebaseUser: FirebaseUser): Promise<User> => {
         const name = firebaseUser.displayName || email.split('@')[0];
         const associatedNurse = INITIAL_NURSES.find(n => n.email.toLowerCase() === email.toLowerCase());
 
+        let role: UserRole = 'viewer';
+        if (email.toLowerCase().includes('admin')) {
+            role = 'admin';
+        } else if (associatedNurse) {
+            role = 'nurse';
+        }
+
         const newUser: User = {
             id: firebaseUser.uid,
             name: associatedNurse?.name || name,
             email,
-            role: associatedNurse ? 'nurse' : 'viewer',
+            role,
             nurseId: associatedNurse?.id
         };
 

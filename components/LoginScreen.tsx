@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { ZenovaLogo } from './ZenovaLogo';
@@ -53,6 +52,40 @@ export const LoginScreen: React.FC = () => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-slate-200/80">
+          
+          <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 mb-6 rounded-r-lg" role="alert">
+            <p className="font-bold">Primer Inicio de Sesión</p>
+            <p className="text-sm mt-1">
+              Para crear tu cuenta de administrador, usa el botón <strong>"Continuar con Google"</strong> con una cuenta de Google que incluya "admin" en el email (ej: <code>mi.proyecto.admin@gmail.com</code>).
+            </p>
+          </div>
+
+          <div className="relative mb-4">
+              <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Continuar con</span>
+              </div>
+          </div>
+          
+          <div className="mb-6">
+              <button onClick={signInWithGoogle} disabled={isLoading} className="w-full inline-flex justify-center items-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                  <GoogleIcon />
+                  <span className="font-semibold">Google</span>
+              </button>
+          </div>
+
+           <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">O iniciar sesión (usuarios existentes)</span>
+              </div>
+          </div>
+
+
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label htmlFor="login-email" className="block text-sm font-medium text-gray-700">Email</label>
@@ -90,21 +123,6 @@ export const LoginScreen: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-6 relative">
-              <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">O continúa con</span>
-              </div>
-          </div>
-          
-          <div className="mt-6">
-              <button onClick={signInWithGoogle} disabled={isLoading} className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
-                  <span className="sr-only">Sign in with Google</span>
-                  <GoogleIcon />
-              </button>
-          </div>
         </div>
       </div>
     </div>
