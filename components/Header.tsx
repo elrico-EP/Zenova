@@ -99,7 +99,6 @@ export const Header: React.FC<HeaderProps> = ({ monthName, year, currentDate, on
     { bg: 'bg-zen-800', text: 'text-white', button: 'bg-white/10 text-white hover:bg-white/20', activeViewBg: 'bg-white', activeViewText: 'text-zen-800', inactiveViewText: 'text-zen-100 hover:text-white hover:bg-white/10' } :
     { bg: 'bg-zen-800', text: 'text-white', button: 'bg-white/10 text-white hover:bg-white/20', activeViewBg: 'bg-white', activeViewText: 'text-zen-800', inactiveViewText: 'text-zen-100 hover:text-white hover:bg-white/10' };
 
-  // FIX: Widen buttonView type to accept 'annual' for styling purposes.
   const navButtonClass = (buttonView: AppView | 'annual') => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${view === buttonView ? `${theme.activeViewBg} ${theme.activeViewText} shadow-sm` : theme.inactiveViewText}`;
   const userMenuButtonClass = `inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${theme.button}`;
 

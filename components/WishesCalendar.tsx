@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
 import type { Nurse, Wishes, Agenda, ActivityLevel } from '../types';
 import { getWeekIdentifier } from '../utils/dateUtils';
@@ -23,7 +24,6 @@ interface DayCellProps {
 }
 
 const DayCell: React.FC<DayCellProps> = React.memo(({ nurseId, dateKey, text, onTextChange, isWeekend, bgColor }) => {
-    // FIX: Use effectiveUser for permission checks to handle impersonation.
     const { effectiveUser } = useUser();
     const [editText, setEditText] = useState(text);
     const textareaRef = useRef<HTMLTextAreaElement>(null);

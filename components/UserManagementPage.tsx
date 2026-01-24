@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useUser } from '../contexts/UserContext';
 import type { User, Nurse, UserRole } from '../types';
@@ -71,7 +72,6 @@ const UserForm: React.FC<{
                 <form onSubmit={handleSubmit} className="space-y-4 text-sm">
                     <div><label className="block font-medium">{t.fullName}</label><input type="text" value={name} onChange={e=>setName(e.target.value)} required className="w-full p-2 border rounded"/></div>
                     <div><label className="block font-medium">{t.username}</label><input type="text" value={username} onChange={e=>setUsername(e.target.value)} required className="w-full p-2 border rounded"/></div>
-                    {/* FIX: Use a valid translation key 't.login_password' instead of 't.password'. */}
                     {canEditPassword && <div><label className="block font-medium">{t.login_password} {userToEdit ? `(${t.passwordInfo})` : ''}</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} required={!userToEdit} className="w-full p-2 border rounded"/></div>}
                     <div>
                         <label className="block font-medium">{t.role}</label>

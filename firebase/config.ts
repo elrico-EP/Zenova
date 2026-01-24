@@ -1,21 +1,44 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp, FirebaseApp } from "firebase/app";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
 
-// TODO: Replace with your app's Firebase project configuration.
-// You can get this from the Firebase console for your web app.
-const firebaseConfig = {
-  apiKey: "AIzaSy...YOUR_API_KEY",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "your-sender-id",
-  appId: "your-app-id"
-};
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const CONFIG_KEY = 'zenova-firebase-config';
 
-// Export the necessary Firebase services
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+try {
+  const storedConfig = localStorage.getItem(CONFIG_KEY);
+  if (storedConfig) {
+    const firebaseConfig = JSON.parse(storedConfig);
+    // Validación básica para asegurar que el objeto de configuración es válido
+    if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      auth = getAuth(app);
+    } else {
+      console.warn("La configuración de Firebase almacenada es inválida. Limpiando...");
+      localStorage.removeItem(CONFIG_KEY);
+    }
+  }
+} catch (error) {
+  console.error("No se pudo inicializar Firebase desde localStorage:", error);
+  localStorage.removeItem(CONFIG_KEY); // Limpiar configuración potencialmente corrupta
+}
+
+export function saveConfigAndReload(config: object) {
+  try {
+    // Validación final antes de guardar
+    if (!(config as any).apiKey || !(config as any).projectId) {
+        throw new Error("La configuración es inválida.");
+    }
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    window.location.reload();
+  } catch (error) {
+    console.error("Error al guardar la configuración:", error);
+    alert("No se pudo guardar la configuración. Revisa la consola para más detalles.");
+  }
+}
+
+export { db, auth };

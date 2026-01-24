@@ -76,7 +76,6 @@ export const SummaryTable: React.FC<SummaryTableProps> = ({ nurses, schedule, cu
               <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {t.total}
               </th>
-              {/* FIX: Do not call translation string as a function */}
               {shiftTypesToCount.map(st => SHIFTS[st] && (
                 <th key={st} scope="col" className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title={t[SHIFTS[st].description as keyof Locale] as string}>
                   <div className={`w-10 h-6 mx-auto rounded flex items-center justify-center font-bold text-xs ${SHIFTS[st].color} ${SHIFTS[st].textColor}`}>

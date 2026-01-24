@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import type { Nurse, Schedule, Agenda, SpecialStrasbourgEvent, JornadaLaboral } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -5,7 +6,6 @@ import { ShiftCell } from './ScheduleGrid';
 import { getScheduleCellHours } from '../utils/scheduleUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { getWeekIdentifier } from '../utils/dateUtils';
-// FIX: Import SHIFTS constant for styling special events.
 import { SHIFTS } from '../constants';
 
 interface MonthViewProps {
@@ -19,7 +19,6 @@ interface MonthViewProps {
   jornadasLaborales: JornadaLaboral[];
 }
 
-// FIX: Add helper function to calculate event hours, similar to PersonalAgendaModal.
 const calculateEventHours = (start?: string, end?: string): number => {
     if (!start || !end) return 0;
     try {
@@ -77,7 +76,6 @@ const MonthView: React.FC<MonthViewProps> = ({ year, month, nurse, schedule, age
             <div key={dateKey} className={`relative p-1 border-r border-b border-slate-200 min-h-[6rem] flex flex-col ${bgColor}`}>
               <div className="text-right text-[10px] font-semibold text-slate-500">{date.getUTCDate()}</div>
               <div className="my-1 flex-grow">
-                {/* FIX: Conditionally render special events or the regular ShiftCell, removing the invalid `specialEvent` prop from ShiftCell. */}
                 {specialEvent ? (
                     <div className="w-full h-full p-1 flex items-center justify-center relative" title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}>
                         <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-xs text-center`}>
@@ -88,7 +86,6 @@ const MonthView: React.FC<MonthViewProps> = ({ year, month, nurse, schedule, age
                 ) : (
                     <ShiftCell
                       shiftCell={shiftCell}
-                      // FIX: Pass jornadasLaborales to getScheduleCellHours
                       hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales)}
                       hasManualHours={false}
                       isWeekend={isWeekend}
