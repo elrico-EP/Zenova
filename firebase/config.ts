@@ -42,7 +42,7 @@ export const saveConfigAndReload = (config: any) => {
         window.location.reload();
     } catch (e) {
         console.error("Error al guardar la configuración en localStorage", e);
-        throw e;
+        throw e; // Re-throw to be caught by the component
     }
 };
 

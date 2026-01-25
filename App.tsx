@@ -15,7 +15,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
-import { db, auth, firebaseConfig } from './firebase/config';
+import { firebaseConfig } from './firebase/config';
 import { FirebaseSetupScreen } from './components/FirebaseSetupScreen';
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
