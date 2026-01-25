@@ -41,6 +41,7 @@ export const handleSignIn = (email: string, password: string): Promise<User | Nu
         name: firebaseUser.email!.split('@')[0],
         email: firebaseUser.email!,
         role: 'nurse',
+        // FIX: Add missing 'order' property to conform to the Nurse type.
         order: 99,
       } as Nurse;
     })
