@@ -11,7 +11,7 @@ const loadConfig = () => {
         const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
         if (savedConfig) {
             const parsedConfig = JSON.parse(savedConfig);
-            if (parsedConfig && parsedConfig.apiKey) {
+            if (parsedConfig && parsedConfig.apiKey && parsedConfig.apiKey !== "AIzaSy...REEMPLAZAR_CON_TU_API_KEY") {
                 return parsedConfig;
             }
         }
@@ -20,12 +20,12 @@ const loadConfig = () => {
     }
     // Devuelve el objeto de ejemplo si no hay nada guardado o si falla la carga.
     return {
-      apiKey: "AIzaSyBi3ThoxS4Jvfg84ikUeqK_TISwxgfy2rc",
-      authDomain: "zenova-4c728.firebaseapp.com",
-      projectId: "zenova-4c728",
-      storageBucket: "zenova-4c728.firebasestorage.app",
-      messagingSenderId: "1056163871295",
-      appId: "1:1056163871295:web:be7dc65ccf20371b21168a"
+      apiKey: "AIzaSy...REEMPLAZAR_CON_TU_API_KEY",
+      authDomain: "tu-proyecto-id.firebaseapp.com",
+      projectId: "tu-proyecto-id",
+      storageBucket: "tu-proyecto-id.appspot.com",
+      messagingSenderId: "TU_SENDER_ID",
+      appId: "TU_APP_ID"
     };
 };
 
