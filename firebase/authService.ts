@@ -16,29 +16,38 @@ const findNurseByEmail = (email: string): Nurse | undefined => {
 };
 
 export const handleSignIn = (email: string, password: string): Promise<User | Nurse> => {
-  return signInWithEmailAndPassword(auth, email, password).then(userCredential => {
-    const firebaseUser = userCredential.user;
-    if (firebaseUser.email?.toLowerCase().includes('admin')) {
+  if (!auth) {
+    return Promise.reject(new Error("Firebase Auth no está inicializado. Verifica la configuración en Cloudflare Pages (variables de entorno)."));
+  }
+
+  return signInWithEmailAndPassword(auth, email, password)
+    .then(userCredential => {
+      const firebaseUser = userCredential.user;
+      if (firebaseUser.email?.toLowerCase().includes('admin')) {
+        return {
+          id: firebaseUser.uid,
+          name: 'Admin',
+          email: firebaseUser.email!,
+          role: 'admin',
+        };
+      }
+      const nurseProfile = findNurseByEmail(firebaseUser.email!);
+      if (nurseProfile) {
+        return nurseProfile;
+      }
+      // Fallback para emails desconocidos
       return {
         id: firebaseUser.uid,
-        name: 'Admin',
+        name: firebaseUser.email!.split('@')[0],
         email: firebaseUser.email!,
-        role: 'admin',
-      };
-    }
-    const nurseProfile = findNurseByEmail(firebaseUser.email!);
-    if (nurseProfile) {
-      return nurseProfile;
-    }
-    // Fallback for unknown nurse email
-    return {
-      id: firebaseUser.uid,
-      name: firebaseUser.email!.split('@')[0],
-      email: firebaseUser.email!,
-      role: 'nurse',
-      order: 99,
-    } as Nurse;
-  });
+        role: 'nurse',
+        order: 99,
+      } as Nurse;
+    })
+    .catch(error => {
+      console.error("Error en signInWithEmailAndPassword:", error.code, error.message);
+      throw error;
+    });
 };
 
 export const handleSignOut = (): Promise<void> => {
