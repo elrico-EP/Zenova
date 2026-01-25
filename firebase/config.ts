@@ -3,45 +3,68 @@ import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
-// Esta función se mantiene solo para evitar errores de compilación en un archivo no utilizado (FirebaseSetupScreen.tsx).
-// No tiene ningún efecto en la aplicación.
+const FIREBASE_CONFIG_KEY = 'zenova-firebase-config';
+
+// Carga la configuración desde localStorage o devuelve un objeto de ejemplo si no existe.
+const loadConfig = () => {
+    try {
+        const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
+        if (savedConfig) {
+            const parsedConfig = JSON.parse(savedConfig);
+            if (parsedConfig && parsedConfig.apiKey) {
+                return parsedConfig;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load Firebase config from local storage", e);
+    }
+    // Devuelve el objeto de ejemplo si no hay nada guardado o si falla la carga.
+    return {
+      apiKey: "AIzaSy...REEMPLAZAR_CON_TU_API_KEY",
+      authDomain: "tu-proyecto-id.firebaseapp.com",
+      projectId: "tu-proyecto-id",
+      storageBucket: "tu-proyecto-id.appspot.com",
+      messagingSenderId: "TU_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+};
+
+// Exporta la configuración cargada para que App.tsx pueda verificarla.
+export const firebaseConfig = loadConfig();
+
+// Exporta la función para guardar la configuración desde la pantalla de setup.
 export const saveConfigAndReload = (config: any) => {
-    console.warn("saveConfigAndReload is deprecated and has no effect.");
+    try {
+        if (!config || !config.apiKey || !config.projectId) {
+            throw new Error("El objeto de configuración proporcionado no es válido.");
+        }
+        localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config));
+        window.location.reload();
+    } catch (e) {
+        console.error("Error al guardar la configuración en localStorage", e);
+        throw e;
+    }
 };
 
-// ====================================================================================
-// IMPORTANTE: Reemplaza estos valores de ejemplo con la configuración real de tu proyecto de Firebase.
-// Puedes encontrarla en tu Consola de Firebase > Configuración del proyecto > Tus apps > Configuración.
-// ====================================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSy...REEMPLAZAR_CON_TU_API_KEY",
-  authDomain: "tu-proyecto-id.firebaseapp.com",
-  projectId: "tu-proyecto-id",
-  storageBucket: "tu-proyecto-id.appspot.com",
-  messagingSenderId: "TU_SENDER_ID",
-  appId: "TU_APP_ID"
-};
+// Inicializa los servicios de Firebase.
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 
-
-// Inicializar Firebase una sola vez.
-// Si la configuración de arriba no es válida, la app fallará aquí.
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-
-try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-} catch (error) {
-    console.error("Error al inicializar Firebase. ¿Has reemplazado la configuración de ejemplo en firebase/config.ts?", error);
-    // Para que la app no crashee del todo, asignamos valores nulos.
-    // La pantalla de login mostrará errores, pero la app no se romperá.
-    app = null!;
-    auth = null!;
-    db = null!;
+// Solo intenta inicializar si la configuración NO es la de ejemplo.
+if (firebaseConfig.apiKey !== "AIzaSy...REEMPLAZAR_CON_TU_API_KEY") {
+    try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+    } catch (error) {
+        console.error("Error al inicializar Firebase. La configuración guardada podría ser inválida.", error);
+        // Limpia la configuración incorrecta para que la pantalla de setup aparezca en la próxima recarga.
+        localStorage.removeItem(FIREBASE_CONFIG_KEY);
+    }
+} else {
+    console.warn("Firebase no está configurado. Se mostrará la pantalla de configuración.");
 }
 
-
-// Exportar las instancias para ser usadas en toda la app.
+// Exporta las instancias para usarlas en la aplicación. Pueden ser nulas si no está configurado.
 export { app, db, auth };

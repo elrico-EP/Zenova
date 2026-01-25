@@ -15,7 +15,8 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
-import { db, auth } from './firebase/config';
+import { db, auth, firebaseConfig } from './firebase/config';
+import { FirebaseSetupScreen } from './components/FirebaseSetupScreen';
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell, generateAndBalanceGaps } from './utils/scheduleUtils';
@@ -611,6 +612,13 @@ const MainApp: React.FC = () => {
 const App: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useUser();
   const t = useTranslations();
+  
+  // Comprueba si la configuración de Firebase es la de ejemplo.
+  const isConfigured = firebaseConfig.apiKey !== "AIzaSy...REEMPLAZAR_CON_TU_API_KEY";
+
+  if (!isConfigured) {
+    return <FirebaseSetupScreen />;
+  }
 
   if (isAuthLoading) {
     return (
