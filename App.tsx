@@ -33,7 +33,6 @@ import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { BulkEditModal } from './components/BulkEditModal';
-import { FirebaseSetupScreen } from './components/FirebaseSetupScreen';
 
 const MainApp: React.FC = () => {
   const { user, effectiveUser, logout } = useUser();
@@ -610,11 +609,6 @@ const MainApp: React.FC = () => {
 
 
 const App: React.FC = () => {
-  // Si Firebase no se inicializa por falta de configuración, muestra la pantalla de setup.
-  if (!auth) {
-    return <FirebaseSetupScreen />;
-  }
-
   const { user, isLoading: isAuthLoading } = useUser();
   const t = useTranslations();
 

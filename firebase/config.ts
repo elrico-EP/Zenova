@@ -3,42 +3,51 @@ import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
-const CONFIG_STORAGE_KEY = 'zenova-firebase-config';
+const FIREBASE_CONFIG_KEY = 'zenova-firebase-config';
 
-let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
-let auth: Auth | null = null;
+// FIX: Add missing saveConfigAndReload function used by FirebaseSetupScreen.tsx
+export const saveConfigAndReload = (config: any) => {
+    try {
+        localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config));
+        window.location.reload();
+    } catch (e) {
+        console.error("Failed to save config to local storage", e);
+        throw new Error("Could not save configuration.");
+    }
+};
+
+
+let firebaseConfig;
 
 try {
-    const storedConfigJSON = localStorage.getItem(CONFIG_STORAGE_KEY);
-    if (storedConfigJSON) {
-        const firebaseConfig = JSON.parse(storedConfigJSON);
-        // Validación básica para asegurar que la configuración guardada es utilizable
-        if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } else {
-            console.warn("La configuración de Firebase guardada es inválida. Eliminándola.");
-            localStorage.removeItem(CONFIG_STORAGE_KEY);
-        }
+    const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
+    if (savedConfig) {
+        firebaseConfig = JSON.parse(savedConfig);
     }
-} catch (error) {
-    console.error("Error al inicializar Firebase desde localStorage:", error);
-    // Limpiar configuración potencialmente corrupta
-    localStorage.removeItem(CONFIG_STORAGE_KEY);
+} catch (e) {
+    console.error("Failed to load Firebase config from local storage", e);
 }
 
-// Esta función es llamada por la pantalla de configuración para guardar el objeto
-export function saveConfigAndReload(config: object) {
-  try {
-    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
-    window.location.reload();
-  } catch (e) {
-    console.error("No se pudo guardar la configuración en localStorage", e);
-    // Lanzar un error para mostrar en la UI
-    throw new Error("No se pudo guardar la configuración. Por favor, asegúrate de que localStorage esté habilitado y vuelve a intentarlo.");
-  }
+// If no config found in localStorage, use the placeholder.
+// This will cause initialization to fail, which is the expected trigger
+// for the app to show the setup screen.
+if (!firebaseConfig) {
+    firebaseConfig = {
+     apiKey: "AIzaSyBi3ThoxS4Jvfg84ikUeqK_TISwxgfy2rc",
+     authDomain: "zenova-4c728.firebaseapp.com",
+     projectId: "zenova-4c728",
+     storageBucket: "zenova-4c728.firebasestorage.app",
+     messagingSenderId: "1056163871295",
+     appId: "1:1056163871295:web:be7dc65ccf20371b21168a"
+    };
 }
 
-export { db, auth };
+// 2. Inicializar Firebase una sola vez al cargar la app.
+// Note: This may throw an error if config is invalid, which is expected to be caught
+// by a higher-level component that will then render FirebaseSetupScreen.
+const app: FirebaseApp = initializeApp(firebaseConfig);
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
+
+// 3. Exportar las instancias como singletons para ser usadas en toda la app.
+export { app, db, auth };
