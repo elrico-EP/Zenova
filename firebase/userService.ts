@@ -21,14 +21,22 @@ export const getAppUser = async (firebaseUser: FirebaseUser): Promise<User> => {
     if (userDoc.exists()) {
         return userDoc.data() as User;
     } else {
-        // If user document doesn't exist, create one based on their email
+        // If user document doesn't exist, create one.
+        // Check if this is the very first user in the system.
+        const usersCollectionRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersCollectionRef);
+        const isFirstUser = usersSnapshot.empty;
+
         const email = firebaseUser.email || '';
         const name = firebaseUser.displayName || email.split('@')[0];
         const associatedNurse = INITIAL_NURSES.find(n => n.email.toLowerCase() === email.toLowerCase());
 
         let role: UserRole = 'viewer';
-        // Simple logic: if 'admin' is in the email, assign admin role.
-        if (email.toLowerCase().includes('admin')) {
+        // NEW LOGIC: The first user to ever sign up is automatically an admin.
+        if (isFirstUser) {
+            role = 'admin';
+        } else if (email.toLowerCase().includes('admin')) {
+            // Keep the old logic as a fallback for creating other admins later.
             role = 'admin';
         } else if (associatedNurse) {
             role = 'nurse';

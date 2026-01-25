@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { ZenovaLogo } from './ZenovaLogo';
@@ -54,9 +55,9 @@ export const LoginScreen: React.FC = () => {
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-slate-200/80">
           
           <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 mb-6 rounded-r-lg" role="alert">
-            <p className="font-bold">Primer Inicio de Sesión</p>
+            <p className="font-bold">Creación de la Cuenta de Administrador</p>
             <p className="text-sm mt-1">
-              Para crear tu cuenta de administrador, usa el botón <strong>"Continuar con Google"</strong> con una cuenta de Google que incluya "admin" en el email (ej: <code>mi.proyecto.admin@gmail.com</code>).
+              El <strong>primer usuario</strong> que inicie sesión con Google se convertirá automáticamente en el <strong>administrador</strong> del sistema.
             </p>
           </div>
 
