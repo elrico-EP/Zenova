@@ -1,3 +1,4 @@
+
 import React, { useState, createContext, useContext, useMemo, useCallback, useEffect } from 'react';
 import type { User, Nurse, UserRole } from '../types';
 import * as authService from '../firebase/userService';
@@ -37,21 +38,34 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (!auth) {
+        console.warn("Firebase Auth no está inicializado. Saltando la comprobación de autenticación.");
         setIsLoading(false);
-        return; // No hacer nada si Firebase no está inicializado
+        return;
     }
     
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        const appUser = await authService.getAppUser(firebaseUser);
-        setUser(appUser);
-      } else {
+      try {
+        if (firebaseUser) {
+          const appUser = await authService.getAppUser(firebaseUser);
+          setUser(appUser);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error crítico al obtener el perfil de usuario durante el chequeo de autenticación:", error);
+        // Si hay un usuario de Firebase pero no podemos obtener su perfil de la BD,
+        // es un estado inválido. Forzamos el cierre de sesión para evitar un bucle.
+        await authService.signOutUser();
         setUser(null);
+        setAuthError("No se pudo cargar tu perfil. Por favor, inicia sesión de nuevo.");
+      } finally {
+        // Aseguramos que el estado de carga siempre termine.
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    authService.getAllUsers().then(setUsers);
+    // Cargar la lista de usuarios para la gestión (puede hacerse en paralelo)
+    authService.getAllUsers().then(setUsers).catch(err => console.error("No se pudo cargar la lista de usuarios:", err));
 
     return () => unsubscribe();
   }, []);
@@ -61,10 +75,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
     try {
       await authService.signInWithEmail(email, password);
+      // onAuthStateChanged se encargará de actualizar el estado del usuario
     } catch (error) {
-      setAuthError((error as Error).message);
-    } finally {
-      setIsLoading(false);
+      console.error("Error en el inicio de sesión con email:", error);
+      setAuthError((error as Error).message || "Credenciales incorrectas.");
+      setIsLoading(false); // Detener la carga solo si hay error
     }
   }, []);
 
@@ -73,10 +88,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
     try {
       await authService.signInWithGoogle();
+      // onAuthStateChanged se encargará de actualizar el estado del usuario
     } catch (error) {
-      setAuthError((error as Error).message);
-    } finally {
-      setIsLoading(false);
+      console.error("Error en el inicio de sesión con Google:", error);
+      setAuthError((error as Error).message || "No se pudo iniciar sesión con Google.");
+      setIsLoading(false); // Detener la carga solo si hay error
     }
   }, []);
 
@@ -122,7 +138,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user, effectiveUser, isLoading, login, signInWithGoogle, logout, impersonate, isImpersonating, authError,
     users, register, updateUser, deleteUser, changePassword, forceSetPassword,
     requestPasswordReset, resetPassword,
-  }), [user, effectiveUser, isLoading, login, signInWithGoogle, logout, impersonate, isImpersonating, authError, users]);
+  }), [user, effectiveUser, isLoading, authError, users, login, signInWithGoogle, logout, impersonate, isImpersonating]);
 
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };

@@ -15,7 +15,6 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
-import { FirebaseSetupScreen } from './components/FirebaseSetupScreen';
 import { db, auth } from './firebase/config';
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
@@ -34,6 +33,7 @@ import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { BulkEditModal } from './components/BulkEditModal';
+import { FirebaseSetupScreen } from './components/FirebaseSetupScreen';
 
 const MainApp: React.FC = () => {
   const { user, effectiveUser, logout } = useUser();
@@ -610,7 +610,8 @@ const MainApp: React.FC = () => {
 
 
 const App: React.FC = () => {
-  if (!db || !auth) {
+  // Si Firebase no se inicializa por falta de configuración, muestra la pantalla de setup.
+  if (!auth) {
     return <FirebaseSetupScreen />;
   }
 
