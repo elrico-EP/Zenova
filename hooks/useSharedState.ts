@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useFirestore } from './useFirestore';
 import type { AppState, Nurse, Agenda, Schedule, Notes, StrasbourgEvent, Wishes, JornadaLaboral, SpecialStrasbourgEvent, ScheduleCell, ManualChangeLogEntry } from '../types';
 import { INITIAL_NURSES } from '../constants';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026 } from '../data/agenda2026';
@@ -128,60 +129,92 @@ const getInitialState = (): AppState => ({
 });
 
 export const useSharedState = () => {
+    // Usar Firebase con el hook genérico
+    const { data: firestoreData, loading: firestoreLoading, updateData: updateFirestore } = useFirestore<AppState>(
+        'sharedState/main',
+        getInitialState()
+    );
+    
     const [data, setData] = useState<AppState | null>(null);
     const [loading, setLoading] = useState(true);
+    const [migrationDone, setMigrationDone] = useState(false);
 
+    // Sincronizar datos de Firestore con el estado local
     useEffect(() => {
-        try {
-            const storedData = localStorage.getItem(STORAGE_KEY);
-            if (storedData) {
-                const parsedData = JSON.parse(storedData);
-                // Migration to remove history from the main data object
-                if (parsedData.history) {
-                    delete parsedData.history;
-                }
-                
-                if (parsedData.shiftRotations) delete parsedData.shiftRotations;
-                if (parsedData.shiftRotationAssignments) delete parsedData.shiftRotationAssignments;
-
-                if (!parsedData.jornadasLaborales || parsedData.jornadasLaborales.length === 0) {
-                     parsedData.jornadasLaborales = INITIAL_JORNADAS;
-                }
-                // Check if January 2026 is empty/un-initialized and seed if necessary
-                const needsJan2026Seeding = !parsedData.manualOverrides['nurse-1'] || !parsedData.manualOverrides['nurse-1']['2026-01-06'];
-                if (needsJan2026Seeding) {
-                    parsedData.manualOverrides = mergeOverrides(parsedData.manualOverrides, JANUARY_2026_SHIFTS);
-                }
-
-                if (!parsedData.specialStrasbourgEvents) parsedData.specialStrasbourgEvents = [];
-                if (parsedData.visualSwaps) delete parsedData.visualSwaps; // Migration: remove old visualSwaps
-                if (!parsedData.manualChangeLog) parsedData.manualChangeLog = []; // One-time reset/initialization
-                setData(parsedData);
-            } else {
-                const initialState = getInitialState();
-                setData(initialState);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(initialState));
-            }
-        } catch (error) {
-            console.error("Failed to load state from localStorage:", error);
-            setData(getInitialState());
-        } finally {
+        if (!firestoreLoading && firestoreData) {
+            console.log('🔄 Sincronizando datos desde Firebase...');
+            setData(firestoreData);
             setLoading(false);
         }
-    }, []);
+    }, [firestoreData, firestoreLoading]);
+
+    // Migración única de localStorage a Firebase
+    useEffect(() => {
+        if (!firestoreLoading && !migrationDone && firestoreData) {
+            const storedData = localStorage.getItem(STORAGE_KEY);
+            if (storedData) {
+                try {
+                    const parsedData = JSON.parse(storedData);
+                    
+                    // Solo migrar si Firebase está vacío o tiene muy pocos datos
+                    const firestoreIsEmpty = !firestoreData.manualOverrides || 
+                                            Object.keys(firestoreData.manualOverrides).length === 0;
+                    
+                    if (firestoreIsEmpty) {
+                        console.log('📦 Migrando datos de localStorage a Firebase...');
+                        
+                        // Limpiar datos antiguos
+                        if (parsedData.history) delete parsedData.history;
+                        if (parsedData.shiftRotations) delete parsedData.shiftRotations;
+                        if (parsedData.shiftRotationAssignments) delete parsedData.shiftRotationAssignments;
+                        if (parsedData.visualSwaps) delete parsedData.visualSwaps;
+                        
+                        // Asegurar datos necesarios
+                        if (!parsedData.jornadasLaborales || parsedData.jornadasLaborales.length === 0) {
+                            parsedData.jornadasLaborales = INITIAL_JORNADAS;
+                        }
+                        if (!parsedData.specialStrasbourgEvents) {
+                            parsedData.specialStrasbourgEvents = [];
+                        }
+                        if (!parsedData.manualChangeLog) {
+                            parsedData.manualChangeLog = [];
+                        }
+                        
+                        // Seed January 2026 if needed
+                        const needsJan2026Seeding = !parsedData.manualOverrides['nurse-1'] || 
+                                                    !parsedData.manualOverrides['nurse-1']['2026-01-06'];
+                        if (needsJan2026Seeding) {
+                            parsedData.manualOverrides = mergeOverrides(parsedData.manualOverrides, JANUARY_2026_SHIFTS);
+                        }
+                        
+                        // Migrar a Firebase
+                        updateFirestore(parsedData);
+                        console.log('✅ Datos migrados exitosamente a Firebase');
+                        
+                        // Limpiar localStorage después de migración exitosa
+                        localStorage.removeItem(STORAGE_KEY);
+                        console.log('🗑️ localStorage limpiado después de migración');
+                    }
+                } catch (error) {
+                    console.error('❌ Error al migrar datos:', error);
+                }
+            }
+            setMigrationDone(true);
+        }
+    }, [firestoreLoading, firestoreData, migrationDone, updateFirestore]);
 
     const updateData = useCallback((updates: Partial<AppState>) => {
         setData(prevData => {
             if (!prevData) return null;
             const newData = { ...prevData, ...updates };
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
-            } catch (error) {
-                console.error("Failed to save state to localStorage:", error);
-            }
+            
+            // Guardar en Firebase (esto activará la sincronización en tiempo real)
+            console.log('💾 Guardando cambios en Firebase...');
+            updateFirestore(newData);
+            
             return newData;
         });
-    }, []);
+    }, [updateFirestore]);
 
     return { data, loading, updateData };
 };
