@@ -56,14 +56,21 @@ export function useFirestore<T>(path: string, initialData: T) {
 
     const updateData = async (updates: Partial<T> | T) => {
         const docRef = doc(db, path);
+        console.log('📤 Guardando cambios en Firebase...');
+        console.log('📍 Path:', path);
+        console.log('🔑 DB object:', db ? 'OK' : 'UNDEFINED');
+        console.log('📦 Updates size:', JSON.stringify(updates).length, 'chars');
+        
         try {
-            console.log('📤 Guardando cambios en Firebase...');
             // Usar setDoc con merge para actualizar campos sin borrar el resto
-            await setDoc(docRef, updates as any, { merge: true });
+            const result = await setDoc(docRef, updates as any, { merge: true });
             console.log('✅ Cambios guardados exitosamente en Firebase');
-        } catch (err) {
-            console.error('❌ Error actualizando documento en Firebase:', err);
-            console.error('Detalles:', (err as any).message);
+            console.log('📊 Result:', result);
+        } catch (err: any) {
+            console.error('❌ ERROR COMPLETO:', err);
+            console.error('❌ Código de error:', err.code);
+            console.error('❌ Mensaje:', err.message);
+            console.error('❌ Stack:', err.stack);
             setError(err as Error);
             throw err; // Re-lanzar para que el componente pueda manejarlo
         }
