@@ -1,4 +1,3 @@
-
 import type { Nurse, Schedule, ScheduleCell, SpecialStrasbourgEvent, Hours, Agenda, JornadaLaboral, CustomShift } from '../types';
 import { getShiftsFromCell as getShiftsFromCellUtil } from './scheduleUtils';
 import { getWeekIdentifier } from './dateUtils';
@@ -166,6 +165,7 @@ export const calculateHoursForDay = (
         return baseHours;
     }
 
+    // FIX: Handle the specific case where a 3h reduction on a full day (8.5h) results in a 6h gross shift, which should count as 6.0 net hours.
     const is90Percent3hReductionOnFullDay = activeJornada.porcentaje === 90 &&
         (activeJornada.reductionOption === 'START_SHIFT_4H' || activeJornada.reductionOption === 'END_SHIFT_4H') &&
         dayOfWeek === activeJornada.reductionDayOfWeek &&

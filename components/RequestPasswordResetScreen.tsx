@@ -49,7 +49,7 @@ export const RequestPasswordResetScreen: React.FC<{
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-slate-200/80">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="reset-username" className="block text-sm font-medium text-gray-700">{t.username}</label>
+              <label htmlFor="reset-username" className="block text-sm font-medium text-gray-700">{t.login_username}</label>
               <input
                 id="reset-username"
                 type="text"

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import type { Nurse, Schedule, ScheduleCell, WorkZone, Notes, Agenda, Hours, SpecialStrasbourgEvent, CustomShift, Shift, JornadaLaboral } from '../types';
@@ -14,6 +13,7 @@ import { locales } from '../translations/locales';
 declare const html2canvas: any;
 declare const jspdf: any;
 
+// FIX: Change Set<WorkZone> to Set<string> to allow 'DAY_OFF_80' which is not a standard WorkZone.
 const EXCLUDED_SHIFTS: Set<string> = new Set(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG', 'DAY_OFF_80']);
 
 
@@ -122,6 +122,7 @@ export const copyScheduleToClipboard = async (schedule: Schedule, nurses: Nurse[
                 if (hasManualHours) {
                     allHours = dailyHoursData!.segments!.filter(s => s.startTime && s.endTime).map(s => `${s.startTime.substring(0, 5)} - ${s.endTime.substring(0, 5)}`);
                 } else {
+                    // FIX: Pass jornadasLaborales to getScheduleCellHours
                     allHours = getScheduleCellHours(cellData, nurse, date, agenda[weekId] || 'NORMAL', agenda, jornadasLaborales);
                 }
 

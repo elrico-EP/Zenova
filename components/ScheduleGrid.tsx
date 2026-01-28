@@ -309,15 +309,15 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     const dayFormatter = useMemo(() => {
         // Consistent day names, removing potential inconsistencies from toLocaleString on single dates.
         const formatter = new Intl.DateTimeFormat(language, { weekday: 'short' });
-        // JS getDay() is Sun=0, Mon=1...
+        // JS getUTCDay() is Sun=0, Mon=1...
         const daysOfWeek = [
-            formatter.format(new Date(2023, 0, 1)), // Sun
-            formatter.format(new Date(2023, 0, 2)), // Mon
-            formatter.format(new Date(2023, 0, 3)), // Tue
-            formatter.format(new Date(2023, 0, 4)), // Wed
-            formatter.format(new Date(2023, 0, 5)), // Thu
-            formatter.format(new Date(2023, 0, 6)), // Fri
-            formatter.format(new Date(2023, 0, 7)), // Sat
+            formatter.format(new Date(Date.UTC(2023, 0, 1))), // Sun
+            formatter.format(new Date(Date.UTC(2023, 0, 2))), // Mon
+            formatter.format(new Date(Date.UTC(2023, 0, 3))), // Tue
+            formatter.format(new Date(Date.UTC(2023, 0, 4))), // Wed
+            formatter.format(new Date(Date.UTC(2023, 0, 5))), // Thu
+            formatter.format(new Date(Date.UTC(2023, 0, 6))), // Fri
+            formatter.format(new Date(Date.UTC(2023, 0, 7))), // Sat
         ].map(d => d.replace(/\./g, '')); // Remove all dots for consistency, e.g., "mié." -> "mié"
         return daysOfWeek;
     }, [language]);
@@ -348,9 +348,9 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                 </thead>
                 <tbody>
                     {days.map(day => {
-                        const date = new Date(year, month, day);
+                        const date = new Date(Date.UTC(year, month, day));
                         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const dayOfWeek = date.getDay();
+                        const dayOfWeek = date.getUTCDay();
                         const dayOfWeekStr = dayFormatter[dayOfWeek];
                         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                         const weekId = getWeekIdentifier(date);

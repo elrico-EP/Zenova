@@ -247,13 +247,30 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
       } else {
         setComments({});
       }
+
+      // Automatically load the previous month's total balance as the default value.
+      const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+      const prevBalanceCacheKey = `totalBalanceCache-${nurse.id}-${prevMonthKey}`;
+      
+      const storedPrevBalance = localStorage.getItem(prevBalanceCacheKey);
+      if (storedPrevBalance) {
+          try {
+              const prevBalance = JSON.parse(storedPrevBalance);
+              setManualPreviousBalanceInput(Number(prevBalance).toFixed(2));
+          } catch {
+              setManualPreviousBalanceInput('0.00');
+          }
+      } else {
+          setManualPreviousBalanceInput('0.00');
+      }
     } catch (error) {
       console.error("Error loading data from localStorage:", error);
       setLocalData({});
       setComments({});
+      setManualPreviousBalanceInput('0.00'); // Fallback in case of error
     }
-    setManualPreviousBalanceInput('0');
-  }, [nurse.id, monthKey]);
+  }, [nurse.id, monthKey, currentDate]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -405,18 +422,14 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     return balances;
 }, [calendarGrid, activeTab, displayedSchedule, localData, nurse, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales]);
 
-    const manualPreviousBalance = useMemo(() => {
-        const numValue = parseFloat(manualPreviousBalanceInput);
-        return isNaN(numValue) ? 0 : numValue;
-    }, [manualPreviousBalanceInput]);
-
-    const monthCalculatedBalance = useMemo(() => {
+    const differenceBalance = useMemo(() => {
         if (activeTab !== 'current') return 0;
         return weeklyBalances.reduce((sum, week) => sum + week.diff, 0);
     }, [weeklyBalances, activeTab]);
-
-    const totalMonthlyBalance = monthCalculatedBalance + manualPreviousBalance;
-    const differenceBalance = monthCalculatedBalance;
+    
+    const manualPreviousBalance = parseFloat(manualPreviousBalanceInput) || 0;
+    
+    const totalMonthlyBalance = differenceBalance + manualPreviousBalance;
   
   useEffect(() => {
     if (activeTab === 'current') {
@@ -617,10 +630,12 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                         step="0.01"
                                         value={manualPreviousBalanceInput}
                                         onChange={e => setManualPreviousBalanceInput(e.target.value)}
+                                        disabled={!canEditHours}
                                         className={`w-full text-center p-1 border rounded-md text-sm font-bold ${
                                             manualPreviousBalance > 0.01 ? 'text-green-600' : 
                                             manualPreviousBalance < -0.01 ? 'text-red-600' : 
-                                            'text-slate-800'}`}
+                                            'text-slate-800'}
+                                            disabled:bg-slate-200/50 disabled:cursor-not-allowed disabled:text-slate-500`}
                                     />
                                 </div>
                             </>

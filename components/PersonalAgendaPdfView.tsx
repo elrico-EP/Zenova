@@ -1,5 +1,4 @@
 
-
 import React, { useMemo } from 'react';
 import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, SpecialStrasbourgEvent, JornadaLaboral } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -92,6 +91,7 @@ export const PersonalAgendaPdfView: React.FC<PersonalAgendaPdfViewProps> = ({
                             ) : (
                                 <ShiftCell 
                                   shiftCell={shiftCell} 
+                                  // FIX: Pass jornadasLaborales to getScheduleCellHours
                                   hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda2026Data, jornadasLaborales)} 
                                   hasManualHours={false}
                                   isWeekend={isWeekend} 

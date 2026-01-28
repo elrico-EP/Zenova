@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Nurse, Schedule, ScheduleCell } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
@@ -106,6 +105,7 @@ export const SwapShiftPanel: React.FC<SwapShiftPanelProps> = ({ isOpen, onClose,
             <form id="swap-form" onSubmit={handleSubmit} className="flex-grow overflow-y-auto p-4 space-y-6">
                 <section className="bg-white p-4 rounded-lg border border-slate-200 space-y-3">
                     <div>
+                        {/* FIX: Use a valid translation key 't.day' instead of 't.date'. */}
                         <label className="text-xs font-semibold text-slate-500 uppercase">{t.day}</label>
                         <p className="font-medium text-slate-800">{initialDate ? new Date(initialDate + 'T12:00:00').toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}</p>
                     </div>

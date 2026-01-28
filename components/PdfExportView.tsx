@@ -1,10 +1,10 @@
-
 import React from 'react';
 import type { Nurse, Schedule, Notes, Agenda, ScheduleCell, WorkZone, CustomShift, ActivityLevel } from '../types';
 import { SHIFTS } from '../constants';
 import { useTranslations } from '../hooks/useTranslations';
 import { getShiftsFromCell } from '../utils/scheduleUtils';
 
+// FIX: Change Set<WorkZone> to Set<string> to allow 'DAY_OFF_80' which is not a standard WorkZone.
 const EXCLUDED_SHIFTS: Set<string> = new Set(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG', 'DAY_OFF_80']);
 
 const ShiftCellContent: React.FC<{ shiftCell: ScheduleCell | undefined }> = ({ shiftCell }) => {

@@ -1,30 +1,25 @@
-
 import React, { useState, createContext, useContext, useMemo, useCallback, useEffect } from 'react';
 import type { User, Nurse, UserRole } from '../types';
-import * as authService from '../firebase/userService';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import * as userService from '../firebase/userService';
 
 interface UserContextType {
   user: User | null;
   effectiveUser: User | Nurse | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   impersonate: (nurse: Nurse | null) => void;
   isImpersonating: boolean;
   authError: string | null;
-  // User management functions (ahora usan Firebase)
+  // User management functions
+  users: User[];
   register: (userData: Omit<User, 'id'>) => Promise<void>;
   updateUser: (userData: User) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   forceSetPassword: (newPassword: string) => Promise<void>;
-  // Mantengo las funciones de `localStorage` para compatibilidad, aunque no se usen
   requestPasswordReset: (username: string) => Promise<boolean>;
   resetPassword: (username: string, newPassword: string) => Promise<void>;
-  users: User[];
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -34,72 +29,41 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [impersonatedNurse, setImpersonatedNurse] = useState<Nurse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>([]); // Sigue siendo útil para la UI de gestión
-
+  const [users, setUsers] = useState<User[]>([]);
+  
   useEffect(() => {
-    if (!auth) {
-        console.warn("Firebase Auth no está inicializado. Saltando la comprobación de autenticación.");
-        setIsLoading(false);
-        return;
-    }
-    
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      try {
-        if (firebaseUser) {
-          const appUser = await authService.getAppUser(firebaseUser);
-          setUser(appUser);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Error crítico al obtener el perfil de usuario durante el chequeo de autenticación:", error);
-        // Si hay un usuario de Firebase pero no podemos obtener su perfil de la BD,
-        // es un estado inválido. Forzamos el cierre de sesión para evitar un bucle.
-        await authService.signOutUser();
-        setUser(null);
-        setAuthError("No se pudo cargar tu perfil. Por favor, inicia sesión de nuevo.");
-      } finally {
-        // Aseguramos que el estado de carga siempre termine.
-        setIsLoading(false);
+      // On initial load, check for a persistent session in localStorage.
+      const currentUser = userService.getCurrentUser();
+      if (currentUser) {
+          setUser(currentUser);
       }
-    });
-
-    // Cargar la lista de usuarios para la gestión (puede hacerse en paralelo)
-    authService.getAllUsers().then(setUsers).catch(err => console.error("No se pudo cargar la lista de usuarios:", err));
-
-    return () => unsubscribe();
+      const allUsers = userService.getUsers();
+      setUsers(allUsers);
+      setIsLoading(false);
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const refreshUsers = useCallback(() => {
+    setUsers(userService.getUsers());
+  }, []);
+
+  const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     setAuthError(null);
     try {
-      await authService.signInWithEmail(email, password);
-      // onAuthStateChanged se encargará de actualizar el estado del usuario
+      const loggedInUser = await userService.authenticate(username, password);
+      setUser(loggedInUser);
+      refreshUsers(); // Refresh user list in case of changes
     } catch (error) {
-      console.error("Error en el inicio de sesión con email:", error);
-      setAuthError((error as Error).message || "Credenciales incorrectas.");
-      setIsLoading(false); // Detener la carga solo si hay error
+      setAuthError((error as Error).message);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [refreshUsers]);
 
-  const signInWithGoogle = useCallback(async () => {
-    setIsLoading(true);
-    setAuthError(null);
-    try {
-      await authService.signInWithGoogle();
-      // onAuthStateChanged se encargará de actualizar el estado del usuario
-    } catch (error) {
-      console.error("Error en el inicio de sesión con Google:", error);
-      setAuthError((error as Error).message || "No se pudo iniciar sesión con Google.");
-      setIsLoading(false); // Detener la carga solo si hay error
-    }
-  }, []);
-
-  const logout = useCallback(async () => {
-    await authService.signOutUser();
+  const logout = useCallback(() => {
+    userService.clearCurrentUser();
     setUser(null);
-    setImpersonatedNurse(null);
+    setImpersonatedNurse(null); // This is crucial to prevent permission bleeding
   }, []);
 
   const impersonate = useCallback((nurse: Nurse | null) => {
@@ -114,8 +78,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     if (user?.role === 'nurse') {
         return {
-            id: (user as User).nurseId || user.id, name: user.name, email: user.email,
-            role: 'nurse' as UserRole, order: 99,
+            id: (user as User).nurseId || user.id,
+            name: user.name,
+            email: user.email,
+            role: 'nurse' as UserRole,
+            order: 99,
         }
     }
     return user;
@@ -123,22 +90,65 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isImpersonating = useMemo(() => user?.role === 'admin' && !!impersonatedNurse, [user, impersonatedNurse]);
 
-  // Aquí las funciones de gestión de usuarios llamarían a Firebase Functions en un futuro.
-  // Por ahora, las mantenemos apuntando a la simulación para no romper la UI.
-  const register = async (userData: Omit<User, 'id'>) => { /* TODO: Implement with Firebase Functions */ };
-  const updateUser = async (userData: User) => { /* TODO: Implement with Firebase Functions */ };
-  const deleteUser = async (userId: string) => { /* TODO: Implement with Firebase Functions */ };
-  const changePassword = async (current:string, newP: string) => { /* TODO: Implement re-authentication */ };
-  const forceSetPassword = async (newP: string) => { /* TODO: Implement with Firebase Functions */ };
-  const requestPasswordReset = async (username: string) => { return false; };
-  const resetPassword = async (u:string, p:string) => {};
+  const register = useCallback(async (userData: Omit<User, 'id'>) => {
+    if (user?.role !== 'admin') throw new Error("Permission denied");
+    await userService.addUser(userData);
+    refreshUsers();
+  }, [user, refreshUsers]);
 
+  const updateUser = useCallback(async (userData: User) => {
+    if (user?.role !== 'admin') throw new Error("Permission denied");
+    await userService.updateUser(userData);
+    refreshUsers();
+  }, [user, refreshUsers]);
+
+  const deleteUser = useCallback(async (userId: string) => {
+    if (user?.role !== 'admin') throw new Error("Permission denied");
+    await userService.deleteUser(userId);
+    refreshUsers();
+  }, [user, refreshUsers]);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!user) throw new Error("No hay un usuario autenticado.");
+    await userService.changePassword(user.id, currentPassword, newPassword);
+    const updatedUser = userService.getCurrentUser();
+    setUser(updatedUser);
+    refreshUsers();
+  }, [user, refreshUsers]);
+
+  const forceSetPassword = useCallback(async (newPassword: string) => {
+    if (!user) throw new Error("No hay un usuario autenticado.");
+    await userService.forceSetPassword(user.id, newPassword);
+    const updatedUser = userService.getCurrentUser();
+    setUser(updatedUser);
+  }, [user]);
+
+  const requestPasswordReset = useCallback(async (username: string): Promise<boolean> => {
+      return await userService.requestPasswordReset(username);
+  }, []);
+
+  const resetPassword = useCallback(async (username: string, newPassword: string) => {
+      await userService.resetPassword(username, newPassword);
+  }, []);
 
   const contextValue = useMemo(() => ({
-    user, effectiveUser, isLoading, login, signInWithGoogle, logout, impersonate, isImpersonating, authError,
-    users, register, updateUser, deleteUser, changePassword, forceSetPassword,
-    requestPasswordReset, resetPassword,
-  }), [user, effectiveUser, isLoading, authError, users, login, signInWithGoogle, logout, impersonate, isImpersonating]);
+    user,
+    effectiveUser,
+    isLoading,
+    login,
+    logout,
+    impersonate,
+    isImpersonating,
+    authError,
+    users,
+    register,
+    updateUser,
+    deleteUser,
+    changePassword,
+    forceSetPassword,
+    requestPasswordReset,
+    resetPassword,
+  }), [user, effectiveUser, isLoading, login, logout, impersonate, isImpersonating, authError, users, register, updateUser, deleteUser, changePassword, forceSetPassword, requestPasswordReset, resetPassword]);
 
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };

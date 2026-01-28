@@ -9,11 +9,12 @@ interface AgendaPlannerProps {
   agenda: Agenda;
   onAgendaChange: (newAgenda: Agenda) => void;
   onWeekSelect: (date: Date) => void;
+  children?: React.ReactNode;
 }
 
 const allActivityLevels: ActivityLevel[] = ['NORMAL', 'SESSION', 'WHITE_GREEN', 'REDUCED'];
 
-export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agenda, onAgendaChange, onWeekSelect }) => {
+export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agenda, onAgendaChange, onWeekSelect, children }) => {
   const t = useTranslations();
   const year = currentDate.getFullYear();
   const weeks = getWeeksOfYear(year);
@@ -35,9 +36,14 @@ export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agend
   const effectiveAgenda = is2026 ? agenda2026Data : agenda;
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md">
+    <div className="bg-white p-4 rounded-lg shadow-md relative">
       <h3 className="font-bold text-lg mb-4 text-gray-700">{t.agendaPlanner}</h3>
       {is2026 && <p className="text-sm text-gray-600 mb-4">{t.agenda2026Warning}</p>}
+      
+      <div className="absolute top-2 right-2 z-10">
+        {children}
+      </div>
+
       <div className="overflow-x-auto pb-3 -mb-3">
         <div className="flex space-x-3">
           {weeks.map(week => {

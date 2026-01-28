@@ -81,14 +81,14 @@ export const getScheduleCellHours = (
         default:
             const isAfternoonShift = shiftType === 'URGENCES_TARDE' || shiftType === 'TRAVAIL_TARDE';
             const nextMonday = new Date(date);
-            nextMonday.setDate(date.getDate() + (8 - dayOfWeek) % 7 || 7);
-            const isPreSessionFriday = date.getDay() === 5 && agenda[getWeekIdentifier(nextMonday)] === 'SESSION';
+            nextMonday.setUTCDate(date.getUTCDate() + (8 - dayOfWeek) % 7 || 7);
+            const isPreSessionFriday = date.getUTCDay() === 5 && agenda[getWeekIdentifier(nextMonday)] === 'SESSION';
 
             if (isPreSessionFriday) {
                 if (isAfternoonShift) baseHours = '12:00 - 18:00';
                 else if (shiftType === 'LIBERO') baseHours = '10:00 - 16:00';
                 else baseHours = '08:00 - 14:00';
-            } else if (date.getDay() === 5) {
+            } else if (date.getUTCDay() === 5) {
                 baseHours = '08:00 - 14:00';
             } else if (isAfternoonShift) {
                 baseHours = activityLevel === 'NORMAL' ? '10:00 - 18:30' : '09:00 - 17:45';

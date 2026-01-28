@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { ScheduleGrid, BASE_CELL_WIDTH, DAY_COL_WIDTH, PRESENT_COL_WIDTH, NOTES_COL_WIDTH } from './components/ScheduleGrid';
 import { Header } from './components/Header';
@@ -15,8 +14,6 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
-import { firebaseConfig } from './firebase/config';
-import { FirebaseSetupScreen } from './components/FirebaseSetupScreen';
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell, generateAndBalanceGaps } from './utils/scheduleUtils';
@@ -33,15 +30,17 @@ import { usePermissions } from './hooks/usePermissions';
 import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
-import { BulkEditModal } from './components/BulkEditModal';
+import { MaximizeIcon, RestoreIcon } from './components/Icons';
 
-const MainApp: React.FC = () => {
-  const { user, effectiveUser, logout } = useUser();
+const App: React.FC = () => {
+  const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   const permissions = usePermissions();
-  const { data: sharedData, loading: isStateLoading, error: stateError, updateData } = useSharedState(false); // Auth is already complete
+  const { data: sharedData, loading: isStateLoading, updateData } = useSharedState();
 
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
+  // UI State remains local
+  // FIX: Resolve a type conflict between App's `view` state and the `setView` prop expected by the Header component. The 'annual' planner is a modal, not a main view, so it has been removed from the `view` state. This aligns with the component architecture and fixes the type mismatch.
   const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'>('schedule');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -51,62 +50,75 @@ const MainApp: React.FC = () => {
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
   const [isAnnualPlannerOpen, setIsAnnualPlannerOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+  const [showFullscreenToast, setShowFullscreenToast] = useState(false);
+
+  // State derived from shared state now
+  const nurses = sharedData?.nurses ?? INITIAL_NURSES;
+  const agenda = sharedData?.agenda ?? {};
+  const manualOverrides = sharedData?.manualOverrides ?? {};
+  const notes = sharedData?.notes ?? {};
+  const vaccinationPeriod = sharedData?.vaccinationPeriod ?? null;
+  const strasbourgAssignments = sharedData?.strasbourgAssignments ?? {};
+  const strasbourgEvents = sharedData?.strasbourgEvents ?? [];
+  const specialStrasbourgEvents = sharedData?.specialStrasbourgEvents ?? [];
+  const closedMonths = sharedData?.closedMonths ?? {};
+  const wishes = sharedData?.wishes ?? {};
+  const jornadasLaborales = sharedData?.jornadasLaborales ?? [];
+  const manualChangeLog = sharedData?.manualChangeLog ?? [];
+  
+  const [hours, setHours] = useState<Hours>({});
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   
   const { language } = useLanguage();
   const t = useTranslations();
 
   useEffect(() => {
-    if (stateError) {
-        console.error("Error crítico al cargar los datos principales de la aplicación. Cerrando sesión.", stateError);
-        // Este es el problema principal. Si tenemos una sesión de usuario pero no podemos cargar
-        // los datos del calendario (quizás por las reglas de Firestore o problemas de red),
-        // nos quedamos atascados. Forzar el cierre de sesión rompe este bucle y devuelve al usuario
-        // a la pantalla de inicio de sesión para re-autenticarse correctamente.
-        logout();
+    try {
+        const storedHistory = localStorage.getItem('nursingAppChangeHistory');
+        if (storedHistory) {
+            setHistory(JSON.parse(storedHistory));
+        }
+    } catch (error) {
+        console.error("Failed to load history from localStorage:", error);
+        setHistory([]);
     }
-  }, [stateError, logout]);
-
-
-  if (isStateLoading || stateError) { 
-    // Show a loading spinner while loading or before the logout effect kicks in.
-    return ( 
-      <div className="min-h-screen flex items-center justify-center bg-zen-50"> 
-          <div className="text-center"> 
-              <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> 
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> 
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> 
-              </svg> 
-              <p className="mt-2 text-zen-600">{t.loadingData}</p> 
-          </div> 
-      </div> 
-    ); 
-  }
-
-  // State derived from shared state now
-  const nurses = sharedData.nurses;
-  const agenda = sharedData.agenda;
-  const manualOverrides = sharedData.manualOverrides;
-  const notes = sharedData.notes;
-  const vaccinationPeriod = sharedData.vaccinationPeriod;
-  const strasbourgAssignments = sharedData.strasbourgAssignments;
-  const strasbourgEvents = sharedData.strasbourgEvents;
-  const specialStrasbourgEvents = sharedData.specialStrasbourgEvents;
-  const closedMonths = sharedData.closedMonths;
-  const wishes = sharedData.wishes;
-  const jornadasLaborales = sharedData.jornadasLaborales;
-  const manualChangeLog = sharedData.manualChangeLog;
+  }, []);
   
-  const manualChangeLogEntries = useMemo(
-    () => manualChangeLog.filter((log): log is ManualChangeLogEntry => 'newShift' in log),
-    [manualChangeLog]
-  );
+  const handleToggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+            setShowFullscreenToast(true);
+        }).catch(err => {
+            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+  }, []);
 
-  const historyEntries = useMemo(
-    () => manualChangeLog.filter((log): log is HistoryEntry => 'action' in log),
-    [manualChangeLog]
-  );
+  useEffect(() => {
+    const onFullscreenChange = () => {
+        const isFs = !!document.fullscreenElement;
+        setIsFullscreen(isFs);
+        if (!isFs) {
+            setShowFullscreenToast(false);
+        }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
   
-  const [hours, setHours] = useState<Hours>({});
+  useEffect(() => {
+      if (showFullscreenToast) {
+          const timer = setTimeout(() => {
+              setShowFullscreenToast(false);
+          }, 4000);
+          return () => clearTimeout(timer);
+      }
+  }, [showFullscreenToast]);
   
   const year = useMemo(() => currentDate.getFullYear(), [currentDate]);
   const monthKey = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
@@ -116,6 +128,7 @@ const MainApp: React.FC = () => {
   const [schedule, setSchedule] = useState<Schedule>({});
   
   useEffect(() => {
+    // FIX: Resolve a type conflict between App's `view` state and the `setView` prop expected by the Header component. The 'annual' planner is a modal, not a main view, so it has been removed from the `view` state. This aligns with the component architecture and fixes the type mismatch.
     const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
     if (!allowedViews.includes(view)) {
       setView('schedule');
@@ -129,8 +142,10 @@ const MainApp: React.FC = () => {
     return nurses.filter(n => n.id !== 'nurse-11');
   }, [nurses, currentDate]);
 
+  // Base overrides (only fixed events, NO manual changes) for the "Original Planning"
   const baseOverrides = useMemo(() => {
     const merged: Schedule = {};
+    // This now correctly includes overrides from special events, but not manual ones.
     specialStrasbourgEvents.forEach(event => {
         if (!event.startDate || !event.endDate || !event.nurseIds) return;
         for (let d = new Date(event.startDate); d <= new Date(event.endDate); d.setDate(d.getDate() + 1)) {
@@ -145,6 +160,7 @@ const MainApp: React.FC = () => {
     return merged;
   }, [specialStrasbourgEvents]);
 
+  // Combined overrides WITH manual changes for the "Current Planning"
   const combinedOverrides = useMemo(() => {
     const merged: Schedule = JSON.parse(JSON.stringify(manualOverrides));
     specialStrasbourgEvents.forEach(event => {
@@ -199,6 +215,7 @@ const MainApp: React.FC = () => {
     return recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
   }, [activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
 
+  // `schedule` state now points to `currentSchedule` for components that need the current view (like the main grid).
   useEffect(() => {
     setSchedule(currentSchedule);
   }, [currentSchedule]);
@@ -278,8 +295,33 @@ const MainApp: React.FC = () => {
         details,
     };
     
-    updateData({ manualChangeLog: [newEntry, ...manualChangeLog].slice(0, 100) });
-  }, [user, manualChangeLog, updateData]);
+    setHistory(prevHistory => {
+        const updatedHistory = [newEntry, ...prevHistory].slice(0, 100);
+        try {
+            localStorage.setItem('nursingAppChangeHistory', JSON.stringify(updatedHistory));
+        } catch (error) {
+            console.error("Failed to save history to localStorage:", error);
+        }
+        return updatedHistory;
+    });
+  }, [user]);
+
+  const handleClearGlobalHistory = useCallback(() => {
+    const newEntry: HistoryEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: user?.name || 'Admin',
+        action: t.history_clear_log,
+        details: t.history_clear_log_details,
+    };
+    const clearedHistory = [newEntry];
+    setHistory(clearedHistory);
+    try {
+        localStorage.setItem('nursingAppChangeHistory', JSON.stringify(clearedHistory));
+    } catch (error) {
+        console.error("Failed to save cleared history to localStorage:", error);
+    }
+  }, [user, t]);
 
   const handleManualChange = useCallback(async (payload: ManualChangePayload) => {
     const { nurseIds, startDate, endDate } = payload;
@@ -288,9 +330,10 @@ const MainApp: React.FC = () => {
         const nurseName = nurses.find(n => n.id === nurseIds[0])?.name || 'Unknown';
         details = `Changed shift for ${nurseName} from ${startDate} to ${endDate}`;
     }
+    addHistoryEntry(t.history_manualChange, details);
     
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
-    const newLog = [...manualChangeLog];
+    const newLog: ManualChangeLogEntry[] = [...(manualChangeLog ?? [])];
 
     for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
         const dateKey = d.toISOString().split('T')[0];
@@ -306,7 +349,7 @@ const MainApp: React.FC = () => {
                 newOverrides[nurseId][dateKey] = payload.shift;
             }
             
-            newLog.unshift({ // Add to the top
+            newLog.push({
                 id: `log-${Date.now()}-${nurseId}-${dateKey}`,
                 timestamp: new Date().toISOString(),
                 user: user?.name || 'System',
@@ -317,8 +360,8 @@ const MainApp: React.FC = () => {
             });
         }
     }
-    addHistoryEntry(t.history_manualChange, details);
-    await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog.slice(0, 200) });
+    
+    await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
   }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
@@ -335,15 +378,43 @@ const MainApp: React.FC = () => {
 
   const handleGenerateRestOfYear = useCallback(async () => {
     if (!window.confirm(t['planner.generate_rest_year_confirm_intelligent'])) return;
+
     addHistoryEntry(t.history_generate_rest_year, t.history_generate_rest_year_details);
-    const generatedForGaps = generateAndBalanceGaps(nurses, year, effectiveAgenda, manualOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents);
+
+    const generatedForGaps = generateAndBalanceGaps(
+        nurses,
+        year,
+        effectiveAgenda,
+        manualOverrides,
+        vaccinationPeriod,
+        strasbourgAssignments,
+        jornadasLaborales,
+        specialStrasbourgEvents
+    );
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
     for (const nurseId in generatedForGaps) {
-        if (!newOverrides[nurseId]) newOverrides[nurseId] = {};
+        if (!newOverrides[nurseId]) {
+            newOverrides[nurseId] = {};
+        }
         Object.assign(newOverrides[nurseId], generatedForGaps[nurseId]);
     }
     await updateData({ manualOverrides: newOverrides });
   }, [nurses, year, effectiveAgenda, manualOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, updateData, addHistoryEntry, t]);
+
+  const handleDeleteManualOverride = useCallback(async (payload: { nurseId: string, dateKey: string }) => {
+      const { nurseId, dateKey } = payload;
+      const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
+      addHistoryEntry('Delete Override', `Removed override for ${nurseName} on ${dateKey}`);
+      
+      const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
+      if (newOverrides[nurseId] && newOverrides[nurseId][dateKey]) {
+          delete newOverrides[nurseId][dateKey];
+          if (Object.keys(newOverrides[nurseId]).length === 0) {
+              delete newOverrides[nurseId];
+          }
+          await updateData({ manualOverrides: newOverrides });
+      }
+  }, [manualOverrides, updateData, addHistoryEntry, nurses]);
 
   const handleNoteChange = useCallback((dateKey: string, text: string, color: string) => {
       addHistoryEntry(t.history_noteChange, `Changed note on ${dateKey}`);
@@ -402,9 +473,10 @@ const MainApp: React.FC = () => {
     const { date, nurse1Id, nurse2Id } = payload;
     const nurse1Name = nurses.find(n => n.id === nurse1Id)?.name || 'N/A';
     const nurse2Name = nurses.find(n => n.id === nurse2Id)?.name || 'N/A';
+    addHistoryEntry(t.history_swapShifts, `${nurse1Name} ↔ ${nurse2Name} on ${date}`);
     
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
-    const newLog = [...manualChangeLog];
+    const newLog: ManualChangeLogEntry[] = [...(manualChangeLog ?? [])];
     
     if (!newOverrides[nurse1Id]) newOverrides[nurse1Id] = {};
     if (!newOverrides[nurse2Id]) newOverrides[nurse2Id] = {};
@@ -418,10 +490,11 @@ const MainApp: React.FC = () => {
     if (newShift1) { newOverrides[nurse1Id][date] = newShift1; } else { delete newOverrides[nurse1Id][date]; }
     if (newShift2) { newOverrides[nurse2Id][date] = newShift2; } else { delete newOverrides[nurse2Id][date]; }
 
-    const logEntry: HistoryEntry = { id: `log-${Date.now()}`, user: user?.name || 'System', timestamp: new Date().toISOString(), action: t.history_swapShifts, details: `${nurse1Name} ↔ ${nurse2Name} on ${date}` };
+    newLog.push({ id: `log-${Date.now()}-${nurse1Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse1Id, dateKey: date, originalShift: shift1, newShift: newShift1 || 'DELETE' });
+    newLog.push({ id: `log-${Date.now()}-${nurse2Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse2Id, dateKey: date, originalShift: shift2, newShift: newShift2 || 'DELETE' });
     
-    updateData({ manualOverrides: newOverrides, manualChangeLog: [logEntry, ...newLog].slice(0, 200) });
-  }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, t, nurses]);
+    updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
+  }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
   const handleOpenSwapPanelFromCell = (dateKey: string, nurseId: string) => {
     setSwapPanelConfig({ isOpen: true, initialDate: dateKey, initialNurseId: nurseId });
@@ -476,10 +549,17 @@ const MainApp: React.FC = () => {
       updateData({ vaccinationPeriod: period });
   }, [addHistoryEntry, updateData, t.history_vaccinationPeriodChange]);
 
-  if ((user as User).mustChangePassword) { return <ForceChangePasswordScreen />; }
+  if (isAuthLoading || isStateLoading) { return ( <div className="min-h-screen flex items-center justify-center bg-zen-50"> <div className="text-center"> <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> <p className="mt-2 text-zen-600">{t.loadingData}</p> </div> </div> ); }
+  if (!user) { return <LoginScreen />; }
+  if ((user as User).mustChangePassword || (user as User).passwordResetRequired) { return <ForceChangePasswordScreen />; }
 
   return (
     <div className="min-h-screen">
+      {showFullscreenToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm transition-opacity duration-300 animate-fade-in-out">
+            Press ESC to exit fullscreen mode
+        </div>
+      )}
       <div className="max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8 print-container">
          <Header 
             monthName={currentDate.toLocaleString(language, { month: 'long' })}
@@ -493,6 +573,8 @@ const MainApp: React.FC = () => {
             onOpenHelp={() => setIsHelpModalOpen(true)}
             onOpenHistory={() => setIsHistoryModalOpen(true)}
             onOpenAnnualPlanner={() => setIsAnnualPlannerOpen(true)}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
         />
         {isAnnualPlannerOpen && permissions.isViewingAsAdmin && (
             <AnnualPlannerModal
@@ -514,7 +596,7 @@ const MainApp: React.FC = () => {
                 originalSchedule={fullOriginalSchedule[selectedNurseForAgenda.id] || {}}
                 currentSchedule={fullCurrentSchedule[selectedNurseForAgenda.id] || {}}
                 manualOverrides={manualOverrides}
-                manualChangeLog={manualChangeLogEntries}
+                manualChangeLog={manualChangeLog}
                 hours={hours} 
                 onClose={() => setSelectedNurseForAgenda(null)} 
                 onNavigate={setCurrentDate} 
@@ -523,7 +605,7 @@ const MainApp: React.FC = () => {
                 balanceData={nurseBalanceData} 
                 specialStrasbourgEvents={specialStrasbourgEvents} 
                 nurses={nurses} 
-                history={historyEntries} 
+                history={history} 
                 onExportAnnual={handleExportAnnualAgenda} 
                 jornadasLaborales={jornadasLaborales}
             /> 
@@ -542,7 +624,7 @@ const MainApp: React.FC = () => {
             />
         )}
         <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
-        <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={historyEntries} />
+        <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} />
         <main className="flex flex-col lg:flex-row gap-8 mt-8 print-main-content">
           {!permissions.isViewingAsViewer && view === 'schedule' && (
              <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print">
@@ -574,9 +656,15 @@ const MainApp: React.FC = () => {
           <div className={`flex-grow min-w-0 ${view === 'schedule' && !permissions.isViewingAsViewer ? 'lg:w-3/4 xl:w-4/5' : 'w-full'}`}>
               {view === 'schedule' ? (
                 <>
-                  <div className="no-print">
-                    <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
-                    <AgendaPlanner currentDate={currentDate} agenda={agenda} onAgendaChange={handleAgendaChange} onWeekSelect={setCurrentDate} />
+                  <div className="overflow-x-auto no-print">
+                    <AgendaPlanner
+                      currentDate={currentDate}
+                      agenda={agenda}
+                      onAgendaChange={handleAgendaChange}
+                      onWeekSelect={setCurrentDate}
+                    >
+                      <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
+                    </AgendaPlanner>
                   </div>
                   <div className="mt-6">
                     {permissions.isViewingAsAdmin && (
@@ -607,38 +695,4 @@ const MainApp: React.FC = () => {
     </div>
   );
 };
-
-
-const App: React.FC = () => {
-  const { user, isLoading: isAuthLoading } = useUser();
-  const t = useTranslations();
-  
-  // Comprueba si la configuración de Firebase es la de ejemplo.
-  const isConfigured = firebaseConfig.apiKey !== "AIzaSy...REEMPLAZAR_CON_TU_API_KEY";
-
-  if (!isConfigured) {
-    return <FirebaseSetupScreen />;
-  }
-
-  if (isAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zen-50">
-        <div className="text-center">
-          <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="mt-2 text-zen-600">{t.loadingData}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <LoginScreen />;
-  }
-  
-  return <MainApp />;
-};
-
 export default App;

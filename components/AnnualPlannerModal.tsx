@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslations } from '../hooks/useTranslations';
 import type { Nurse, Schedule, ScheduleCell, WorkZone, CustomShift } from '../types';
@@ -112,6 +111,8 @@ const ShiftEditorPopover: React.FC<{
             setTime2(typeof part2 === 'object' && 'time' in part2 ? part2.time || '' : '');
         } else {
             setIsSplit(false);
+            // FIX: Ensure 'initialCell' is a valid 'ScheduleCell' before passing to 'getShiftsFromCell'.
+            // 'initialCell' can be '' or 'DELETE', which are not valid ScheduleCell types.
             const shifts = getShiftsFromCell(
                 initialCell && initialCell !== 'DELETE' ? (initialCell as ScheduleCell) : undefined
             );

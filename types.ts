@@ -1,4 +1,3 @@
-
 export interface User {
   id: string; 
   name: string;
@@ -238,6 +237,7 @@ export interface JornadaLaboral {
     secondaryReductionDayOfWeek?: 1 | 2 | 3 | 4; // For 80% Friday rule
 }
 
+// FIX: Add missing ShiftRotation and ShiftRotationAssignment type definitions.
 export interface ShiftRotation {
   id: string;
   name: string;
@@ -249,14 +249,6 @@ export interface ShiftRotationAssignment {
   rotationId: string;
   nurseIds: string[];
   startDate: string;
-}
-
-export interface HistoryEntry {
-  id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  details: string;
 }
 
 export interface AppState {
@@ -271,10 +263,18 @@ export interface AppState {
     closedMonths: Record<string, boolean>;
     wishes: Wishes;
     jornadasLaborales: JornadaLaboral[];
-    // FIX: Allow manualChangeLog to be a union type to accommodate different log entry structures.
-    manualChangeLog: (ManualChangeLogEntry | HistoryEntry)[];
+    manualChangeLog: ManualChangeLogEntry[];
 }
 
+export interface HistoryEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string;
+  details: string;
+}
+
+// FIX: Add missing SwapInfo type definition.
 export interface SwapInfo {
   shownShift: ScheduleCell;
   swappedWithNurseId: string;

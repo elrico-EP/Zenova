@@ -94,12 +94,13 @@ export const locales = {
     'shift.none': '-',
     'comment.add_for_day': 'Añadir comentario para este día',
     'comment.hover': 'Comentario:',
+    fullscreen_exit_message: 'Pulsa ESC para salir de pantalla completa',
 
     // --- Login & Password Reset Flow ---
     login_welcome: 'Bienvenido/a a Zenova',
     login_instruction: 'Inicia sesión para acceder al planificador.',
-    login_username: 'Usuario',
-    login_username_placeholder: 'Tu nombre de usuario',
+    login_username: 'Usuario o Email',
+    login_username_placeholder: 'Tu usuario o email',
     login_password: 'Contraseña',
     login_password_placeholder: 'Contraseña',
     login_button: 'Entrar',
@@ -674,12 +675,13 @@ export const locales = {
     'shift.none': '-',
     'comment.add_for_day': 'Add comment for this day',
     'comment.hover': 'Comment:',
+    fullscreen_exit_message: 'Press ESC to exit fullscreen',
     
     // --- Login & Password Reset Flow ---
     login_welcome: 'Welcome to Zenova',
     login_instruction: 'Log in to access the planner.',
-    login_username: 'Username',
-    login_username_placeholder: 'Your username',
+    login_username: 'Username or Email',
+    login_username_placeholder: 'Your username or email',
     login_password: 'Password',
     login_password_placeholder: 'Password',
     login_button: 'Log In',
@@ -1254,12 +1256,13 @@ export const locales = {
     'shift.none': '-',
     'comment.add_for_day': 'Ajouter un commentaire pour ce jour',
     'comment.hover': 'Commentaire:',
+    fullscreen_exit_message: 'Appuyez sur Échap pour quitter le plein écran',
 
     // --- Login & Password Reset Flow ---
     login_welcome: 'Bienvenue chez Zenova',
     login_instruction: 'Connectez-vous pour accéder au planificateur.',
-    login_username: "Nom d'utilisateur",
-    login_username_placeholder: "Votre nom d'utilisateur",
+    login_username: "Nom d'utilisateur ou E-mail",
+    login_username_placeholder: "Votre nom d'utilisateur ou e-mail",
     login_password: 'Mot de passe',
     login_password_placeholder: 'Mot de passe',
     login_button: 'Se connecter',
