@@ -1,3 +1,4 @@
+
 import React, { useState, createContext, useContext, useMemo, useCallback, useEffect } from 'react';
 import type { User, Nurse, UserRole } from '../types';
 import * as userService from '../firebase/userService';
@@ -11,7 +12,6 @@ interface UserContextType {
   impersonate: (nurse: Nurse | null) => void;
   isImpersonating: boolean;
   authError: string | null;
-  // User management functions
   users: User[];
   register: (userData: Omit<User, 'id'>) => Promise<void>;
   updateUser: (userData: User) => Promise<void>;
@@ -31,20 +31,38 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authError, setAuthError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   
-  useEffect(() => {
-      // On initial load, check for a persistent session in localStorage.
-      const currentUser = userService.getCurrentUser();
-      if (currentUser) {
-          setUser(currentUser);
-      }
-      const allUsers = userService.getUsers();
-      setUsers(allUsers);
-      setIsLoading(false);
+  const refreshUsers = useCallback(async () => {
+    try {
+        const allUsers = await userService.getUsers();
+        setUsers(allUsers);
+    } catch (err) {
+        console.error("Error refreshing users:", err);
+    }
   }, []);
 
-  const refreshUsers = useCallback(() => {
-    setUsers(userService.getUsers());
-  }, []);
+  useEffect(() => {
+      const init = async () => {
+          try {
+              // Intentar sembrar usuarios si la colección está vacía (en segundo plano)
+              userService.seedUsersIfEmpty(); 
+              
+              // Verificar si hay sesión activa
+              const currentUser = await userService.getCurrentUser();
+              if (currentUser) {
+                  setUser(currentUser);
+              }
+              
+              // Cargar lista de usuarios para gestión
+              await refreshUsers();
+          } catch (error) {
+              console.error("Error during UserProvider initialization:", error);
+          } finally {
+              // ASEGURAR QUE LOADING SEA FALSE para mostrar al menos el login
+              setIsLoading(false);
+          }
+      };
+      init();
+  }, [refreshUsers]);
 
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
@@ -52,7 +70,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const loggedInUser = await userService.authenticate(username, password);
       setUser(loggedInUser);
-      refreshUsers(); // Refresh user list in case of changes
+      await refreshUsers();
     } catch (error) {
       setAuthError((error as Error).message);
     } finally {
@@ -63,7 +81,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(() => {
     userService.clearCurrentUser();
     setUser(null);
-    setImpersonatedNurse(null); // This is crucial to prevent permission bleeding
+    setImpersonatedNurse(null);
   }, []);
 
   const impersonate = useCallback((nurse: Nurse | null) => {
@@ -91,35 +109,31 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isImpersonating = useMemo(() => user?.role === 'admin' && !!impersonatedNurse, [user, impersonatedNurse]);
 
   const register = useCallback(async (userData: Omit<User, 'id'>) => {
-    if (user?.role !== 'admin') throw new Error("Permission denied");
     await userService.addUser(userData);
-    refreshUsers();
-  }, [user, refreshUsers]);
+    await refreshUsers();
+  }, [refreshUsers]);
 
   const updateUser = useCallback(async (userData: User) => {
-    if (user?.role !== 'admin') throw new Error("Permission denied");
     await userService.updateUser(userData);
-    refreshUsers();
-  }, [user, refreshUsers]);
+    await refreshUsers();
+  }, [refreshUsers]);
 
   const deleteUser = useCallback(async (userId: string) => {
-    if (user?.role !== 'admin') throw new Error("Permission denied");
     await userService.deleteUser(userId);
-    refreshUsers();
-  }, [user, refreshUsers]);
+    await refreshUsers();
+  }, [refreshUsers]);
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    if (!user) throw new Error("No hay un usuario autenticado.");
+    if (!user) throw new Error("No user authenticated");
     await userService.changePassword(user.id, currentPassword, newPassword);
-    const updatedUser = userService.getCurrentUser();
+    const updatedUser = await userService.getCurrentUser();
     setUser(updatedUser);
-    refreshUsers();
-  }, [user, refreshUsers]);
+  }, [user]);
 
   const forceSetPassword = useCallback(async (newPassword: string) => {
-    if (!user) throw new Error("No hay un usuario autenticado.");
+    if (!user) throw new Error("No user authenticated");
     await userService.forceSetPassword(user.id, newPassword);
-    const updatedUser = userService.getCurrentUser();
+    const updatedUser = await userService.getCurrentUser();
     setUser(updatedUser);
   }, [user]);
 
@@ -132,22 +146,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const contextValue = useMemo(() => ({
-    user,
-    effectiveUser,
-    isLoading,
-    login,
-    logout,
-    impersonate,
-    isImpersonating,
-    authError,
-    users,
-    register,
-    updateUser,
-    deleteUser,
-    changePassword,
-    forceSetPassword,
-    requestPasswordReset,
-    resetPassword,
+    user, effectiveUser, isLoading, login, logout, impersonate, isImpersonating, authError,
+    users, register, updateUser, deleteUser, changePassword, forceSetPassword,
+    requestPasswordReset, resetPassword,
   }), [user, effectiveUser, isLoading, login, logout, impersonate, isImpersonating, authError, users, register, updateUser, deleteUser, changePassword, forceSetPassword, requestPasswordReset, resetPassword]);
 
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
@@ -155,8 +156,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
+  if (context === undefined) throw new Error('useUser must be used within UserProvider');
   return context;
 };

@@ -47,7 +47,9 @@ const UserMenu: React.FC<{
                             <p className="font-semibold">{user.name}</p>
                             <p className="text-xs text-slate-500">{user.email}</p>
                         </div>
-                        <button onClick={() => { setView('profile'); setIsOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">{t.myProfile}</button>
+                        {user.role !== 'viewer' && (
+                            <button onClick={() => { setView('profile'); setIsOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">{t.myProfile}</button>
+                        )}
                         {user.role === 'admin' && (
                             <div className="border-t">
                                 <div className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-500 uppercase">{t.adminView}</div>

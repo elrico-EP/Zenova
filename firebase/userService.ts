@@ -1,234 +1,179 @@
-import type { User, Nurse, UserRole } from '../types';
+
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where } from 'firebase/firestore';
+import { db } from './config';
+import type { User, UserRole } from '../types';
 import { INITIAL_NURSES } from '../constants';
 
-const USERS_STORAGE_KEY = 'zenova-users-db';
-const CURRENT_USER_STORAGE_KEY = 'zenova-current-user-session';
+const USERS_COLLECTION = 'users';
 
-const seedInitialUsers = (): User[] => {
-  const initialUsers: User[] = [
-    { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', mustChangePassword: false, passwordResetRequired: false },
-    ...INITIAL_NURSES.map(nurse => ({
-        id: `user-account-${nurse.id}`,
-        name: nurse.name,
-        email: nurse.name, // Use nurse's name as username
-        password: '12345', // Set initial temporary password
-        role: 'nurse' as UserRole,
-        nurseId: nurse.id,
-        mustChangePassword: true, // Force password change on first login
-        passwordResetRequired: false,
-    }))
-  ];
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initialUsers));
-  return initialUsers;
-};
-
-export const getUsers = (): User[] => {
+export const seedUsersIfEmpty = async () => {
   try {
-    const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
-    if (!usersJson) {
-      return seedInitialUsers();
+    const snapshot = await getDocs(collection(db, USERS_COLLECTION));
+    if (snapshot.empty) {
+      console.log("Seeding initial users to Firestore...");
+      const initialUsers: User[] = [
+        { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', mustChangePassword: false, passwordResetRequired: false },
+        { id: 'viewer-user', name: 'Viewer', email: 'viewer', password: 'viewer123', role: 'viewer', mustChangePassword: false, passwordResetRequired: false },
+        ...INITIAL_NURSES.map(nurse => ({
+            id: `user-account-${nurse.id}`,
+            name: nurse.name,
+            email: nurse.name.toLowerCase(), 
+            password: '12345', 
+            role: 'nurse' as UserRole,
+            nurseId: nurse.id,
+            mustChangePassword: true,
+            passwordResetRequired: false,
+        }))
+      ];
+      for (const u of initialUsers) {
+        await setDoc(doc(db, USERS_COLLECTION, u.email.toLowerCase()), u);
+      }
     }
-    return JSON.parse(usersJson);
-  } catch (e) {
-    console.error("Failed to parse users from localStorage", e);
-    return seedInitialUsers();
+  } catch (error) {
+    console.warn("No se pudieron sembrar los usuarios (posible restricción de permisos):", error);
   }
 };
 
-const saveUsers = (users: User[]) => {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+export const getUsers = async (): Promise<User[]> => {
+  try {
+    const snapshot = await getDocs(collection(db, USERS_COLLECTION));
+    return snapshot.docs.map(d => d.data() as User);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
 };
 
-export const authenticate = (usernameOrEmail: string, password: string): Promise<User> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => { // Simulate network delay
-      const users = getUsers();
-      
-      const user = users.find(u => {
-        const inputLower = usernameOrEmail.toLowerCase();
-        
-        // Check 1: Match against username (which is stored in the 'email' field of the User object)
-        if (u.email.toLowerCase() === inputLower) {
-          return true;
-        }
+export const authenticate = async (usernameOrEmail: string, password: string): Promise<User> => {
+  const inputLower = usernameOrEmail.toLowerCase();
+  
+  try {
+    let userDoc = await getDoc(doc(db, USERS_COLLECTION, inputLower));
+    let user = userDoc.exists() ? (userDoc.data() as User) : null;
 
-        // Check 2: If it's a nurse, also check against their actual email address
-        if (u.role === 'nurse' && u.nurseId) {
-          const associatedNurse = INITIAL_NURSES.find(n => n.id === u.nurseId);
-          if (associatedNurse && associatedNurse.email.toLowerCase() === inputLower) {
-            return true;
-          }
-        }
-
-        // Check 3: Special case for admin email
-        if (u.role === 'admin' && inputLower === 'admin@zenova.app') {
-            return true;
-        }
-
-        return false;
-      });
-
-      if (user && user.password === password) {
-        localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.email);
-        resolve(user);
-      } else {
-        reject(new Error('login_error'));
+    if (!user) {
+      const q = query(collection(db, USERS_COLLECTION), where("email", "==", inputLower));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        user = querySnapshot.docs[0].data() as User;
       }
-    }, 500);
-  });
+    }
+
+    if (user && user.password === password) {
+      localStorage.setItem('zenova-current-user-session', user.email);
+      return user;
+    } else {
+      throw new Error('login_error');
+    }
+  } catch (error) {
+    console.error("Authentication error:", error);
+    throw error;
+  }
 };
 
-export const getCurrentUser = (): User | null => {
-    const email = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+export const getCurrentUser = async (): Promise<User | null> => {
+    const email = localStorage.getItem('zenova-current-user-session');
     if (!email) return null;
-    const users = getUsers();
-    return users.find(u => u.email === email) || null;
+    try {
+        const userDoc = await getDoc(doc(db, USERS_COLLECTION, email.toLowerCase()));
+        return userDoc.exists() ? (userDoc.data() as User) : null;
+    } catch (error) {
+        console.error("Error getting current user:", error);
+        return null;
+    }
 };
 
 export const clearCurrentUser = () => {
-    localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    localStorage.removeItem('zenova-current-user-session');
 };
 
-export const addUser = (userData: Omit<User, 'id'>): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        const users = getUsers();
-        if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-            return reject(new Error('usernameInUseError'));
-        }
-        const newUser: User = { 
-            ...userData, 
-            id: `user-${Date.now()}`, 
-            mustChangePassword: true,
-            passwordResetRequired: false 
-        };
-        saveUsers([...users, newUser]);
-        resolve();
+export const addUser = async (userData: Omit<User, 'id'>): Promise<void> => {
+    const emailLower = userData.email.toLowerCase();
+    const userDoc = await getDoc(doc(db, USERS_COLLECTION, emailLower));
+    if (userDoc.exists()) {
+        throw new Error('usernameInUseError');
+    }
+    const newUser: User = { 
+        ...userData, 
+        id: `user-${Date.now()}`, 
+        mustChangePassword: true, 
+        passwordResetRequired: false 
+    };
+    await setDoc(doc(db, USERS_COLLECTION, emailLower), newUser);
+};
+
+export const updateUser = async (userData: User): Promise<void> => {
+    const emailLower = userData.email.toLowerCase();
+    const docRef = doc(db, USERS_COLLECTION, emailLower);
+    const existing = await getDoc(docRef);
+    if (!existing.exists()) {
+        throw new Error('userNotFound');
+    }
+    const dataToUpdate = { ...userData };
+    if (!dataToUpdate.password) {
+        dataToUpdate.password = (existing.data() as User).password;
+    }
+    await setDoc(docRef, dataToUpdate);
+};
+
+export const deleteUser = async (userId: string): Promise<void> => {
+    const q = query(collection(db, USERS_COLLECTION), where("id", "==", userId));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+        await deleteDoc(doc(db, USERS_COLLECTION, snapshot.docs[0].id));
+    }
+};
+
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
+    const q = query(collection(db, USERS_COLLECTION), where("id", "==", userId));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) throw new Error('userNotFound');
+    
+    const userDoc = snapshot.docs[0];
+    const user = userDoc.data() as User;
+    if (user.password !== currentPassword) throw new Error('login_error');
+
+    await updateDoc(userDoc.ref, {
+        password: newPassword,
+        mustChangePassword: false
     });
 };
 
-export const updateUser = (userData: User): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        let users = getUsers();
-        const userIndex = users.findIndex(u => u.id === userData.id);
-        if (userIndex === -1) {
-            return reject(new Error('userNotFound'));
-        }
-        if (!userData.password) {
-            userData.password = users[userIndex].password;
-        }
-        users[userIndex] = userData;
-        saveUsers(users);
-        resolve();
+export const forceSetPassword = async (userId: string, newPassword: string): Promise<void> => {
+    const q = query(collection(db, USERS_COLLECTION), where("id", "==", userId));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) throw new Error('userNotFound');
+    
+    await updateDoc(snapshot.docs[0].ref, {
+        password: newPassword,
+        mustChangePassword: false,
+        passwordResetRequired: false
     });
 };
 
-export const deleteUser = (userId: string): Promise<void> => {
-    return new Promise((resolve) => {
-        let users = getUsers();
-        users = users.filter(u => u.id !== userId);
-        saveUsers(users);
-        resolve();
-    });
+export const requestPasswordReset = async (usernameOrEmail: string): Promise<boolean> => {
+    const inputLower = usernameOrEmail.toLowerCase();
+    let userDoc = await getDoc(doc(db, USERS_COLLECTION, inputLower));
+    
+    if (!userDoc.exists()) {
+        const q = query(collection(db, USERS_COLLECTION), where("email", "==", inputLower));
+        const qs = await getDocs(q);
+        if (qs.empty) return false;
+        userDoc = qs.docs[0];
+    }
+
+    await updateDoc(userDoc.ref, { passwordResetRequired: true });
+    return true;
 };
 
-export const changePassword = (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            let users = getUsers();
-            const userIndex = users.findIndex(u => u.id === userId);
-            if (userIndex === -1) {
-                return reject(new Error('userNotFound'));
-            }
-            
-            const user = users[userIndex];
-            if (user.password !== currentPassword) {
-                return reject(new Error('login_error'));
-            }
-
-            users[userIndex].password = newPassword;
-            users[userIndex].mustChangePassword = false;
-            saveUsers(users);
-            resolve();
-        }, 500);
-    });
-};
-
-export const forceSetPassword = (userId: string, newPassword: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            let users = getUsers();
-            const userIndex = users.findIndex(u => u.id === userId);
-            if (userIndex === -1) {
-                return reject(new Error('userNotFound'));
-            }
-            
-            users[userIndex] = { ...users[userIndex], password: newPassword, mustChangePassword: false, passwordResetRequired: false };
-            saveUsers(users);
-            
-            const currentUser = getCurrentUser();
-            if (currentUser && currentUser.id === userId) {
-                 localStorage.setItem(CURRENT_USER_STORAGE_KEY, currentUser.email);
-            }
-            
-            resolve();
-        }, 500);
-    });
-};
-
-export const requestPasswordReset = (usernameOrEmail: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const users = getUsers();
-            const userIndex = users.findIndex(u => {
-                const inputLower = usernameOrEmail.toLowerCase();
-                
-                // Check 1: Match against username
-                if (u.email.toLowerCase() === inputLower) {
-                  return true;
-                }
-
-                // Check 2: Match against real email for nurse users
-                if (u.role === 'nurse' && u.nurseId) {
-                  const associatedNurse = INITIAL_NURSES.find(n => n.id === u.nurseId);
-                  if (associatedNurse && associatedNurse.email.toLowerCase() === inputLower) {
-                    return true;
-                  }
-                }
-
-                // Check 3: Special case for admin email
-                if (u.role === 'admin' && inputLower === 'admin@zenova.app') {
-                    return true;
-                }
-                
-                return false;
-            });
-
-            if (userIndex !== -1) {
-                users[userIndex].passwordResetRequired = true;
-                saveUsers(users);
-                resolve(true);
-            } else {
-                resolve(false);
-            }
-        }, 500);
-    });
-};
-
-export const resetPassword = (username: string, newPassword: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const users = getUsers();
-            const userIndex = users.findIndex(u => u.email.toLowerCase() === username.toLowerCase());
-            if (userIndex === -1) {
-                return reject(new Error('userNotFound'));
-            }
-            const user = users[userIndex];
-            if (!user.passwordResetRequired) {
-                return reject(new Error('passwordResetNotRequested'));
-            }
-            users[userIndex] = { ...user, password: newPassword, mustChangePassword: false, passwordResetRequired: false };
-            saveUsers(users);
-            resolve();
-        }, 500);
+export const resetPassword = async (username: string, newPassword: string): Promise<void> => {
+    const docRef = doc(db, USERS_COLLECTION, username.toLowerCase());
+    const userDoc = await getDoc(docRef);
+    if (!userDoc.exists()) throw new Error('userNotFound');
+    
+    await updateDoc(docRef, {
+        password: newPassword,
+        mustChangePassword: false,
+        passwordResetRequired: false
     });
 };

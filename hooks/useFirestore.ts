@@ -1,80 +1,57 @@
-import { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import type { AppState } from '../types';
 
 /**
- * Hook genérico para sincronizar cualquier tipo de datos con Firestore en tiempo real
- * @param path - Ruta del documento en Firestore (ej: 'sharedState/main')
- * @param initialData - Datos iniciales si el documento no existe
+ * Hook genérico para sincronizar un documento de Firestore con el estado de React.
  */
-export function useFirestore<T>(path: string, initialData: T) {
+export const useFirestore = <T extends object>(path: string, initialData: T) => {
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
+
+    const docRef = useMemo(() => {
+        const pathParts = path.split('/');
+        return doc(db, pathParts[0], ...pathParts.slice(1));
+    }, [path]);
 
     useEffect(() => {
-        console.log(`🔌 Conectando a Firebase: ${path}`);
-        const docRef = doc(db, path);
-
-        // Suscribirse a cambios en tiempo real con onSnapshot
-        const unsubscribe = onSnapshot(
-            docRef,
+        setLoading(true);
+        // El listener de Firebase
+        const unsubscribe = onSnapshot(docRef, 
             async (docSnap) => {
                 if (docSnap.exists()) {
-                    // Documento existe, cargar datos
-                    console.log('✅ Datos sincronizados desde Firebase en tiempo real');
                     setData(docSnap.data() as T);
-                    setLoading(false);
                 } else {
-                    // Documento no existe, crear con datos iniciales
-                    console.log(`📝 Documento ${path} no existe. Creando con datos iniciales...`);
+                    console.log("Documento no encontrado. Sembrando datos iniciales...");
                     try {
-                        await setDoc(docRef, initialData as any);
+                        await setDoc(docRef, initialData);
                         setData(initialData);
-                        console.log('✅ Datos iniciales creados en Firebase');
                     } catch (err) {
-                        console.error('❌ Error creando documento inicial:', err);
-                        setError(err as Error);
+                        console.error("Error al sembrar datos iniciales:", err);
                     }
-                    setLoading(false);
                 }
-            },
-            (err) => {
-                console.error('❌ Error en sincronización en tiempo real:', err);
-                console.error('Detalles del error:', err.message);
-                setError(err);
+                setLoading(false);
+            }, 
+            (error) => {
+                console.error("Firestore onSnapshot error:", error);
+                // IMPORTANTE: Si hay error (ej: permisos), liberamos el loading para no bloquear la UI
                 setLoading(false);
             }
         );
 
-        // Cleanup: cancelar suscripción cuando el componente se desmonte
-        return () => {
-            console.log(`🔌 Desconectando de Firebase: ${path}`);
-            unsubscribe();
-        };
-    }, [path]); // Solo re-suscribir si cambia la ruta
+        return () => unsubscribe();
+    }, [docRef, initialData]);
 
-    const updateData = async (updates: Partial<T> | T) => {
-        const docRef = doc(db, path);
-        console.log('📤 Guardando cambios en Firebase...');
-        console.log('📍 Path:', path);
-        console.log('🔑 DB object:', db ? 'OK' : 'UNDEFINED');
-        console.log('📦 Updates size:', JSON.stringify(updates).length, 'chars');
-        
+    const updateData = useCallback(async (updates: Partial<T>) => {
         try {
-            // Usar setDoc con merge para actualizar campos sin borrar el resto
-            const result = await setDoc(docRef, updates as any, { merge: true });
-            console.log('✅ Cambios guardados exitosamente en Firebase');
-            console.log('📊 Result:', result);
-        } catch (err: any) {
-            console.error('❌ ERROR COMPLETO:', err);
-            console.error('❌ Código de error:', err.code);
-            console.error('❌ Mensaje:', err.message);
-            console.error('❌ Stack:', err.stack);
-            setError(err as Error);
-            throw err; // Re-lanzar para que el componente pueda manejarlo
+            await updateDoc(docRef, updates as any);
+        } catch (error) {
+            console.error("Error al actualizar Firestore:", error);
+            throw error;
         }
-    };
+    }, [docRef]);
 
-    return { data, loading, error, updateData };
-}
+    return { data, loading, updateData };
+};
