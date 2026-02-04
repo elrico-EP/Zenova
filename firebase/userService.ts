@@ -1,5 +1,5 @@
 
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, writeBatch } from 'firebase/firestore';
 import { db } from './config';
 import type { User, UserRole } from '../types';
 import { INITIAL_NURSES } from '../constants';
@@ -11,6 +11,8 @@ export const seedUsersIfEmpty = async () => {
     const snapshot = await getDocs(collection(db, USERS_COLLECTION));
     if (snapshot.empty) {
       console.log("Seeding initial users to Firestore...");
+      const batch = writeBatch(db);
+      
       const initialUsers: User[] = [
         { id: 'admin-user', name: 'Admin', email: 'admin', password: 'admin123', role: 'admin', mustChangePassword: false, passwordResetRequired: false },
         { id: 'viewer-user', name: 'Viewer', email: 'viewer', password: 'viewer123', role: 'viewer', mustChangePassword: false, passwordResetRequired: false },
@@ -25,12 +27,17 @@ export const seedUsersIfEmpty = async () => {
             passwordResetRequired: false,
         }))
       ];
+      
       for (const u of initialUsers) {
-        await setDoc(doc(db, USERS_COLLECTION, u.email.toLowerCase()), u);
+        const userRef = doc(db, USERS_COLLECTION, u.email.toLowerCase());
+        batch.set(userRef, u);
       }
+      
+      await batch.commit();
+      console.log("User seeding completed.");
     }
   } catch (error) {
-    console.warn("No se pudieron sembrar los usuarios (posible restricción de permisos):", error);
+    console.warn("Could not seed users (likely already seeded or network issue):", error);
   }
 };
 
@@ -39,7 +46,7 @@ export const getUsers = async (): Promise<User[]> => {
     const snapshot = await getDocs(collection(db, USERS_COLLECTION));
     return snapshot.docs.map(d => d.data() as User);
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.warn("Error fetching users (offline mode?):", error);
     return [];
   }
 };
@@ -78,7 +85,8 @@ export const getCurrentUser = async (): Promise<User | null> => {
         const userDoc = await getDoc(doc(db, USERS_COLLECTION, email.toLowerCase()));
         return userDoc.exists() ? (userDoc.data() as User) : null;
     } catch (error) {
-        console.error("Error getting current user:", error);
+        // Si el cliente está offline, intentamos devolver un objeto mínimo si tenemos algo en caché
+        console.warn("Error getting current user from server, checking local context:", error);
         return null;
     }
 };

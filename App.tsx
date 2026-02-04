@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { ScheduleGrid, BASE_CELL_WIDTH, DAY_COL_WIDTH, PRESENT_COL_WIDTH, NOTES_COL_WIDTH } from './components/ScheduleGrid';
 import { Header } from './components/Header';
@@ -40,7 +41,6 @@ const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
   // UI State remains local
-  // FIX: Resolve a type conflict between App's `view` state and the `setView` prop expected by the Header component. The 'annual' planner is a modal, not a main view, so it has been removed from the `view` state. This aligns with the component architecture and fixes the type mismatch.
   const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'>('schedule');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -128,7 +128,6 @@ const App: React.FC = () => {
   const [schedule, setSchedule] = useState<Schedule>({});
   
   useEffect(() => {
-    // FIX: Resolve a type conflict between App's `view` state and the `setView` prop expected by the Header component. The 'annual' planner is a modal, not a main view, so it has been removed from the `view` state. This aligns with the component architecture and fixes the type mismatch.
     const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
     if (!allowedViews.includes(view)) {
       setView('schedule');
@@ -145,7 +144,6 @@ const App: React.FC = () => {
   // Base overrides (only fixed events, NO manual changes) for the "Original Planning"
   const baseOverrides = useMemo(() => {
     const merged: Schedule = {};
-    // This now correctly includes overrides from special events, but not manual ones.
     specialStrasbourgEvents.forEach(event => {
         if (!event.startDate || !event.endDate || !event.nurseIds) return;
         for (let d = new Date(event.startDate); d <= new Date(event.endDate); d.setDate(d.getDate() + 1)) {
@@ -215,7 +213,6 @@ const App: React.FC = () => {
     return recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
   }, [activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
 
-  // `schedule` state now points to `currentSchedule` for components that need the current view (like the main grid).
   useEffect(() => {
     setSchedule(currentSchedule);
   }, [currentSchedule]);
@@ -554,13 +551,13 @@ const App: React.FC = () => {
   if ((user as User).mustChangePassword || (user as User).passwordResetRequired) { return <ForceChangePasswordScreen />; }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen h-screen flex flex-col overflow-hidden">
       {showFullscreenToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm transition-opacity duration-300 animate-fade-in-out">
             Press ESC to exit fullscreen mode
         </div>
       )}
-      <div className="max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8 print-container">
+      <div className="flex-shrink-0 max-w-screen-2xl w-full mx-auto p-4 pb-0 no-print">
          <Header 
             monthName={currentDate.toLocaleString(language, { month: 'long' })}
             year={year} onDateChange={setCurrentDate} currentDate={currentDate}
@@ -576,58 +573,12 @@ const App: React.FC = () => {
             isFullscreen={isFullscreen}
             onToggleFullscreen={handleToggleFullscreen}
         />
-        {isAnnualPlannerOpen && permissions.isViewingAsAdmin && (
-            <AnnualPlannerModal
-                isOpen={isAnnualPlannerOpen}
-                onClose={() => setIsAnnualPlannerOpen(false)}
-                year={year}
-                monthsWithOverrides={monthsWithOverrides}
-                nurses={nurses}
-                initialOverrides={manualOverrides}
-                onSaveOverrides={handleBulkUpdate}
-                onGenerate={handleGenerateRestOfYear}
-            />
-        )}
-        
-        {selectedNurseForAgenda && nurseBalanceData && ( 
-            <PersonalAgendaModal 
-                nurse={selectedNurseForAgenda} 
-                currentDate={currentDate} 
-                originalSchedule={fullOriginalSchedule[selectedNurseForAgenda.id] || {}}
-                currentSchedule={fullCurrentSchedule[selectedNurseForAgenda.id] || {}}
-                manualOverrides={manualOverrides}
-                manualChangeLog={manualChangeLog}
-                hours={hours} 
-                onClose={() => setSelectedNurseForAgenda(null)} 
-                onNavigate={setCurrentDate} 
-                agenda={effectiveAgenda} 
-                strasbourgAssignments={strasbourgAssignments} 
-                balanceData={nurseBalanceData} 
-                specialStrasbourgEvents={specialStrasbourgEvents} 
-                nurses={nurses} 
-                history={history} 
-                onExportAnnual={handleExportAnnualAgenda} 
-                jornadasLaborales={jornadasLaborales}
-            /> 
-        )}
-        {permissions.canManageJornadas && isJornadaManagerOpen && (<JornadaLaboralManager nurses={nurses} jornadas={jornadasLaborales} onClose={() => setIsJornadaManagerOpen(false)} onSave={handleJornadasChange} />)}
-        {permissions.canManageSwaps && (
-            <SwapShiftPanel 
-                isOpen={swapPanelConfig.isOpen} 
-                onClose={() => setSwapPanelConfig({ isOpen: false, initialDate: '', initialNurseId: '' })}
-                nurses={nurses} 
-                schedule={currentSchedule} 
-                onConfirmSwap={handleConfirmSwap}
-                initialDate={swapPanelConfig.initialDate}
-                initialNurseId={swapPanelConfig.initialNurseId}
-                isMonthClosed={isMonthClosed}
-            />
-        )}
-        <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
-        <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} />
-        <main className="flex flex-col lg:flex-row gap-8 mt-8 print-main-content">
+      </div>
+
+      <main className="flex-grow max-w-screen-2xl w-full mx-auto p-4 overflow-hidden flex flex-col">
+        <div className="flex flex-col lg:flex-row gap-8 h-full print-main-content lg:items-stretch overflow-hidden">
           {!permissions.isViewingAsViewer && view === 'schedule' && (
-             <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print">
+             <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print overflow-y-auto pr-2 custom-scrollbar">
               <Sidebar 
                 nurses={nurses} 
                 activeNursesForMonth={activeNurses} 
@@ -653,10 +604,11 @@ const App: React.FC = () => {
               />
             </aside>
           )}
-          <div className={`flex-grow min-w-0 ${view === 'schedule' && !permissions.isViewingAsViewer ? 'lg:w-3/4 xl:w-4/5' : 'w-full'}`}>
+
+          <div className={`flex flex-col min-w-0 h-full overflow-hidden ${view === 'schedule' && !permissions.isViewingAsViewer ? 'lg:w-3/4 xl:w-4/5' : 'w-full'}`}>
               {view === 'schedule' ? (
-                <>
-                  <div className="overflow-x-auto no-print">
+                <div className="flex flex-col h-full">
+                  <div className="flex-shrink-0 mb-6 no-print overflow-x-auto">
                     <AgendaPlanner
                       currentDate={currentDate}
                       agenda={agenda}
@@ -666,32 +618,97 @@ const App: React.FC = () => {
                       <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
                     </AgendaPlanner>
                   </div>
-                  <div className="mt-6">
+                  
+                  <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
                     {permissions.isViewingAsAdmin && (
-                        <WorkConditionsBar 
-                            nurses={activeNurses}
-                            jornadas={jornadasLaborales}
-                            currentDate={currentDate}
-                        />
+                        <div className="flex-shrink-0">
+                            <WorkConditionsBar 
+                                nurses={activeNurses}
+                                jornadas={jornadasLaborales}
+                                currentDate={currentDate}
+                            />
+                        </div>
                     )}
                     <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} />
                   </div>
-                </>
-              ) : view === 'balance' ? ( <BalancePage nurses={nurses} balanceData={balanceData} currentDate={currentDate} onDateChange={setCurrentDate} onOpenAgenda={setSelectedNurseForAgenda} /> ) : 
-                 view === 'wishes' ? ( 
-              <WishesPage 
-                nurses={activeNurses} 
-                year={year} 
-                wishes={wishes} 
-                onWishesChange={(nurseId, dateKey, text) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], text } } } })} 
-                onWishValidationChange={(nurseId, dateKey, isValidated) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], validated: isValidated } } } })} 
-                agenda={effectiveAgenda} 
-              /> 
-              ) : view === 'userManagement' ? ( <UserManagementPage nurses={nurses} /> 
-              ) : ( <ProfilePage nurses={nurses} /> )}
+                </div>
+              ) : view === 'balance' ? ( 
+                <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
+                  <BalancePage nurses={nurses} balanceData={balanceData} currentDate={currentDate} onDateChange={setCurrentDate} onOpenAgenda={setSelectedNurseForAgenda} /> 
+                </div>
+              ) : view === 'wishes' ? ( 
+                <div className="h-full overflow-hidden">
+                  <WishesPage 
+                    nurses={activeNurses} 
+                    year={year} 
+                    wishes={wishes} 
+                    onWishesChange={(nurseId, dateKey, text) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], text } } } })} 
+                    onWishValidationChange={(nurseId, dateKey, isValidated) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], validated: isValidated } } } })} 
+                    agenda={effectiveAgenda} 
+                  /> 
+                </div>
+              ) : view === 'userManagement' ? ( 
+                <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
+                  <UserManagementPage nurses={nurses} /> 
+                </div>
+              ) : ( 
+                <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
+                  <ProfilePage nurses={nurses} /> 
+                </div>
+              )}
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
+
+      {/* Modals outside main layout flow */}
+      {isAnnualPlannerOpen && permissions.isViewingAsAdmin && (
+          <AnnualPlannerModal
+              isOpen={isAnnualPlannerOpen}
+              onClose={() => setIsAnnualPlannerOpen(false)}
+              year={year}
+              monthsWithOverrides={monthsWithOverrides}
+              nurses={nurses}
+              initialOverrides={manualOverrides}
+              onSaveOverrides={handleBulkUpdate}
+              onGenerate={handleGenerateRestOfYear}
+          />
+      )}
+      {selectedNurseForAgenda && nurseBalanceData && ( 
+          <PersonalAgendaModal 
+              nurse={selectedNurseForAgenda} 
+              currentDate={currentDate} 
+              originalSchedule={fullOriginalSchedule[selectedNurseForAgenda.id] || {}}
+              currentSchedule={fullCurrentSchedule[selectedNurseForAgenda.id] || {}}
+              manualOverrides={manualOverrides}
+              manualChangeLog={manualChangeLog}
+              hours={hours} 
+              onClose={() => setSelectedNurseForAgenda(null)} 
+              onNavigate={setCurrentDate} 
+              agenda={effectiveAgenda} 
+              strasbourgAssignments={strasbourgAssignments} 
+              balanceData={nurseBalanceData} 
+              specialStrasbourgEvents={specialStrasbourgEvents} 
+              nurses={nurses} 
+              history={history} 
+              onExportAnnual={handleExportAnnualAgenda} 
+              jornadasLaborales={jornadasLaborales}
+          /> 
+      )}
+      {permissions.canManageJornadas && isJornadaManagerOpen && (<JornadaLaboralManager nurses={nurses} jornadas={jornadasLaborales} onClose={() => setIsJornadaManagerOpen(false)} onSave={handleJornadasChange} />)}
+      {permissions.canManageSwaps && (
+          <SwapShiftPanel 
+              isOpen={swapPanelConfig.isOpen} 
+              onClose={() => setSwapPanelConfig({ isOpen: false, initialDate: '', initialNurseId: '' })}
+              nurses={nurses} 
+              schedule={currentSchedule} 
+              onConfirmSwap={handleConfirmSwap}
+              initialDate={swapPanelConfig.initialDate}
+              initialNurseId={swapPanelConfig.initialNurseId}
+              isMonthClosed={isMonthClosed}
+          />
+      )}
+      <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
+      <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} />
     </div>
   );
 };

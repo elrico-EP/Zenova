@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useLayoutEffect, useEffect, useMemo } from 'react';
 import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote } from '../types';
 import { SHIFTS } from '../constants';
@@ -90,7 +91,6 @@ export const ShiftCell: React.FC<{
     if (typeof shiftCell === 'object' && 'custom' in shiftCell) {
         const customShift = shiftCell as CustomShift;
 
-        // Special rendering for STR-PREP: same background, no text.
         if (customShift.custom === 'STR-PREP') {
             const shift = SHIFTS['STRASBOURG'];
             return (
@@ -98,7 +98,6 @@ export const ShiftCell: React.FC<{
                     className={`w-full h-full p-1 flex items-center justify-center relative rounded-md shadow-sm ${shift.color}`}
                     title={t[shift.description as keyof Locale] as string}
                 >
-                    {/* No text content rendered here */}
                 </div>
             );
         }
@@ -307,9 +306,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     const t = useTranslations();
 
     const dayFormatter = useMemo(() => {
-        // Consistent day names, removing potential inconsistencies from toLocaleString on single dates.
         const formatter = new Intl.DateTimeFormat(language, { weekday: 'short' });
-        // JS getUTCDay() is Sun=0, Mon=1...
         const daysOfWeek = [
             formatter.format(new Date(Date.UTC(2023, 0, 1))), // Sun
             formatter.format(new Date(Date.UTC(2023, 0, 2))), // Mon
@@ -318,7 +315,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
             formatter.format(new Date(Date.UTC(2023, 0, 5))), // Thu
             formatter.format(new Date(Date.UTC(2023, 0, 6))), // Fri
             formatter.format(new Date(Date.UTC(2023, 0, 7))), // Sat
-        ].map(d => d.replace(/\./g, '')); // Remove all dots for consistency, e.g., "mié." -> "mié"
+        ].map(d => d.replace(/\./g, ''));
         return daysOfWeek;
     }, [language]);
     
@@ -330,20 +327,20 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     let lastWeekId: string | null = null;
     
     return (
-        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
-            <table className="min-w-full border-collapse table-fixed">
-                <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
+        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto custom-scrollbar print-grid-container flex-grow relative">
+            <table className="min-w-full border-separate border-spacing-0 table-fixed">
+                <thead className="relative z-30">
                     <tr>
-                        <th className="sticky top-0 left-0 z-30 bg-white border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}></th>
+                        <th className="sticky top-0 left-0 z-40 bg-white border-b-2 border-r border-slate-200" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}></th>
                         {nurses.map(nurse => {
                             return (
-                                <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ width: `${BASE_CELL_WIDTH * zoomLevel}px`, minWidth: `${BASE_CELL_WIDTH * zoomLevel}px`, maxWidth: `${BASE_CELL_WIDTH * zoomLevel}px` }}>
+                                <th key={nurse.id} className="sticky top-0 z-30 h-16 text-center border-b-2 border-r border-slate-200 px-1 bg-white" style={{ width: `${BASE_CELL_WIDTH * zoomLevel}px`, minWidth: `${BASE_CELL_WIDTH * zoomLevel}px`, maxWidth: `${BASE_CELL_WIDTH * zoomLevel}px` }}>
                                     <span className="font-semibold text-slate-700 truncate text-sm block">{nurse.name}</span>
                                 </th>
                             );
                         })}
-                        <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${PRESENT_COL_WIDTH * zoomLevel}px`}}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.present}</span></th>
-                        <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.notes}</span></th>
+                        <th className="sticky top-0 z-30 h-16 text-center border-b-2 border-r border-slate-200 no-print bg-white" style={{ width: `${PRESENT_COL_WIDTH * zoomLevel}px`}}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.present}</span></th>
+                        <th className="sticky top-0 z-30 h-16 text-center border-b-2 border-slate-200 no-print bg-white" style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.notes}</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -365,11 +362,16 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                             if (shiftCell && !((typeof shiftCell === 'string') && EXCLUDED_SHIFTS.has(shiftCell as WorkZone))) presentCount++;
                         });
 
-                        const dayHeader = <td className="sticky left-0 z-10 border-r border-b border-gray-200/80" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px`}}><DayHeaderCell day={day} dayOfWeek={dayOfWeekStr} isWeekend={isWeekend} activityLevel={activityLevel} isNewWeek={isNewWeek} weekId={weekId} weekLabel={t.week} /></td>;
+                        const dayHeader = (
+                          <td className="sticky left-0 z-20 border-r border-b border-gray-200/80 p-0" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px`}}>
+                            <DayHeaderCell day={day} dayOfWeek={dayOfWeekStr} isWeekend={isWeekend} activityLevel={activityLevel} isNewWeek={isNewWeek} weekId={weekId} weekLabel={t.week} />
+                          </td>
+                        );
+                        
                         const presentCell = <td className={`h-16 border-b border-r border-gray-200/80 text-center ${isWeekend ? 'bg-slate-100/80' : 'bg-white/80'} no-print`} style={{ width: `${PRESENT_COL_WIDTH * zoomLevel}px`}}>{presentCount > 0 && <div className={`inline-flex items-center justify-center w-9 h-9 rounded-full font-bold text-sm shadow-inner ${presentCount < 6 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>{presentCount}</div>}</td>;
                         
                         const notesCell = (
-                          <td className={`h-16 border-b border-r border-gray-200/80 p-0 no-print`} style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}>
+                          <td className={`h-16 border-b border-gray-200/80 p-0 no-print`} style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}>
                             <EditableNoteCell
                               note={notes[dateKey]}
                               dateKey={dateKey}
