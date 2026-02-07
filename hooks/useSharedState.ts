@@ -48,31 +48,40 @@ export const useSharedState = () => {
     const docRef = useMemo(() => doc(db, COLLECTION_NAME, DOCUMENT_ID), []);
 
     useEffect(() => {
+        console.log("🔥 useSharedState: Iniciando listener...");
         setLoading(true);
         const unsubscribe = onSnapshot(docRef, 
             async (snapshot) => {
+            console.log("📸 Snapshot recibido:", snapshot.exists(), snapshot.id);
                 if (snapshot.exists()) {
-                    setData(snapshot.data() as AppState);
+                 console.log("✅ Datos encontrados:", snapshot.data());
+                 setData(snapshot.data() as AppState);
                 } else {
-                    console.log("No shared state found. Creating initial global state...");
+                    console.log("❌ No shared state found. Creating initial global state...");
                     const initialState = getInitialState();
                     try {
+                        console.log("💾 Guardando estado inicial...");
                         await setDoc(docRef, initialState);
+                        console.log("✅ Estado inicial guardado");
                         setData(initialState);
                     } catch (err) {
-                        console.error("Error seeding global state:", err);
+                        console.error("❌ Error seeding global state:", err);
                     }
                 }
                 setLoading(false);
             },
             (error) => {
-                console.error("Firestore real-time error:", error);
+                console.error("🔥 Firestore real-time error:", error);
                 setLoading(false);
             }
         );
 
-        return () => unsubscribe();
+        return () => {
+        console.log("🔌 useSharedState: Desconectando listener...");
+        unsubscribe();
+        };
     }, [docRef]);
+
 
     const updateData = useCallback(async (updates: Partial<AppState>) => {
         try {
