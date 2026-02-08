@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB........",
+  apiKey: "AIzaSyBi3ThoxS4Jvfg84ikUeqK_TISwxgfy2rc",
   authDomain: "zenova-4c728.firebaseapp.com",
   projectId: "zenova-4c728",
   storageBucket: "zenova-4c728.firebasestorage.app",
