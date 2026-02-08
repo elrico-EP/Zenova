@@ -1,10 +1,10 @@
+
 import { initializeApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Firebase project configuration.
 const firebaseConfig = {
-  apiKey: "AIzaSyBi3ThoxS4Jvfg84ikUeqK_TISwxgfy2rc",
+  apiKey: "AIzaSyB........",
   authDomain: "zenova-4c728.firebaseapp.com",
   projectId: "zenova-4c728",
   storageBucket: "zenova-4c728.firebasestorage.app",
@@ -15,15 +15,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore
+// Initialize Firestore SIN persistencia local (para evitar conflictos)
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// Habilitar persistencia (esto resuelve problemas de sincronización)
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code == 'failed-precondition') {
-    console.warn('Persistencia no disponible (múltiples pestañas abiertas)');
-  } else if (err.code == 'unimplemented') {
-    console.warn('Persistencia no soportada en este navegador');
-  }
-});
+// NO usar enableIndexedDbPersistence - esto causa el conflicto
