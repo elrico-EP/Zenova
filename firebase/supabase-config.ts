@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'TU_PROJECT_URL_AQUI'; // Ejemplo: https://xxxxx.supabase.co
-const supabaseAnonKey = 'TU_ANON_KEY_AQUI'; // La clave larga que copiaste
+const supabaseUrl = 'https://vetqhqjxisdhhikeosei.supabase.co'; // Ejemplo: https://xxxxx.supabase.co
+const supabaseAnonKey = 'sb_publishable_2vBvDLqJE9psfQnIcAuxnQ_vbQ3zlmd'; // La clave larga que copiaste
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   realtime: {
