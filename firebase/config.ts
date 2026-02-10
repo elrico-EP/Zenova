@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
@@ -15,8 +14,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore SIN persistencia local (para evitar conflictos)
+// Initialize Firestore
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-
-// NO usar enableIndexedDbPersistence - esto causa el conflicto
