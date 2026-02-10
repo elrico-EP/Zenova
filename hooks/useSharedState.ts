@@ -61,7 +61,7 @@ export const useSharedState = () => {
                     const initialState = getInitialState();
                     try {
                         console.log("💾 Guardando estado inicial...");
-                        await setDoc(docRef, initialState);
+                        await setDoc(docRef, initialState , { merge: true });
                         console.log("✅ Estado inicial guardado");
                         setData(initialState);
                     } catch (err) {
