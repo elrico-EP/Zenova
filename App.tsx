@@ -26,7 +26,7 @@ import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026, holidays2026 } fro
 import { useLanguage } from './contexts/LanguageContext';
 import { useUser } from './contexts/UserContext';
 import { useTranslations } from './hooks/useTranslations';
-import { useSharedState } from './hooks/useSharedState';
+import { useSupabaseState as useSharedState } from './hooks/useSupabaseState';
 import { usePermissions } from './hooks/usePermissions';
 import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
