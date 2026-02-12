@@ -8,7 +8,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useTranslations } from '../hooks/useTranslations';
 import { supabase } from '../utils/supabase'
-import { useEffect } from 'react'
 import { Locale } from '../translations/locales';
 
 const activityStyles: Record<ActivityLevel, { bg: string; text: string; weekBg: string; weekText: string }> = {
@@ -314,7 +313,74 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
-    
+        // 🔄 ESCUCHAR CAMBIOS EN TIEMPO REAL DE SUPABASE
+    useEffect(() => {
+        const canal = supabase
+            .channel('cambios-turnos')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'turnos' },
+                (payload) => {
+                    console.log('Cambio recibido de otro usuario:', payload)
+                    
+                    // Aquí puedes recargar los datos o mostrar una notificación
+                    // Por ejemplo, podrías llamar a una función para refrescar el schedule
+                    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+                        // Opción 1: Recargar la página automáticamente (simple pero brusco)
+                        // window.location.reload()
+                        
+                        // Opción 2: Mostrar aviso al usuario para que recargue manualmente
+                        alert('¡Atención! Otro usuario ha modificado los turnos. Recarga la página para ver los cambios.')
+                    }
+                }
+            )
+            .subscribe()
+                // Función para guardar un turno en Supabase (se verá en todos los ordenadores)
+    const guardarTurnoEnSupabase = async (nurseId: string, dateKey: string, shiftCell: ScheduleCell) => {
+        try {
+            // Primero buscamos si ya existe un turno para esta enfermera y fecha
+            const { data: existente } = await supabase
+                .from('turnos')
+                .select('id')
+                .eq('nurse_id', nurseId)
+                .eq('fecha', dateKey)
+                .single()
+
+            const turnoData = {
+                nurse_id: nurseId,
+                fecha: dateKey,
+                turno: JSON.stringify(shiftCell), // Guardamos el turno como texto JSON
+                actualizado_por: 'Usuario Actual', // Puedes cambiar esto por el nombre real del usuario
+                updated_at: new Date().toISOString()
+            }
+
+            if (existente) {
+                // Actualizar turno existente
+                const { error } = await supabase
+                    .from('turnos')
+                    .update(turnoData)
+                    .eq('id', existente.id)
+                
+                if (error) throw error
+                console.log('Turno actualizado en Supabase')
+            } else {
+                // Crear nuevo turno
+                const { error } = await supabase
+                    .from('turnos')
+                    .insert([turnoData])
+                
+                if (error) throw error
+                console.log('Turno creado en Supabase')
+            }
+        } catch (error) {
+            console.error('Error guardando en Supabase:', error)
+            alert('Error al guardar el turno. Inténtalo de nuevo.')
+        }
+    }
+        return () => {
+            supabase.removeChannel(canal)
+        }
+    }, [])
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
