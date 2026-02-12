@@ -7,6 +7,8 @@ import { holidays2026 } from '../data/agenda2026';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useTranslations } from '../hooks/useTranslations';
+import { supabase } from '../utils/supabase'
+import { useEffect } from 'react'
 import { Locale } from '../translations/locales';
 
 const activityStyles: Record<ActivityLevel, { bg: string; text: string; weekBg: string; weekText: string }> = {
