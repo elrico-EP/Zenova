@@ -1,0 +1,7 @@
+import { createClient } from '@supabase/supabase-js'
+
+// REEMPLAZA ESTOS DOS VALORES CON LOS TUYOS DE SUPABASE:
+const supabaseUrl = 'https://abcdefghijklmnop.supabase.co'
+const supabaseKey = 'eyJ...tu-clave-larga-aqui...'
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
