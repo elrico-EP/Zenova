@@ -487,30 +487,45 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     let lastWeekId: string | null = null;
     
     return (
-        <    return (
-        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
-            
-            {/* BOTÓN DE PRUEBA SUPABASE */}
+           return (
+        <>
+            {/* BOTÓN DE PRUEBA SUPABASE - FUERA DEL DIV PRINCIPAL PARA QUE SE VEA SIEMPRE */}
             <button 
-                onClick={probarSupabase}
+                onClick={async () => {
+                    try {
+                        const { data, error } = await supabase.from('turnos').select('*')
+                        if (error) {
+                            alert('❌ Error: ' + error.message)
+                            console.error(error)
+                        } else {
+                            alert('✅ ¡Conexión OK! Hay ' + (data?.length || 0) + ' turnos en Supabase')
+                            console.log('Datos:', data)
+                        }
+                    } catch (err) {
+                        alert('❌ Error inesperado: ' + err)
+                    }
+                }}
                 style={{
                     position: 'fixed', 
-                    top: '10px', 
-                    right: '10px', 
-                    zIndex: 9999, 
-                    padding: '15px', 
-                    background: '#22c55e', 
+                    top: '20px', 
+                    right: '20px', 
+                    zIndex: 100000, 
+                    padding: '15px 25px', 
+                    background: '#dc2626', 
                     color: 'white',
                     border: 'none',
-                    borderRadius: '8px',
+                    borderRadius: '10px',
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '14px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    fontSize: '16px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
                 }}
             >
-                🔌 Probar Conexión Supabase
+                🔴 PROBAR SUPABASE
             </button>
+
+            <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
+                <table className="min-w-full border-collapse table-fixed">
             
             <table className="min-w-full border-collapse table-fixed">
                 🔌 Probar Conexión Supabase
