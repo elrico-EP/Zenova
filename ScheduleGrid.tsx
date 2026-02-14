@@ -313,6 +313,25 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
+      // BOTÓN DE PRUEBA - Función para verificar conexión
+    const probarSupabase = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('turnos')
+                .select('*')
+            
+            if (error) {
+                console.error('Error:', error)
+                alert('❌ Error de conexión: ' + error.message)
+            } else {
+                console.log('✅ Datos:', data)
+                alert('✅ ¡Conexión exitosa! Encontrados ' + data.length + ' turnos.')
+            }
+        } catch (err) {
+            console.error('Error inesperado:', err)
+            alert('❌ Error: ' + err)
+        }
+    }
         // 🔄 ESCUCHAR CAMBIOS EN TIEMPO REAL DE SUPABASE
     useEffect(() => {
         const canal = supabase
@@ -409,8 +428,10 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     let lastWeekId: string | null = null;
     
     return (
+        <    return (
         <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
-                    {/* BOTÓN DE PRUEBA TEMPORAL */}
+            
+            {/* BOTÓN DE PRUEBA SUPABASE */}
             <button 
                 onClick={probarSupabase}
                 style={{
@@ -419,14 +440,20 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                     right: '10px', 
                     zIndex: 9999, 
                     padding: '15px', 
-                    background: '#3b82f6', 
+                    background: '#22c55e', 
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
                     cursor: 'pointer',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                 }}
             >
+                🔌 Probar Conexión Supabase
+            </button>
+            
+            <table className="min-w-full border-collapse table-fixed">
                 🔌 Probar Conexión Supabase
             </button>
           <table className="min-w-full border-collapse table-fixed">
