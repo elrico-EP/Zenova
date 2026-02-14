@@ -289,7 +289,37 @@ const EditableNoteCell: React.FC<{
           </div>
       );
   }
-
+            {/* BOTÓN DE PRUEBA - Guardar turno de prueba */}
+            <button 
+                onClick={async () => {
+                    const resultado = await guardarTurno(
+                        'enfermera-001', 
+                        '2026-02-20', 
+                        'URGENCES',
+                        'Prueba'
+                    )
+                    if (resultado.success) {
+                        alert('✅ Turno guardado en Supabase')
+                    } else {
+                        alert('❌ Error: ' + resultado.error)
+                    }
+                }}
+                style={{
+                    position: 'fixed', 
+                    top: '10px', 
+                    left: '10px', 
+                    zIndex: 9999, 
+                    padding: '15px', 
+                    background: '#3b82f6', 
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                }}
+            >
+                💾 Guardar Turno de Prueba
+            </button>
   return (
       <div onClick={() => canEdit && setIsEditing(true)} className={`w-full h-full text-xs p-1 ${color} ${canEdit ? 'cursor-pointer' : ''} hover:ring-2 hover:ring-nova-400/50 rounded-md flex items-center justify-start`}>
           {text ? (
