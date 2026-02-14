@@ -9,6 +9,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useTranslations } from '../hooks/useTranslations';
 import { supabase } from '../utils/supabase'
 import { Locale } from '../translations/locales';
+import { guardarTurno, cargarTurnosMes, escucharCambiosTurnos } from '../utils/turnoService'
 
 const activityStyles: Record<ActivityLevel, { bg: string; text: string; weekBg: string; weekText: string }> = {
   NORMAL: { bg: 'bg-slate-50', text: 'text-slate-800', weekBg: 'bg-slate-600', weekText: 'text-white' },
@@ -206,7 +207,35 @@ const EditableNoteCell: React.FC<{
     setText(note?.text || '');
     setColor(note?.color || (isWeekend ? 'bg-slate-100' : 'bg-white'));
   }, [note, isWeekend]);
-
+    // 🔄 Cargar turnos al iniciar y escuchar cambios
+    useEffect(() => {
+        const year = currentDate.getFullYear()
+        const month = currentDate.getMonth()
+        
+        // Cargar turnos de Supabase
+        const cargarDatos = async () => {
+            const resultado = await cargarTurnosMes(year, month)
+            if (resultado.success && resultado.data) {
+                // Aquí fusionarías con tu schedule actual
+                console.log('Turnos cargados de Supabase:', resultado.data)
+            }
+        }
+        
+        cargarDatos()
+        
+        // Escuchar cambios en tiempo real
+        const dejarDeEscuchar = escucharCambiosTurnos((payload) => {
+            // Cuando otro usuario cambia algo, recargamos
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                alert('¡Otro usuario ha modificado los turnos! Recargando...')
+                cargarDatos()
+            }
+        })
+        
+        return () => {
+            dejarDeEscuchar()
+        }
+    }, [currentDate])
   useEffect(() => {
     if (isEditing) {
       textareaRef.current?.focus();
