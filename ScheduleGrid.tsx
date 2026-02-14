@@ -641,6 +641,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                 </tbody>
             </table>
         </div>
+        </>
     );
-});
+};
 ScheduleGrid.displayName = 'ScheduleGrid';
