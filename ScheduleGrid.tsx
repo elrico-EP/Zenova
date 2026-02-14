@@ -377,7 +377,27 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
             alert('Error al guardar el turno. Inténtalo de nuevo.')
         }
     }
-        return () => {
+    // BOTÓN DE PRUEBA - Lo quitaremos después
+    const probarSupabase = async () => {
+        try {
+            // Intentamos leer los turnos
+            const { data, error } = await supabase
+                .from('turnos')
+                .select('*')
+            
+            if (error) {
+                console.error('Error:', error)
+                alert('❌ Error de conexión: ' + error.message)
+            } else {
+                console.log('✅ Datos recibidos:', data)
+                alert('✅ ¡Conexión exitosa! Hay ' + data.length + ' turnos guardados.')
+            }
+        } catch (err) {
+            console.error('Error inesperado:', err)
+            alert('❌ Error inesperado: ' + err)
+        }
+    }
+      return () => {
             supabase.removeChannel(canal)
         }
     }, [])
@@ -390,7 +410,26 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     
     return (
         <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
-            <table className="min-w-full border-collapse table-fixed">
+                    {/* BOTÓN DE PRUEBA TEMPORAL */}
+            <button 
+                onClick={probarSupabase}
+                style={{
+                    position: 'fixed', 
+                    top: '10px', 
+                    right: '10px', 
+                    zIndex: 9999, 
+                    padding: '15px', 
+                    background: '#3b82f6', 
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                }}
+            >
+                🔌 Probar Conexión Supabase
+            </button>
+          <table className="min-w-full border-collapse table-fixed">
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>
                         <th className="sticky top-0 left-0 z-30 bg-white border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}></th>
