@@ -1,1 +1,105 @@
+import { supabase } from './supabase'
+import type { Schedule, ScheduleCell } from '../types'
+
+// Guardar un turno en Supabase
+export const guardarTurno = async (
+    nurseId: string, 
+    fecha: string, 
+    turno: ScheduleCell,
+    usuario: string = 'Sistema'
+) => {
+    try {
+        // Primero buscamos si ya existe
+        const { data: existente } = await supabase
+            .from('turnos')
+            .select('id')
+            .eq('nurse_id', nurseId)
+            .eq('fecha', fecha)
+            .single()
+
+        const datos = {
+            nurse_id: nurseId,
+            fecha: fecha,
+            turno: JSON.stringify(turno),
+            actualizado_por: usuario,
+            updated_at: new Date().toISOString()
+        }
+
+        if (existente) {
+            // Actualizar
+            const { error } = await supabase
+                .from('turnos')
+                .update(datos)
+                .eq('id', existente.id)
+            
+            if (error) throw error
+            console.log('✅ Turno actualizado:', nurseId, fecha)
+        } else {
+            // Crear nuevo
+            const { error } = await supabase
+                .from('turnos')
+                .insert([datos])
+            
+            if (error) throw error
+            console.log('✅ Turno creado:', nurseId, fecha)
+        }
+
+        return { success: true }
+    } catch (error) {
+        console.error('❌ Error guardando turno:', error)
+        return { success: false, error }
+    }
+}
+
+// Cargar todos los turnos de un mes
+export const cargarTurnosMes = async (year: number, month: number) => {
+    const mesStr = String(month + 1).padStart(2, '0')
+    const prefix = `${year}-${mesStr}`
+    
+    try {
+        const { data, error } = await supabase
+            .from('turnos')
+            .select('*')
+            .like('fecha', `${prefix}%`)
+        
+        if (error) throw error
+        
+        // Convertir los datos al formato Schedule
+        const schedule: Schedule = {}
+        
+        data?.forEach((row: any) => {
+            if (!schedule[row.nurse_id]) {
+                schedule[row.nurse_id] = {}
+            }
+            schedule[row.nurse_id][row.fecha] = JSON.parse(row.turno)
+        })
+        
+        return { success: true, data: schedule }
+    } catch (error) {
+        console.error('❌ Error cargando turnos:', error)
+        return { success: false, error }
+    }
+}
+
+// Escuchar cambios en tiempo real
+export const escucharCambiosTurnos = (
+    callback: (payload: any) => void
+) => {
+    const canal = supabase
+        .channel('cambios-turnos')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'turnos' },
+            (payload) => {
+                console.log('🔄 Cambio detectado:', payload)
+                callback(payload)
+            }
+        )
+        .subscribe()
+
+    // Devolver función para dejar de escuchar
+    return () => {
+        supabase.removeChannel(canal)
+    }
+}
 
