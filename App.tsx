@@ -359,6 +359,10 @@ const App: React.FC = () => {
     }
     
     await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
+    // Forzar recarga para ver los cambios
+setTimeout(() => {
+  window.location.reload()
+}, 500)
   }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
