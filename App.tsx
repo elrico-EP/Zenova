@@ -476,9 +476,16 @@ setTimeout(() => {
   }, [nurses, updateData, addHistoryEntry, t]);
   
   const handleUpdateNurseName = useCallback((id: string, newName: string) => {
-      addHistoryEntry(t.history_updateNurseName, `Renamed ${nurses.find(n=>n.id===id)?.name} to ${newName}`);
-      updateData({ nurses: nurses.map(n => n.id === id ? { ...n, name: newName } : n) });
-  }, [nurses, updateData, addHistoryEntry, t.history_updateNurseName]);
+    const oldName = localNurses.find(n=>n.id===id)?.name || 'Unknown';
+    addHistoryEntry(t.history_updateNurseName, `Renamed ${oldName} to ${newName}`);
+    
+    // Actualizar localmente primero
+    const updatedNurses = localNurses.map(n => n.id === id ? { ...n, name: newName } : n);
+    setLocalNurses(updatedNurses);
+    
+    // Luego guardar en Supabase
+    updateData({ nurses: updatedNurses });
+}, [localNurses, setLocalNurses, updateData, addHistoryEntry, t.history_updateNurseName]);
 
   const handleToggleMonthLock = useCallback(() => {
     addHistoryEntry('Toggle Lock', `Month ${monthKey} ${!isMonthClosed ? 'locked' : 'unlocked'}`);
