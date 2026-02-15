@@ -80,6 +80,7 @@ const App: React.FC = () => {
   // State derived from shared state now
   // Mantener nurses localmente si hay cambios pendientes, sino usar Supabase
   const [localNurses, setLocalNurses] = useState<Nurse[]>(sharedData?.nurses ?? INITIAL_NURSES);
+  const [isEditingNurses, setIsEditingNurses] = useState(false);
 
   // Sincronizar con Supabase cuando cambia sharedData, pero preservar cambios locales
   useEffect(() => {
