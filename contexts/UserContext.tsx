@@ -84,6 +84,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const loggedInUser = await userService.authenticate(username, password);
       setUser(loggedInUser);
+      localStorage.setItem('zenova_user', JSON.stringify(loggedUser));
       await refreshUsers();
     } catch (error) {
       setAuthError((error as Error).message);
