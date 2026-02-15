@@ -464,24 +464,16 @@ setTimeout(() => {
       updateData({ notes: { ...notes, [dateKey]: { text, color } } });
   }, [notes, updateData, addHistoryEntry, t.history_noteChange]);
 
-  const handleAddNurse = useCallback((name: string) => {
+const handleAddNurse = useCallback((name: string) => {
+    setIsEditingNurses(true);
     addHistoryEntry(t.history_addNurse, `Added: ${name}`);
     const maxOrder = Math.max(...localNurses.map(n => n.order), 0);
-    const newNurse: Nurse = { 
-        id: `nurse-${Date.now()}`, 
-        name, 
-        email: `${name.toLowerCase().replace(' ', '')}@example.com`, 
-        role: 'nurse', 
-        order: maxOrder + 1 
-    };
-    
-    // Actualizar localmente primero
+    const newNurse: Nurse = { id: `nurse-${Date.now()}`, name, email: `${name.toLowerCase().replace(' ', '')}@example.com`, role: 'nurse', order: maxOrder + 1 };
     const updatedNurses = [...localNurses, newNurse].sort((a,b) => a.order - b.order);
     setLocalNurses(updatedNurses);
-    
-    // Luego guardar en Supabase
     updateData({ nurses: updatedNurses });
-    }, [localNurses, setLocalNurses, updateData, addHistoryEntry, t]);
+    setTimeout(() => setIsEditingNurses(false), 1000);
+  }, [localNurses, setLocalNurses, updateData, addHistoryEntry, t]);
 
   const handleRemoveNurse = useCallback((id: string) => {
     addHistoryEntry(t.history_removeNurse, `Removed: ${nurses.find(n => n.id === id)?.name}`);
