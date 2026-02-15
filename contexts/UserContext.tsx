@@ -96,6 +96,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(() => {
     userService.clearCurrentUser();
     setUser(null);
+    localStorage.removeItem('zenova_user');
     setImpersonatedNurse(null);
   }, []);
 
