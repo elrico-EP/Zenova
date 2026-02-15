@@ -32,6 +32,7 @@ import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { MaximizeIcon, RestoreIcon } from './components/Icons';
+import { useSupabaseState } from './hooks/useSupabaseState'
 
 const App: React.FC = () => {
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
