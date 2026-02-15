@@ -26,6 +26,20 @@ export const UserContext = createContext<UserContextType | undefined>(undefined)
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  // Cargar usuario guardado al iniciar
+  useEffect(() => {
+  const savedUser = localStorage.getItem('zenova_user');
+  if (savedUser) {
+    try {
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      setIsLoading(false);
+      return; // Saltar carga de Firebase si tenemos usuario guardado
+    } catch (e) {
+      console.error('Error parsing saved user:', e);
+    }
+  } 
+  }, []);
   const [impersonatedNurse, setImpersonatedNurse] = useState<Nurse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
