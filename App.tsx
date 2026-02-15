@@ -62,7 +62,17 @@ const App: React.FC = () => {
   const [showFullscreenToast, setShowFullscreenToast] = useState(false);
 
   // State derived from shared state now
-  const nurses = sharedData?.nurses ?? INITIAL_NURSES;
+  // Mantener nurses localmente si hay cambios pendientes, sino usar Supabase
+  const [localNurses, setLocalNurses] = useState<Nurse[]>(sharedData?.nurses ?? INITIAL_NURSES);
+
+  // Sincronizar con Supabase cuando cambia sharedData, pero preservar cambios locales
+  useEffect(() => {
+    if (sharedData?.nurses && !isEditingNurses) {
+        setLocalNurses(sharedData.nurses);
+    }
+  }, [sharedData?.nurses]);
+
+  const nurses = localNurses;
   const agenda = sharedData?.agenda ?? {};
   // Extraer manualOverrides de Supabase
   const manualOverrides = sharedData?.manualOverrides || {}
