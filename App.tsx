@@ -60,7 +60,8 @@ useEffect(() => {
   // State derived from shared state now
   const nurses = sharedData?.nurses ?? INITIAL_NURSES;
   const agenda = sharedData?.agenda ?? {};
-  const manualOverrides = sharedData?.manualOverrides ?? {};
+  // Extraer manualOverrides de Supabase
+  const manualOverrides = sharedData?.manualOverrides || {}
   const notes = sharedData?.notes ?? {};
   const vaccinationPeriod = sharedData?.vaccinationPeriod ?? null;
   const strasbourgAssignments = sharedData?.strasbourgAssignments ?? {};
