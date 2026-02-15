@@ -36,7 +36,7 @@ import { MaximizeIcon, RestoreIcon } from './components/Icons';
 const App: React.FC = () => {
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   const permissions = usePermissions();
-  const { data: sharedData, loading: isStateLoading, updateData } = useSharedState();
+  const { data: sharedData, loading: isStateLoading, updateData } = useSupabaseState();
 
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
