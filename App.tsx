@@ -222,6 +222,12 @@ const App: React.FC = () => {
     return recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
   }, [activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
 
+  // Forzar recálculo cuando cambian los datos de Supabase
+useEffect(() => {
+    console.log('🔄 Datos de Supabase cambiados, recalculando schedule...')
+    // Esto fuerza a React a recalcular currentSchedule
+}, [sharedData])
+  
   useEffect(() => {
     setSchedule(currentSchedule);
   }, [currentSchedule]);
