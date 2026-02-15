@@ -38,14 +38,14 @@ const App: React.FC = () => {
   // Guardar usuario para no tener que loguearme cada vez
   useEffect(() => {
     if (user) {
-        localStorage.setItem('mi_usuario', JSON.stringify(user));
+        localStorage.setItem('zenova_user', JSON.stringify(user));
         console.log('✅ Usuario guardado');
     }
   }, [user]);
 
   // Restaurar usuario al cargar la página
   useEffect(() => {
-    const usuarioGuardado = localStorage.getItem('mi_usuario');
+    const usuarioGuardado = localStorage.getItem('zenova_user');
     if (usuarioGuardado) {
         console.log('🔄 Restaurando usuario...');
         // No hacemos nada más aquí, solo verificamos que existe
