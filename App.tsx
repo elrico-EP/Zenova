@@ -35,6 +35,21 @@ import { useSupabaseState } from './hooks/useSupabaseState'
 
 const App: React.FC = () => {
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
+  // Guardar usuario para no tener que loguearme cada vez
+  useEffect(() => {
+    if (user) {
+        localStorage.setItem('mi_usuario', JSON.stringify(user));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem('mi_usuario');
+    if (usuarioGuardado && !user) {
+        // Restaurar usuario
+        const usuario = JSON.parse(usuarioGuardado);
+        // Aquí necesitamos setUser pero depende de tu código
+    }
+  }, []);
   const permissions = usePermissions();
   const { data: sharedData, loading: isStateLoading, updateData } = useSupabaseState();
   // Detectar cambios en Supabase y recargar si es necesario
