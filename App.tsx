@@ -182,7 +182,7 @@ const App: React.FC = () => {
         }
     });
     return merged;
-  }, [manualOverrides, specialStrasbourgEvents]);
+  }, [manualOverrides, specialStrasbourgEvents, sharedData]);
 
   const { fullOriginalSchedule, fullCurrentSchedule } = useMemo(() => {
     const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
