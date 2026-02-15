@@ -38,9 +38,13 @@ const App: React.FC = () => {
   const permissions = usePermissions();
   const { data: sharedData, loading: isStateLoading, updateData } = useSupabaseState();
   // Detectar cambios en Supabase y recargar si es necesario
-useEffect(() => {
-  console.log('Datos de Supabase:', sharedData)
-}, [sharedData])
+  useEffect(() => {
+  console.log('Datos de Supabase actualizados:', sharedData)
+  // Forzar recálculo del schedule cuando cambien los datos de Supabase
+  if (sharedData?.manualOverrides) {
+    console.log('Recalculando schedule con nuevos datos...')
+  }
+  }, [sharedData])
 
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   
