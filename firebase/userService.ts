@@ -1,5 +1,6 @@
 // Servicio de usuarios temporal (sin Firebase)
 export const getCurrentUser = async () => {
+    // No devolver usuario automáticamente
     return null;
 };
 
