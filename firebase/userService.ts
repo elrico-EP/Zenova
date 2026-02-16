@@ -1,56 +1,58 @@
 // Servicio de usuarios temporal (sin Firebase)
 import type { User } from '../types';
 
-export const getCurrentUser = async () => {
-    return null;
+// Usuario de prueba
+const TEST_USER: User = {
+    id: 'user-1',
+    name: 'Admin',
+    role: 'admin',
+    email: 'admin@example.com'
 };
 
-export const loginUser = async (username: string, password: string): Promise<User> => {
-    // Usuario de prueba
+let currentUser: User | null = null;
+
+export const getCurrentUser = async (): Promise<User | null> => {
+    return currentUser;
+};
+
+export const authenticate = async (username: string, password: string): Promise<User> => {
     if (username === 'admin' && password === 'admin') {
-        return {
-            id: 'user-1',
-            name: 'Admin',
-            role: 'admin',
-            email: 'admin@example.com'
-        };
+        currentUser = TEST_USER;
+        return TEST_USER;
     }
     throw new Error('Usuario o contraseña incorrectos');
 };
 
-export const logoutUser = async () => {
+export const clearCurrentUser = async (): Promise<void> => {
+    currentUser = null;
+};
+
+export const getUsers = async (): Promise<User[]> => {
+    return [TEST_USER];
+};
+
+export const seedUsersIfEmpty = async (): Promise<void> => {
+    // No hace nada en modo temporal
     return;
 };
 
-export const getAllUsers = async (): Promise<User[]> => {
-    return [{
-        id: 'user-1',
-        name: 'Admin',
-        role: 'admin',
-        email: 'admin@example.com'
-    }];
-};
-
-export const registerUser = async (userData: Omit<User, 'id'>): Promise<User> => {
-    return {
-        id: `user-${Date.now()}`,
-        ...userData
-    } as User;
-};
-
-export const updateUserProfile = async (userData: User): Promise<User> => {
-    return userData;
-};
-
-export const deleteUserAccount = async (userId: string): Promise<void> => {
+export const addUser = async (userData: Omit<User, 'id'>): Promise<void> => {
     return;
 };
 
-export const changeUserPassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+export const updateUser = async (userData: User): Promise<void> => {
     return;
 };
 
-export const forcePasswordReset = async (newPassword: string): Promise<void> => {
+export const deleteUser = async (userId: string): Promise<void> => {
+    return;
+};
+
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
+    return;
+};
+
+export const forceSetPassword = async (userId: string, newPassword: string): Promise<void> => {
     return;
 };
 
@@ -58,6 +60,6 @@ export const requestPasswordReset = async (username: string): Promise<boolean> =
     return true;
 };
 
-export const resetUserPassword = async (username: string, newPassword: string): Promise<void> => {
+export const resetPassword = async (username: string, newPassword: string): Promise<void> => {
     return;
 };
