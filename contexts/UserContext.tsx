@@ -85,7 +85,9 @@ useEffect(() => {
     setIsLoading(true);
     setAuthError(null);
     try {
-      const loggedInUser = await userService.authenticate(username, password);
+      console.log('Llamando a authenticate...');
+  const loggedInUser = await userService.authenticate(username, password);
+     console.log('Respuesta de authenticate:', loggedInUser);
       setUser(loggedInUser);
       localStorage.setItem('zenova_user', JSON.stringify(loggedInUser));
       await refreshUsers();
