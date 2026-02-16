@@ -27,6 +27,7 @@ export const UserContext = createContext<UserContextType | undefined>(undefined)
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   // Cargar usuario guardado al iniciar
+// Cargar usuario guardado al iniciar
 useEffect(() => {
   const savedUser = localStorage.getItem('zenova_user');
   if (savedUser) {
@@ -37,6 +38,8 @@ useEffect(() => {
     } catch (e) {
       console.error('Error cargando usuario:', e);
     }
+  } else {
+    setIsLoading(false); // No hay usuario guardado, mostrar login
   }
 }, []);
   
