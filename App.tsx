@@ -242,9 +242,10 @@ const App: React.FC = () => {
 
   // Forzar recálculo cuando cambian los datos de Supabase
 useEffect(() => {
-    console.log('🔄 Datos de Supabase cambiados, recalculando schedule...')
-    // Esto fuerza a React a recalcular currentSchedule
-}, [sharedData])
+    if (sharedData?.manualOverrides) {
+        console.log('✅ Datos de Supabase listos (una sola vez)')
+    }
+}, [sharedData?.manualOverrides]) // <-- Solo esta dependencia, no todo sharedData
   
   useEffect(() => {
     setSchedule(currentSchedule);
