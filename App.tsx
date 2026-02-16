@@ -247,9 +247,10 @@ useEffect(() => {
     }
 }, [sharedData?.manualOverrides]) // <-- Solo esta dependencia, no todo sharedData
   
-  useEffect(() => {
+ useEffect(() => {
+    console.log('✅ Schedule actualizado correctamente')
     setSchedule(currentSchedule);
-  }, [currentSchedule]);
+}, [currentSchedule]);
 
   useEffect(() => {
     const calculatedHoursForMonth = calculateHoursForMonth(activeNurses, currentDate, effectiveAgenda, schedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
