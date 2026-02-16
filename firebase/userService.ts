@@ -16,10 +16,15 @@ export const getCurrentUser = async (): Promise<User | null> => {
 };
 
 export const authenticate = async (username: string, password: string): Promise<User> => {
+    console.log('DENTRO de authenticate, recibido:', username, password);
+    
     if (username === 'admin' && password === 'admin') {
-        currentUser = TEST_USER;
+        console.log('¡Login correcto en authenticate!');
+        localStorage.setItem('zenova_user', JSON.stringify(TEST_USER));
         return TEST_USER;
     }
+    
+    console.log('Login fallido en authenticate');
     throw new Error('Usuario o contraseña incorrectos');
 };
 
