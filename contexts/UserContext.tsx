@@ -1,7 +1,7 @@
 
 import React, { useState, createContext, useContext, useMemo, useCallback, useEffect } from 'react';
 import type { User, Nurse, UserRole } from '../types';
-import * as userService from '../firebase/userService';
+// import * as userService from '../firebase/userService';
 
 interface UserContextType {
   user: User | null;
