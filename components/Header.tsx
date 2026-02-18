@@ -150,8 +150,18 @@ export const Header: React.FC<HeaderProps> = ({
         
         <div className="flex items-center gap-2 flex-wrap justify-end">
             {permissions.canLockMonth && (
-                <button onClick={onToggleMonthLock} className="px-3 py-2 flex items-center text-sm font-medium bg-white/10 border border-white/20 rounded-md shadow-sm hover:bg-white/20" title={isMonthClosed ? t.unlockMonth : t.lockMonth}>
-                    {isMonthClosed ? '🔓' : '🔒'}
+                <button
+                    onClick={onToggleMonthLock}
+                    className={`px-3 py-2 flex items-center gap-2 text-sm font-medium border rounded-md shadow-sm transition-colors ${
+                        isMonthClosed 
+                        ? 'bg-red-900/50 border-red-400/50 text-red-200 hover:bg-red-800/50'
+                        : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                    }`}
+                >
+                    {isMonthClosed 
+                        ? <><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm0 10a1 1 0 100-2 1 1 0 000 2z" /><path d="M4 8V7a4 4 0 118 0v1h2V7a6 6 0 10-12 0v1h2z" /></svg> <span>{t.unlockMonth}</span></>
+                        : <><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" /></svg> <span>{t.lockMonth}</span></>
+                    }
                 </button>
             )}
             <ExportControls schedule={schedule} nurses={nurses} currentDate={currentDate} onExportPdf={onExportPdf} notes={notes} agenda={agenda} hours={hours} jornadasLaborales={jornadasLaborales} />

@@ -103,6 +103,7 @@ interface PersonalAgendaModalProps {
   onExportAnnual: (nurse: Nurse, useOriginal: boolean) => Promise<void>;
   jornadasLaborales: JornadaLaboral[];
   onUndoManualChange: (logId: string) => Promise<void>;
+  onClearHistory: (nurseId: string, monthKey: string) => void;
 }
 
 const CommentModal: React.FC<{
@@ -193,7 +194,8 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   history,
   onExportAnnual,
   jornadasLaborales,
-  onUndoManualChange
+  onUndoManualChange,
+  onClearHistory,
 }) => {
   const t = useTranslations();
   const { language } = useLanguage();
@@ -451,6 +453,13 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   
   const manualChangesForMonth = useMemo(() => {
     const monthPrefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    // For Jan, Feb, Mar 2026, these are considered the baseline, not changes. So, we show an empty history.
+    const virginMonths = ['2026-01', '2026-02', '2026-03'];
+    if (virginMonths.includes(monthPrefix)) {
+        return [];
+    }
+
     return manualChangeLog
       .filter(log => log.nurseId === nurse.id && log.dateKey.startsWith(monthPrefix))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Sort descending
@@ -677,6 +686,18 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                     <div className="bg-white p-4 rounded-lg text-sm space-y-2 shadow-sm border">
                         <div className="flex justify-between items-center">
                             <h4 className="font-semibold text-gray-700">{t.individual_manual_changes_month}</h4>
+                            {permissions.isViewingAsAdmin && manualChangesForMonth.length > 0 && (
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm(t.individual_confirm_clear_history)) {
+                                            onClearHistory(nurse.id, monthKey);
+                                        }
+                                    }}
+                                    className="text-xs text-red-500 hover:underline"
+                                >
+                                    {t.individual_clear_history}
+                                </button>
+                            )}
                         </div>
                         {manualChangesForMonth.length === 0 ? (
                             <p className="text-xs text-slate-500 italic text-center py-2">{t.individual_no_manual_changes}</p>
