@@ -69,6 +69,9 @@ const MARCH_2026_SHIFTS_ORIGINAL: Schedule = {
     'nurse-8': { '2026-03-02': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-14:00' }, '2026-03-03': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-15:30' }, '2026-03-04': { custom: 'TW', type: 'TW', time: '08:00-17:00' }, '2026-03-05': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-06': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-10': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-11': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-03-12': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-13': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-16': { custom: 'Urg M', type: 'URGENCES', time: '08:00-14:00' }, '2026-03-17': { custom: 'FP', type: 'FP', time: '08:00-14:00' }, '2026-03-18': { custom: 'CA', type: 'CA' }, '2026-03-19': { custom: 'CA', type: 'CA' }, '2026-03-20': { custom: 'CA', type: 'CA' }, '2026-03-23': { custom: 'Urg M', type: 'URGENCES', time: '08:00-14:00' }, '2026-03-24': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-14:00' }, '2026-03-25': { custom: 'TW', type: 'TW' }, '2026-03-26': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-03-27': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-03-30': { custom: 'Urg M', type: 'URGENCES', time: '08:00-14:00' }, '2026-03-31': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '09:00-14:45' }, },
 };
 
+
+import { ShiftChangeModal } from './components/ShiftChangeModal';
+
 const App: React.FC = () => {
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   // Guardar usuario para no tener que loguearme cada vez
@@ -104,6 +107,7 @@ const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
   const [showFullscreenToast, setShowFullscreenToast] = useState(false);
   const [hoursEditState, setHoursEditState] = useState<{ nurseId: string; dateKey: string; anchorEl: HTMLElement } | null>(null);
+  const [shiftChangeConfig, setShiftChangeConfig] = useState<{ isOpen: boolean; nurseId: string; date: string; shift: ScheduleCell } | null>(null);
 
   // State derived from shared state now
   // Mantener nurses localmente si hay cambios pendientes, sino usar Supabase
@@ -113,27 +117,33 @@ const App: React.FC = () => {
   // Sincronizar con Supabase cuando cambia sharedData, pero preservar cambios locales
   useEffect(() => {
     if (sharedData?.nurses && !isEditingNurses) {
-        setLocalNurses(sharedData.nurses);
+        // Solo actualizar si los datos son realmente diferentes
+        const hasChanges = JSON.stringify(sharedData.nurses) !== JSON.stringify(localNurses);
+        if (hasChanges) {
+            setLocalNurses(sharedData.nurses);
+        }
     }
-  }, [sharedData?.nurses]);
-
-  const nurses = localNurses;
-  const agenda = sharedData?.agenda ?? {};
-  // Extraer manualOverrides de Supabase
-  const manualOverrides = sharedData?.manualOverrides || {}
-  const notes = sharedData?.notes ?? {};
-  const vaccinationPeriod = sharedData?.vaccinationPeriod ?? null;
-  const strasbourgAssignments = sharedData?.strasbourgAssignments ?? {};
-  const strasbourgEvents = sharedData?.strasbourgEvents ?? [];
-  const specialStrasbourgEvents = sharedData?.specialStrasbourgEvents ?? [];
-  const closedMonths = sharedData?.closedMonths ?? {};
-  const wishes = sharedData?.wishes ?? {};
-  const jornadasLaborales = sharedData?.jornadasLaborales ?? [];
-  const manualChangeLog = sharedData?.manualChangeLog ?? [];
-  const manualHours = sharedData?.manualHours ?? {};
-  const manuallyManagedDays = sharedData?.manuallyManagedDays ?? {};
+  }, [sharedData?.nurses, isEditingNurses]);
   
-  const [hours, setHours] = useState<Hours>({});
+  const nurses = localNurses;
+  const agenda = useMemo(() => sharedData?.agenda ?? {}, [sharedData?.agenda]);
+  const manualOverrides = useMemo(() => sharedData?.manualOverrides ?? {}, [sharedData?.manualOverrides]);
+  const notes = useMemo(() => sharedData?.notes ?? {}, [sharedData?.notes]);
+  const vaccinationPeriod = useMemo(() => sharedData?.vaccinationPeriod ?? null, [sharedData?.vaccinationPeriod]);
+  const strasbourgAssignments = useMemo(() => sharedData?.strasbourgAssignments ?? {}, [sharedData?.strasbourgAssignments]);
+  const strasbourgEvents = useMemo(() => sharedData?.strasbourgEvents ?? [], [sharedData?.strasbourgEvents]);
+  const specialStrasbourgEvents = useMemo(() => sharedData?.specialStrasbourgEvents ?? [], [sharedData?.specialStrasbourgEvents]);
+  const closedMonths = useMemo(() => sharedData?.closedMonths ?? {}, [sharedData?.closedMonths]);
+  const wishes = useMemo(() => sharedData?.wishes ?? {}, [sharedData?.wishes]);
+  const jornadasLaborales = useMemo(() => sharedData?.jornadasLaborales ?? [], [sharedData?.jornadasLaborales]);
+  const manualChangeLog = useMemo(() => sharedData?.manualChangeLog ?? [], [sharedData?.manualChangeLog]);
+  const manualHours = useMemo(() => sharedData?.manualHours ?? {}, [sharedData?.manualHours]);
+  const manuallyManagedDays = useMemo(() => sharedData?.manuallyManagedDays ?? {}, [sharedData?.manuallyManagedDays]);
+  
+  const handleOpenShiftChangeModal = useCallback((nurseId: string, date: string, shift: ScheduleCell) => {
+    setShiftChangeConfig({ isOpen: true, nurseId, date, shift });
+  }, []);
+
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   
   const { language } = useLanguage();
@@ -163,6 +173,31 @@ const App: React.FC = () => {
         return updatedHistory;
     });
   }, []);
+
+  const handleShiftChange = useCallback(async (nurseId: string, oldDate: string, newDate: string, shift: ScheduleCell) => {
+    const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
+
+    // Remove the shift from the old date
+    if (newOverrides[nurseId] && newOverrides[nurseId][oldDate]) {
+      delete newOverrides[nurseId][oldDate];
+      if (Object.keys(newOverrides[nurseId]).length === 0) {
+        delete newOverrides[nurseId];
+      }
+    }
+
+    // Add the shift to the new date
+    if (!newOverrides[nurseId]) {
+      newOverrides[nurseId] = {};
+    }
+    newOverrides[nurseId][newDate] = shift;
+
+    // Log the change
+    const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
+    const shiftLabel = typeof shift === 'string' ? shift : ('custom' in shift ? shift.custom.split('\n')[0] : 'Split');
+    addHistoryEntry('Shift Moved', `Moved ${shiftLabel} for ${nurseName} from ${oldDate} to ${newDate}`);
+
+    await updateData({ manualOverrides: newOverrides });
+  }, [manualOverrides, updateData, addHistoryEntry, nurses]);
 
   useEffect(() => {
     try {
@@ -216,7 +251,6 @@ const App: React.FC = () => {
   const isMonthClosed = !!closedMonths[monthKey];
 
   const effectiveAgenda = useMemo(() => (year === 2026 ? agenda2026Data : agenda), [year, agenda]);
-  const [schedule, setSchedule] = useState<Schedule>({});
   
   useEffect(() => {
     const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
@@ -279,7 +313,7 @@ const App: React.FC = () => {
         }
     });
     return merged;
-  }, [manualOverrides, specialStrasbourgEvents, sharedData]);
+  }, [manualOverrides, specialStrasbourgEvents]);
 
   const { fullOriginalSchedule, fullCurrentSchedule } = useMemo(() => {
     const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
@@ -319,6 +353,8 @@ const App: React.FC = () => {
     return recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manuallyManagedDays);
   }, [activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manuallyManagedDays]);
 
+  const schedule = currentSchedule;
+
   // Forzar recálculo cuando cambian los datos de Supabase
 useEffect(() => {
     if (sharedData?.manualOverrides) {
@@ -326,12 +362,8 @@ useEffect(() => {
     }
 }, [sharedData?.manualOverrides]) // <-- Solo esta dependencia, no todo sharedData
   
- useEffect(() => {
-    console.log('✅ Schedule actualizado correctamente')
-    setSchedule(currentSchedule);
-}, [currentSchedule]);
 
-  useEffect(() => {
+  const hours = useMemo(() => {
     const calculatedHoursForMonth = calculateHoursForMonth(activeNurses, currentDate, effectiveAgenda, schedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
     
     // Merge with manual hours from Supabase
@@ -351,7 +383,7 @@ useEffect(() => {
             }
         }
     }
-    setHours(calculatedHoursForMonth);
+    return calculatedHoursForMonth;
   }, [activeNurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, manualHours]);
 
   const balanceData = useMemo<BalanceData[]>(() => {
@@ -502,10 +534,7 @@ useEffect(() => {
 
     // Re-use the existing handler to apply the change and create a new log entry for the reversal.
     await handleManualChange(payload);
-
-//- FIX START
   }, [manualChangeLog, permissions.isViewingAsAdmin, t, nurses, addHistoryEntry, handleManualChange]);
-//- FIX END
   
   const handleClearManualChangesForNurseMonth = useCallback(async (nurseId: string, monthKey: string) => {
       const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
@@ -597,9 +626,7 @@ useEffect(() => {
   const handleNoteChange = useCallback((dateKey: string, text: string, color: string) => {
       addHistoryEntry(t.history_noteChange, `Changed note on ${dateKey}`);
       updateData({ notes: { ...notes, [dateKey]: { text, color } } });
-//- FIX START
   }, [notes, updateData, addHistoryEntry, t]);
-//- FIX END
 
   const handleManualHoursChange = useCallback(async (payload: PersonalHoursChangePayload) => {
       const { nurseId, dateKey, segments, note } = payload;
@@ -652,9 +679,7 @@ const handleAddNurse = useCallback((name: string) => {
     updateData({ nurses: updatedNurses });
     
     setTimeout(() => setIsEditingNurses(false), 1000); // ← AÑADIR ESTO AL FINAL
-//- FIX START
   }, [localNurses, setLocalNurses, updateData, addHistoryEntry, t]);
-//- FIX END
 
   const handleToggleMonthLock = useCallback(() => {
     addHistoryEntry('Toggle Lock', `Month ${monthKey} ${!isMonthClosed ? 'locked' : 'unlocked'}`);
@@ -664,9 +689,7 @@ const handleAddNurse = useCallback((name: string) => {
   const handleStrasbourgUpdate = useCallback((weekId: string, nurseIds: string[]) => {
     addHistoryEntry(t.history_strasbourgUpdate, `Updated assignments for week ${weekId}`);
     updateData({ strasbourgAssignments: { ...strasbourgAssignments, [weekId]: nurseIds } });
-//- FIX START
   }, [strasbourgAssignments, updateData, addHistoryEntry, t]);
-//- FIX END
 
   const handleSpecialStrasbourgEventsChange = useCallback((newEvents: SpecialStrasbourgEvent[]) => {
       addHistoryEntry(t.history_specialEvent, t.history_specialEvent);
@@ -767,9 +790,7 @@ const handleAddNurse = useCallback((name: string) => {
   const handleVaccinationPeriodChange = useCallback((period: { start: string, end: string } | null) => {
       addHistoryEntry(t.history_vaccinationPeriodChange, `Period set to ${period ? `${period.start} to ${period.end}` : 'None'}`);
       updateData({ vaccinationPeriod: period });
-//- FIX START
   }, [addHistoryEntry, updateData, t]);
-//- FIX END
 
   if (isAuthLoading || isStateLoading) { return ( <div className="min-h-screen flex items-center justify-center bg-zen-50"> <div className="text-center"> <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> <p className="mt-2 text-zen-600">{t.loadingData}</p> </div> </div> ); }
   if (!user) { return <LoginScreen />; }
@@ -854,7 +875,25 @@ const handleAddNurse = useCallback((name: string) => {
                             />
                         </div>
                     )}
-                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenHoursEdit={(nurseId, dateKey, anchorEl) => setHoursEditState({ nurseId, dateKey, anchorEl })}/>
+                    <ScheduleGrid 
+                      ref={scheduleGridRef} 
+                      nurses={activeNurses} 
+                      schedule={schedule} 
+                      currentDate={currentDate} 
+                      violations={[]} 
+                      agenda={effectiveAgenda} 
+                      notes={notes} 
+                      hours={hours} 
+                      onNoteChange={handleNoteChange} 
+                      vaccinationPeriod={vaccinationPeriod} 
+                      zoomLevel={zoomLevel} 
+                      strasbourgAssignments={strasbourgAssignments} 
+                      isMonthClosed={isMonthClosed} 
+                      jornadasLaborales={jornadasLaborales} 
+                      onCellDoubleClick={handleOpenSwapPanelFromCell} 
+                      onOpenHoursEdit={(nurseId, dateKey, anchorEl) => setHoursEditState({ nurseId, dateKey, anchorEl })}
+                      onCellClick={handleOpenShiftChangeModal}
+                    />
                   </div>
                 </div>
               ) : view === 'balance' ? ( 
@@ -954,6 +993,16 @@ const handleAddNurse = useCallback((name: string) => {
           />
       )}
       <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
+      {shiftChangeConfig?.isOpen && (
+        <ShiftChangeModal
+          isOpen={shiftChangeConfig.isOpen}
+          onClose={() => setShiftChangeConfig(null)}
+          nurseId={shiftChangeConfig.nurseId}
+          date={shiftChangeConfig.date}
+          shift={shiftChangeConfig.shift}
+          onShiftChange={handleShiftChange}
+        />
+      )}
       <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} onClearHistory={handleClearGlobalHistory} />
     </div>
   );

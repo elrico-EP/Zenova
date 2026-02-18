@@ -39,4 +39,5 @@ export const INITIAL_NURSES: Nurse[] = [
   { id: 'nurse-9', name: 'Joseph', email: 'joseph', role: 'nurse', order: 8 },
   { id: 'nurse-10', name: 'Tatiana', email: 'tatiana', role: 'nurse', order: 9 },
   { id: 'nurse-11', name: 'Becario', email: 'becario', role: 'nurse', order: 10 },
+  { id: 'nurse-12', name: 'Ana', email: 'ana', role: 'nurse', order: 11 },
 ];
