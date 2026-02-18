@@ -277,6 +277,7 @@ export interface AppState {
             [dateKey: string]: ManualHourEntry;
         };
     };
+    manuallyManagedDays?: Record<string, boolean>;
 }
 
 export interface HistoryEntry {
