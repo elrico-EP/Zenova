@@ -1,6 +1,5 @@
-
-import React, { useRef, useState, useLayoutEffect, useEffect, useMemo } from 'react';
-import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote } from '../types';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
+import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, DailyNote } from '../types';
 import { SHIFTS } from '../constants';
 import { getWeekIdentifier } from '../utils/dateUtils';
 import { getScheduleCellHours, getShiftsFromCell } from '../utils/scheduleUtils';
@@ -9,6 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useTranslations } from '../hooks/useTranslations';
 import { Locale } from '../translations/locales';
+import { ClockIcon } from './Icons';
 
 const activityStyles: Record<ActivityLevel, { bg: string; text: string; weekBg: string; weekText: string }> = {
   NORMAL: { bg: 'bg-slate-50', text: 'text-slate-800', weekBg: 'bg-slate-600', weekText: 'text-white' },
@@ -46,38 +46,48 @@ export const ShiftCell: React.FC<{
     isWeekend: boolean;
     isClosingDay: boolean;
     nurseId: string;
+    dateKey: string;
     weekId: string;
     activityLevel: ActivityLevel;
     strasbourgAssignments: Record<string, string[]>;
     dayOfWeek: number;
     isShortFriday: boolean;
-}> = ({ shiftCell, hours, hasManualHours, violation, isWeekend, isClosingDay, nurseId, weekId, activityLevel, strasbourgAssignments, dayOfWeek, isShortFriday }) => {
+    isMonthClosed: boolean;
+    onOpenHoursEdit: (nurseId: string, dateKey: string, anchorEl: HTMLElement) => void;
+}> = ({ shiftCell, hours, hasManualHours, violation, isWeekend, isClosingDay, nurseId, dateKey, weekId, activityLevel, strasbourgAssignments, dayOfWeek, isShortFriday, isMonthClosed, onOpenHoursEdit }) => {
     const t = useTranslations();
+    const permissions = usePermissions();
     const attendees = strasbourgAssignments[weekId] || [];
     const title = violation?.message || (typeof shiftCell === 'string' ? t[SHIFTS[shiftCell]?.description as keyof Locale] as string : '');
     const hasMultipleHourLines = Array.isArray(hours) && hours.length > 1;
 
     const renderHours = () => {
-        if (Array.isArray(hours)) {
+        if (Array.isArray(hours) && hours.length > 0) {
             return hours.map((line, index) => (
-                <span key={index} className="block text-[10px] leading-tight opacity-90 text-center font-semibold">
+                <span key={index} className="block text-[10px] leading-tight text-center font-semibold">
                     ({line})
                 </span>
             ));
         }
         if (typeof hours === 'string' && hours) {
-            return <span className={`block text-[10px] leading-tight opacity-90 text-center ${hasManualHours ? 'font-semibold' : 'font-mono'}`}>({hours})</span>;
+            return <span className={`block text-[10px] leading-tight text-center ${hasManualHours ? 'font-semibold' : 'font-mono'}`}>({hours})</span>;
         }
         return null;
     }
 
-    if (activityLevel === 'SESSION' && dayOfWeek >= 1 && dayOfWeek <= 4 && attendees.includes(nurseId)) {
+    const canEditHours = permissions.isViewingAsAdmin && !isMonthClosed;
+    const showClockIcon = canEditHours && !!shiftCell;
+
+    if (activityLevel === 'SESSION' && dayOfWeek >= 1 && dayOfWeek <= 4 && attendees.includes(nurseId) && !shiftCell) {
         const shift = SHIFTS['STRASBOURG'];
         return (
-            <div className={`w-full h-full p-1 flex items-center justify-center relative`} title={t[shift.description as keyof Locale] as string}>
+            <div className={`w-full h-full p-1 flex items-center justify-center relative group`} title={t[shift.description as keyof Locale] as string}>
                 <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${shift.color} ${shift.textColor}`}>
                     <span className="font-bold text-base">{shift.label}</span>
                 </div>
+                 {showClockIcon && (
+                    <ClockIcon onClick={(e) => { e.stopPropagation(); onOpenHoursEdit(nurseId, dateKey, e.currentTarget); }} className="absolute top-1 right-1 w-4 h-4 text-slate-400 hover:text-slate-800 cursor-pointer hidden group-hover:block transition-colors" />
+                )}
             </div>
         );
     }
@@ -97,8 +107,7 @@ export const ShiftCell: React.FC<{
                 <div 
                     className={`w-full h-full p-1 flex items-center justify-center relative rounded-md shadow-sm ${shift.color}`}
                     title={t[shift.description as keyof Locale] as string}
-                >
-                </div>
+                ></div>
             );
         }
         
@@ -113,10 +122,13 @@ export const ShiftCell: React.FC<{
         const [mainLabel, ...notes] = customShift.custom.split('\n');
 
         return (
-            <div className={`w-full h-full flex flex-col items-center justify-center text-center p-1 ${bgColor} ${textColor} font-medium text-xs rounded-md shadow-sm relative`} title={customShift.custom}>
+            <div className={`w-full h-full flex flex-col items-center justify-center text-center p-1 ${bgColor} ${textColor} font-medium text-xs rounded-md shadow-sm relative group`} title={customShift.custom}>
                 <span className="font-semibold">{mainLabel}</span>
                 {customShift.time && <span className="text-[11px] opacity-80 font-mono">({customShift.time})</span>}
                 {notes.length > 0 && <p className="text-[9px] leading-tight opacity-70 mt-0.5 truncate">{notes.join(' ')}</p>}
+                {showClockIcon && (
+                    <ClockIcon onClick={(e) => { e.stopPropagation(); onOpenHoursEdit(nurseId, dateKey, e.currentTarget); }} className="absolute top-1 right-1 w-4 h-4 text-slate-400 hover:text-slate-800 cursor-pointer hidden group-hover:block transition-colors" />
+                )}
             </div>
         );
     }
@@ -124,11 +136,14 @@ export const ShiftCell: React.FC<{
     if (typeof shiftCell === 'object' && 'split' in shiftCell) {
         if (typeof hours === 'string' || Array.isArray(hours)) { 
              return (
-                <div className={`w-full h-full p-1 flex items-center justify-center relative`} title={title}>
+                <div className={`w-full h-full p-1 flex items-center justify-center relative group`} title={title}>
                     <div className={`w-full h-full p-1 flex flex-col items-center justify-center gap-0.5 rounded-md shadow-sm bg-purple-200 text-purple-800 ${violation ? 'ring-2 ring-red-500 ring-offset-1' : ''}`}>
                         <span className="font-bold text-base">Split</span>
                         {renderHours()}
                     </div>
+                    {showClockIcon && (
+                        <ClockIcon onClick={(e) => { e.stopPropagation(); onOpenHoursEdit(nurseId, dateKey, e.currentTarget); }} className="absolute top-1 right-1 w-4 h-4 text-slate-400 hover:text-slate-800 cursor-pointer hidden group-hover:block transition-colors" />
+                    )}
                 </div>
              )
         }
@@ -154,7 +169,7 @@ export const ShiftCell: React.FC<{
 
 
         return (
-            <div className="w-full h-full flex flex-col gap-0.5 p-0.5 relative" title={title}>
+            <div className="w-full h-full flex flex-col gap-0.5 p-0.5 relative group" title={title}>
                 {morningDisplayInfo && (
                     <div className={`flex-grow min-h-0 flex flex-col items-center justify-center rounded-sm text-center p-1 ${morningDisplayInfo.color} ${morningDisplayInfo.textColor}`}>
                         <span className="font-semibold text-xs leading-tight">{morningDisplayInfo.label}</span>
@@ -166,6 +181,9 @@ export const ShiftCell: React.FC<{
                         <span className="font-semibold text-xs leading-tight">{afternoonDisplayInfo.label}</span>
                         {hours.afternoon && <span className="text-[10px] leading-tight opacity-90">({hours.afternoon})</span>}
                     </div>
+                )}
+                 {showClockIcon && (
+                    <ClockIcon onClick={(e) => { e.stopPropagation(); onOpenHoursEdit(nurseId, dateKey, e.currentTarget); }} className="absolute top-1 right-1 w-4 h-4 text-slate-400 hover:text-slate-800 cursor-pointer hidden group-hover:block transition-colors" />
                 )}
             </div>
         );
@@ -180,11 +198,14 @@ export const ShiftCell: React.FC<{
     }
 
     return (
-        <div className={`w-full h-full p-1 flex items-center justify-center relative`} title={title}>
+        <div className={`w-full h-full p-1 flex items-center justify-center relative group`} title={title}>
             <div className={`w-full h-full p-1 flex flex-col items-center justify-center gap-0.5 rounded-md shadow-sm ${shift.color} ${shift.textColor} ${violation ? 'ring-2 ring-red-500 ring-offset-1' : ''}`}>
                 <span className={`font-bold ${hasMultipleHourLines ? 'text-sm' : 'text-base'}`}>{displayLabel}</span>
-                {renderHours()}
+                <div className={`${hasMultipleHourLines ? 'opacity-90' : ''}`}>{renderHours()}</div>
             </div>
+            {showClockIcon && (
+                <ClockIcon onClick={(e) => { e.stopPropagation(); onOpenHoursEdit(nurseId, dateKey, e.currentTarget); }} className="absolute top-1 right-1 w-4 h-4 text-slate-400 hover:text-slate-800 cursor-pointer hidden group-hover:block transition-colors" />
+            )}
         </div>
     );
 };
@@ -291,30 +312,31 @@ interface ScheduleGridProps {
   isMonthClosed: boolean;
   jornadasLaborales: JornadaLaboral[];
   onCellDoubleClick: (dateKey: string, nurseId: string) => void;
+  onOpenHoursEdit: (nurseId: string, dateKey: string, anchorEl: HTMLElement) => void;
 }
 
-const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG']);
+const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'CS', 'STRASBOURG']);
 
 export const BASE_CELL_WIDTH = 140;
 export const DAY_COL_WIDTH = 100;
 export const PRESENT_COL_WIDTH = 70;
 export const NOTES_COL_WIDTH = 140;
 
-export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, onCellDoubleClick }, ref) => {
+export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, onCellDoubleClick, onOpenHoursEdit }, ref) => {
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
-
+    
     const dayFormatter = useMemo(() => {
         const formatter = new Intl.DateTimeFormat(language, { weekday: 'short' });
         const daysOfWeek = [
-            formatter.format(new Date(Date.UTC(2023, 0, 1))), // Sun
-            formatter.format(new Date(Date.UTC(2023, 0, 2))), // Mon
-            formatter.format(new Date(Date.UTC(2023, 0, 3))), // Tue
-            formatter.format(new Date(Date.UTC(2023, 0, 4))), // Wed
-            formatter.format(new Date(Date.UTC(2023, 0, 5))), // Thu
-            formatter.format(new Date(Date.UTC(2023, 0, 6))), // Fri
-            formatter.format(new Date(Date.UTC(2023, 0, 7))), // Sat
+            formatter.format(new Date(Date.UTC(2023, 0, 1))), 
+            formatter.format(new Date(Date.UTC(2023, 0, 2))),
+            formatter.format(new Date(Date.UTC(2023, 0, 3))),
+            formatter.format(new Date(Date.UTC(2023, 0, 4))),
+            formatter.format(new Date(Date.UTC(2023, 0, 5))),
+            formatter.format(new Date(Date.UTC(2023, 0, 6))),
+            formatter.format(new Date(Date.UTC(2023, 0, 7))),
         ].map(d => d.replace(/\./g, ''));
         return daysOfWeek;
     }, [language]);
@@ -327,20 +349,20 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     let lastWeekId: string | null = null;
     
     return (
-        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto custom-scrollbar print-grid-container flex-grow relative">
-            <table className="min-w-full border-separate border-spacing-0 table-fixed">
-                <thead className="relative z-30">
+        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
+            <table className="min-w-full border-collapse table-fixed">
+                <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>
-                        <th className="sticky top-0 left-0 z-40 bg-white border-b-2 border-r border-slate-200" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}></th>
+                        <th className="sticky top-0 left-0 z-30 bg-white border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}></th>
                         {nurses.map(nurse => {
                             return (
-                                <th key={nurse.id} className="sticky top-0 z-30 h-16 text-center border-b-2 border-r border-slate-200 px-1 bg-white" style={{ width: `${BASE_CELL_WIDTH * zoomLevel}px`, minWidth: `${BASE_CELL_WIDTH * zoomLevel}px`, maxWidth: `${BASE_CELL_WIDTH * zoomLevel}px` }}>
+                                <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ width: `${BASE_CELL_WIDTH * zoomLevel}px`, minWidth: `${BASE_CELL_WIDTH * zoomLevel}px`, maxWidth: `${BASE_CELL_WIDTH * zoomLevel}px` }}>
                                     <span className="font-semibold text-slate-700 truncate text-sm block">{nurse.name}</span>
                                 </th>
                             );
                         })}
-                        <th className="sticky top-0 z-30 h-16 text-center border-b-2 border-r border-slate-200 no-print bg-white" style={{ width: `${PRESENT_COL_WIDTH * zoomLevel}px`}}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.present}</span></th>
-                        <th className="sticky top-0 z-30 h-16 text-center border-b-2 border-slate-200 no-print bg-white" style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.notes}</span></th>
+                        <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${PRESENT_COL_WIDTH * zoomLevel}px`}}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.present}</span></th>
+                        <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.notes}</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -359,19 +381,17 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                         let presentCount = 0;
                         nurses.forEach(nurse => {
                             const shiftCell = schedule[nurse.id]?.[dateKey];
-                            if (shiftCell && !((typeof shiftCell === 'string') && EXCLUDED_SHIFTS.has(shiftCell as WorkZone))) presentCount++;
+                            const shifts = getShiftsFromCell(shiftCell);
+                            if (shifts.length > 0 && !shifts.some(s => EXCLUDED_SHIFTS.has(s))) {
+                                presentCount++;
+                            }
                         });
 
-                        const dayHeader = (
-                          <td className="sticky left-0 z-20 border-r border-b border-gray-200/80 p-0" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px`}}>
-                            <DayHeaderCell day={day} dayOfWeek={dayOfWeekStr} isWeekend={isWeekend} activityLevel={activityLevel} isNewWeek={isNewWeek} weekId={weekId} weekLabel={t.week} />
-                          </td>
-                        );
-                        
+                        const dayHeader = <td className="sticky left-0 z-10 border-r border-b border-gray-200/80" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px`}}><DayHeaderCell day={day} dayOfWeek={dayOfWeekStr} isWeekend={isWeekend} activityLevel={activityLevel} isNewWeek={isNewWeek} weekId={weekId} weekLabel={t.week} /></td>;
                         const presentCell = <td className={`h-16 border-b border-r border-gray-200/80 text-center ${isWeekend ? 'bg-slate-100/80' : 'bg-white/80'} no-print`} style={{ width: `${PRESENT_COL_WIDTH * zoomLevel}px`}}>{presentCount > 0 && <div className={`inline-flex items-center justify-center w-9 h-9 rounded-full font-bold text-sm shadow-inner ${presentCount < 6 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>{presentCount}</div>}</td>;
                         
                         const notesCell = (
-                          <td className={`h-16 border-b border-gray-200/80 p-0 no-print`} style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}>
+                          <td className={`h-16 border-b border-r border-gray-200/80 p-0 no-print`} style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}>
                             <EditableNoteCell
                               note={notes[dateKey]}
                               dateKey={dateKey}
@@ -395,16 +415,15 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                         const nurseCells = nurses.map(nurse => {
                             const isClosingDay = isHoliday || activityLevel === 'CLOSED';
                             const shiftCell = schedule[nurse.id]?.[dateKey];
-                            
                             const violation = violations.find(v => (v.nurseId === nurse.id || v.nurseId === 'global') && (v.dateKey === dateKey || (v.weekId === weekId && !v.dateKey)));
                             const isShortFriday = dayOfWeek === 5 && agenda[getWeekIdentifier(new Date(date.getTime() + 3 * 24 * 60 * 60 * 1000))] !== 'SESSION';
-
+                            
                             let displayHours: string | { morning: string; afternoon: string } | string[];
                             const dailyHoursData = hours[nurse.id]?.[dateKey];
                             const hasManualHours = dailyHoursData?.segments?.some(s => s.startTime || s.endTime);
 
                             if (hasManualHours) {
-                                displayHours = dailyHoursData!.segments!.filter(s => s.startTime && s.endTime).map(s => `${s.startTime.substring(0, 5)} - ${s.endTime.substring(0, 5)}`);
+                                displayHours = dailyHoursData!.segments!.filter(s => s.startTime && s.endTime).map(s => `${s.startTime.substring(0, 5)}-${s.endTime.substring(0, 5)}`);
                             } else {
                                 displayHours = getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales);
                             }
@@ -421,7 +440,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                                         }
                                     }}
                                 >
-                                    <ShiftCell shiftCell={shiftCell} hours={displayHours} hasManualHours={!!hasManualHours} violation={violation} isWeekend={isWeekend} isClosingDay={isClosingDay} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={isShortFriday} />
+                                    <ShiftCell shiftCell={shiftCell} hours={displayHours} hasManualHours={!!hasManualHours} violation={violation} isWeekend={isWeekend} isClosingDay={isClosingDay} nurseId={nurse.id} dateKey={dateKey} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={isShortFriday} isMonthClosed={isMonthClosed} onOpenHoursEdit={onOpenHoursEdit} />
                                 </td>
                             );
                         });

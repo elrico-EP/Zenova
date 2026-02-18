@@ -102,4 +102,3 @@ export const escucharCambiosTurnos = (
         supabase.removeChannel(canal)
     }
 }
-

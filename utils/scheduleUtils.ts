@@ -78,6 +78,7 @@ export const getScheduleCellHours = (
         case 'URGENCES_C': baseHours = '14:00 - 17:00'; break;
         case 'TRAVAIL_C': baseHours = '14:00 - 17:00'; break;
         case 'VACCIN': baseHours = '08:00 - 14:00'; break;
+        case 'ADMIN_TARDE': baseHours = activityLevel === 'NORMAL' ? '10:00 - 18:30' : '09:00 - 17:45'; break;
         default:
             const isAfternoonShift = shiftType === 'URGENCES_TARDE' || shiftType === 'TRAVAIL_TARDE';
             const nextMonday = new Date(date);
@@ -214,7 +215,7 @@ const applyJornadaModification = (
 
     const dayOfWeek = date.getUTCDay();
     const shifts = getShiftsFromCell(cell);
-    const isWorkShift = shifts.length > 0 && !shifts.some(s => ['CA', 'SICK_LEAVE', 'F', 'STRASBOURG', 'FP', 'RECUP'].includes(s));
+    const isWorkShift = shifts.length > 0 && !shifts.some(s => ['CA', 'SICK_LEAVE', 'F', 'STRASBOURG', 'FP', 'RECUP', 'CS'].includes(s));
 
     if (!isWorkShift) {
         return cell;
@@ -512,7 +513,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                  
                  weeklyStats[nurse.id][shift] = (weeklyStats[nurse.id][shift] || 0) + 1;
             });
-             if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { nurseStats[nurse.id].clinicalTotal++; }
+             if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'CS', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { nurseStats[nurse.id].clinicalTotal++; }
         });
     }
 
@@ -609,7 +610,7 @@ export const generateAndBalanceGaps = (
                  
                  weeklyStats[nurseId][shift] = (weeklyStats[nurseId][shift] || 0) + 1;
             });
-             if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { generationStats[nurseId].clinicalTotal++; }
+             if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'CS', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { generationStats[nurseId].clinicalTotal++; }
         });
     }
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Nurse, Schedule, WorkZone, ScheduleCell } from '../types';
 import { SHIFTS } from '../constants';
@@ -59,7 +58,6 @@ export const BulkEditModal: React.FC<BulkEditModalProps> = ({ isOpen, onClose, n
             if (!newOverrides[nurseId]) {
                 newOverrides[nurseId] = {};
             }
-            // FIX: Correctly handle 'DELETE' and empty string to remove the override.
             if (shift === '' || shift === 'DELETE') {
                 delete newOverrides[nurseId][dateKey];
             } else {

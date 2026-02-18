@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslations } from '../hooks/useTranslations';
 import type { Nurse, Schedule, ScheduleCell, WorkZone, CustomShift } from '../types';

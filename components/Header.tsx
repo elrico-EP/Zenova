@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-// FIX: Add MaximizeIcon and RestoreIcon for the fullscreen toggle button.
 import { ArrowLeftIcon, ArrowRightIcon, MaximizeIcon, RestoreIcon } from './Icons';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../hooks/useTranslations';
@@ -93,7 +92,6 @@ interface HeaderProps {
   onOpenHelp: () => void;
   onOpenHistory: () => void;
   onOpenAnnualPlanner: () => void;
-  // FIX: Add missing props to support fullscreen toggle functionality passed from App.tsx
   onToggleFullscreen: () => void;
   isFullscreen: boolean;
 }
@@ -102,7 +100,6 @@ export const Header: React.FC<HeaderProps> = ({
   monthName, year, onDateChange, currentDate, isMonthClosed, onToggleMonthLock,
   schedule, nurses, notes, agenda, hours, jornadasLaborales, onExportPdf,
   view, setView, onOpenHelp, onOpenHistory, onOpenAnnualPlanner,
-  // FIX: Destructure new fullscreen props to be used in the component.
   onToggleFullscreen, isFullscreen
 }) => {
   const t = useTranslations();

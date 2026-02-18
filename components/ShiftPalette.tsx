@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { SHIFTS } from '../constants';
 import { useTranslations } from '../hooks/useTranslations';
@@ -51,7 +50,6 @@ export const ShiftPalette: React.FC = () => {
               <div className={`w-14 h-9 rounded-md flex items-center justify-center font-bold text-sm mr-4 shadow-sm ${shift.color} ${shift.textColor}`}>
                 {shift.label}
               </div>
-              {/* FIX: Cast translation value to string to satisfy ReactNode type. */}
               <span className="font-medium text-slate-800 text-sm">{t[shift.description as keyof Locale] as string}</span>
             </div>
           ))}

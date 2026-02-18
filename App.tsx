@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { ScheduleGrid, BASE_CELL_WIDTH, DAY_COL_WIDTH, PRESENT_COL_WIDTH, NOTES_COL_WIDTH } from './components/ScheduleGrid';
 import { Header } from './components/Header';
@@ -15,7 +14,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
-import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
+import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState, TimeSegment } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell, generateAndBalanceGaps } from './utils/scheduleUtils';
 import { calculateHoursForMonth, calculateHoursForDay, calculateHoursDifference } from './utils/hoursUtils';
@@ -31,7 +30,8 @@ import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { MaximizeIcon, RestoreIcon } from './components/Icons';
-import { useSupabaseState } from './hooks/useSupabaseState'
+import { useSupabaseState } from './hooks/useSupabaseState';
+import { HoursEditPopover } from './components/HoursEditPopover';
 
 const App: React.FC = () => {
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
@@ -67,6 +67,7 @@ const App: React.FC = () => {
   const [isAnnualPlannerOpen, setIsAnnualPlannerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
   const [showFullscreenToast, setShowFullscreenToast] = useState(false);
+  const [hoursEditState, setHoursEditState] = useState<{ nurseId: string; dateKey: string; anchorEl: HTMLElement } | null>(null);
 
   // State derived from shared state now
   // Mantener nurses localmente si hay cambios pendientes, sino usar Supabase
@@ -93,6 +94,7 @@ const App: React.FC = () => {
   const wishes = sharedData?.wishes ?? {};
   const jornadasLaborales = sharedData?.jornadasLaborales ?? [];
   const manualChangeLog = sharedData?.manualChangeLog ?? [];
+  const manualHours = sharedData?.manualHours ?? {};
   
   const [hours, setHours] = useState<Hours>({});
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -254,23 +256,26 @@ useEffect(() => {
 
   useEffect(() => {
     const calculatedHoursForMonth = calculateHoursForMonth(activeNurses, currentDate, effectiveAgenda, schedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
-    setHours(prevHours => {
-        const newHoursState = JSON.parse(JSON.stringify(calculatedHoursForMonth));
-        for (const nurseId in newHoursState) {
-            if (activeNurses.some(n => n.id === nurseId) && prevHours[nurseId]) {
-                for (const dateKey in newHoursState[nurseId]) {
-                    if (prevHours[nurseId][dateKey]) {
-                        const manualData = prevHours[nurseId][dateKey];
-                        if (manualData.manual !== undefined) newHoursState[nurseId][dateKey].manual = manualData.manual;
-                        if (manualData.segments) newHoursState[nurseId][dateKey].segments = manualData.segments;
-                        if (manualData.note) newHoursState[nurseId][dateKey].note = manualData.note;
-                    }
-                }
+    
+    // Merge with manual hours from Supabase
+    for (const nurseId in manualHours) {
+        if (!calculatedHoursForMonth[nurseId]) continue;
+        for (const dateKey in manualHours[nurseId]) {
+            if (calculatedHoursForMonth[nurseId][dateKey]) {
+                const entry = manualHours[nurseId][dateKey];
+                calculatedHoursForMonth[nurseId][dateKey].segments = entry.segments;
+                calculatedHoursForMonth[nurseId][dateKey].note = entry.note;
+                
+                let manualDuration = 0;
+                entry.segments?.forEach(segment => {
+                    manualDuration += calculateHoursDifference(segment.startTime, segment.endTime);
+                });
+                calculatedHoursForMonth[nurseId][dateKey].manual = manualDuration;
             }
         }
-        return newHoursState;
-    });
-  }, [activeNurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales]);
+    }
+    setHours(calculatedHoursForMonth);
+  }, [activeNurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, manualHours]);
 
   const balanceData = useMemo<BalanceData[]>(() => {
     if (nurses.length === 0) return [];
@@ -398,6 +403,45 @@ useEffect(() => {
     console.log('✅ Cambios guardados, se verán automáticamente')
   }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
+  const handleUndoManualChange = useCallback(async (logId: string) => {
+    if (!permissions.isViewingAsAdmin) return;
+
+    const logEntryToUndo = manualChangeLog.find(log => log.id === logId);
+    if (!logEntryToUndo) {
+        console.error("Log entry not found for undo:", logId);
+        return;
+    }
+
+    // Find all changes for this specific cell and sort them by time
+    const changesForCell = manualChangeLog
+        .filter(log => log.nurseId === logEntryToUndo.nurseId && log.dateKey === logEntryToUndo.dateKey)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Check if the entry to undo is the most recent one
+    if (changesForCell.length > 0 && changesForCell[0].id !== logId) {
+        alert("You can only undo the most recent manual change for a given day. Please find and undo the latest change for this cell first.");
+        return;
+    }
+
+    if (!window.confirm(t.admin_confirm_delete_change)) return;
+
+    const nurseName = nurses.find(n => n.id === logEntryToUndo.nurseId)?.name || 'Unknown';
+    addHistoryEntry(t.history_undo, `Reverted change for ${nurseName} on ${logEntryToUndo.dateKey}`);
+
+    const payload: ManualChangePayload = {
+        nurseIds: [logEntryToUndo.nurseId],
+        startDate: logEntryToUndo.dateKey,
+        endDate: logEntryToUndo.dateKey,
+        // If originalShift was undefined, it means the cell was empty, so we 'DELETE' the override.
+        shift: logEntryToUndo.originalShift === undefined ? 'DELETE' : logEntryToUndo.originalShift,
+        scope: 'single'
+    };
+
+    // Re-use the existing handler to apply the change and create a new log entry for the reversal.
+    await handleManualChange(payload);
+
+  }, [manualChangeLog, permissions.isViewingAsAdmin, t.admin_confirm_delete_change, nurses, addHistoryEntry, handleManualChange]);
+  
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
     addHistoryEntry(t.history_bulk_edit, t.history_bulk_edit_details);
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
@@ -454,6 +498,30 @@ useEffect(() => {
       addHistoryEntry(t.history_noteChange, `Changed note on ${dateKey}`);
       updateData({ notes: { ...notes, [dateKey]: { text, color } } });
   }, [notes, updateData, addHistoryEntry, t.history_noteChange]);
+
+  const handleManualHoursChange = useCallback(async (payload: PersonalHoursChangePayload) => {
+      const { nurseId, dateKey, segments, note } = payload;
+      const newManualHours = JSON.parse(JSON.stringify(manualHours));
+
+      if (!newManualHours[nurseId]) {
+          newManualHours[nurseId] = {};
+      }
+
+      const hasValidSegments = segments && segments.some(s => s.startTime && s.endTime);
+
+      if (hasValidSegments) {
+          newManualHours[nurseId][dateKey] = { segments, note };
+      } else {
+          // If no valid segments, delete the entry to revert to theoretical hours
+          delete newManualHours[nurseId][dateKey];
+          if (Object.keys(newManualHours[nurseId]).length === 0) {
+              delete newManualHours[nurseId];
+          }
+      }
+
+      addHistoryEntry(t.history_adminSetHours, `Set hours for ${nurses.find(n => n.id === nurseId)?.name} on ${dateKey}`);
+      await updateData({ manualHours: newManualHours });
+  }, [manualHours, updateData, addHistoryEntry, t, nurses]);
 
 const handleAddNurse = useCallback((name: string) => {
     setIsEditingNurses(true);
@@ -678,7 +746,7 @@ const handleAddNurse = useCallback((name: string) => {
                             />
                         </div>
                     )}
-                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenHoursEdit={(nurseId, dateKey, anchorEl) => setHoursEditState({ nurseId, dateKey, anchorEl })}/>
                   </div>
                 </div>
               ) : view === 'balance' ? ( 
@@ -710,6 +778,23 @@ const handleAddNurse = useCallback((name: string) => {
       </main>
 
       {/* Modals outside main layout flow */}
+      {hoursEditState && permissions.isViewingAsAdmin && (
+        <HoursEditPopover
+            anchorEl={hoursEditState.anchorEl}
+            initialSegments={hours[hoursEditState.nurseId]?.[hoursEditState.dateKey]?.segments}
+            initialNote={hours[hoursEditState.nurseId]?.[hoursEditState.dateKey]?.note}
+            onSave={(segments, note) => {
+                handleManualHoursChange({
+                    nurseId: hoursEditState.nurseId,
+                    dateKey: hoursEditState.dateKey,
+                    segments,
+                    note,
+                });
+                setHoursEditState(null);
+            }}
+            onClose={() => setHoursEditState(null)}
+        />
+      )}
       {isAnnualPlannerOpen && permissions.isViewingAsAdmin && (
           <AnnualPlannerModal
               isOpen={isAnnualPlannerOpen}
@@ -741,6 +826,9 @@ const handleAddNurse = useCallback((name: string) => {
               history={history} 
               onExportAnnual={handleExportAnnualAgenda} 
               jornadasLaborales={jornadasLaborales}
+              manualHours={manualHours}
+              onManualHoursChange={handleManualHoursChange}
+              onUndoManualChange={handleUndoManualChange}
           /> 
       )}
       {permissions.canManageJornadas && isJornadaManagerOpen && (<JornadaLaboralManager nurses={nurses} jornadas={jornadasLaborales} onClose={() => setIsJornadaManagerOpen(false)} onSave={handleJornadasChange} />)}
@@ -757,7 +845,7 @@ const handleAddNurse = useCallback((name: string) => {
           />
       )}
       <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
-      <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} />
+      <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} onClearHistory={handleClearGlobalHistory} />
     </div>
   );
 };
