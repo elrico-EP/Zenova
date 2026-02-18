@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, SpecialStrasbourgEvent, JornadaLaboral } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { ShiftCell } from './ScheduleGrid';
+import { ShiftCell } from './ShiftCell';
 import { holidays2026 } from '../data/agenda2026';
 import { agenda2026Data } from '../data/agenda2026';
 import { getWeekIdentifier } from '../utils/dateUtils';

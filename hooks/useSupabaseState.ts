@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 // FIX: Import the supabase client
 import { supabase } from '../firebase/supabase-config';
-import type { AppState, JornadaLaboral } from '../types';
+import type { AppState, JornadaLaboral, Wishes } from '../types';
 import { INITIAL_NURSES } from '../constants';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026 } from '../data/agenda2026';
 
@@ -188,6 +188,78 @@ const FEBRUARY_2026_SHIFTS: any = {
     }
 };
 
+const INITIAL_WISHES: Wishes = {
+  'nurse-12': { // Ana
+    '2026-06-01': { text: "Ext Formation ?", validated: false },
+    '2026-06-02': { text: "Ext Formation ?", validated: false },
+    '2026-11-09': { text: "FP PM", validated: false },
+  },
+  'nurse-2': { // Tanja
+    '2026-01-27': { text: "RDV med 9h", validated: false },
+    '2026-02-03': { text: "RDV Med. 8h30", validated: false },
+    '2026-03-05': { text: "RDV med 12h30", validated: false },
+    '2026-08-04': { text: "RDV med 18.00", validated: false },
+  },
+  'nurse-3': { // Virginie
+    '2026-01-28': { text: "MIMMS", validated: false },
+    '2026-01-29': { text: "MIMMS", validated: false },
+  },
+  'nurse-4': { // Paola
+    '2026-02-04': { text: "RECUP 08-12:00", validated: false },
+    '2026-03-20': { text: "Recup (10/02/2026)", validated: false },
+  },
+  'nurse-5': { // Elena
+    '2026-01-14': { text: "FP", validated: false },
+    '2026-01-15': { text: "FP", validated: false },
+    '2026-01-30': { text: "FP", validated: false },
+    '2026-02-03': { text: "FP (stage plaies)", validated: false },
+    '2026-02-24': { text: "FP (stage plaies)", validated: false },
+    '2026-03-03': { text: "FP (stage plaies)", validated: false },
+    '2026-03-16': { text: "Medical appt 10:30", validated: false },
+    '2026-04-01': { text: "Stage ie 03/04/2026", validated: false },
+    '2026-04-22': { text: "FP ?", validated: false },
+    '2026-07-24': { text: "Ext Formation ?", validated: false },
+    '2026-07-25': { text: "Ext Formation ?", validated: false },
+  },
+  'nurse-6': { // Miguel
+    '2026-01-29': { text: "STR Euroscola", validated: false },
+    '2026-02-05': { text: "TW + Voyage STR", validated: false },
+    '2026-02-06': { text: "STR Euroscola", validated: false },
+    '2026-03-10': { text: "ags 9h20", validated: false },
+  },
+  'nurse-7': { // Gorka
+    '2026-06-12': { text: "CS?", validated: false },
+    '2026-07-06': { text: "100%", validated: false },
+    '2026-09-09': { text: "Ext Formation ?", validated: false },
+    '2026-09-10': { text: "Ext Formation ?", validated: false },
+    '2026-09-21': { text: "Ext Formation ?", validated: false },
+    '2026-09-22': { text: "BLS", validated: false },
+    '2026-09-23': { text: "Ext Formation ?", validated: false },
+    '2026-09-24': { text: "Ext Formation ?", validated: false },
+    '2026-09-25': { text: "Ext Formation ?", validated: false },
+    '2026-09-28': { text: "Ext Formation ?", validated: false },
+  },
+  'nurse-8': { // Katelijn
+    '2026-02-24': { text: "CS Raison Fam", validated: false },
+  },
+  'nurse-9': { // Joseph
+    '2026-01-23': { text: "EUROSCOLA", validated: false },
+    '2026-03-12': { text: "EUROSCOLA", validated: false },
+    '2026-10-08': { text: "EUROSCOLA", validated: false },
+    '2026-10-23': { text: "EUROSCOLA", validated: false },
+  },
+  'nurse-10': { // Tatiana
+    '2026-03-17': { text: "STR Perm", validated: false },
+    '2026-03-18': { text: "STR Perm", validated: false },
+    '2026-06-01': { text: "Ext Formation ?", validated: false },
+    '2026-06-02': { text: "Ext Formation ?", validated: false },
+    '2026-06-30': { text: "STR Perm", validated: false },
+    '2026-07-01': { text: "STR Perm", validated: false },
+    '2026-09-22': { text: "BLS", validated: false },
+    '2026-09-24': { text: "BLS", validated: false },
+  }
+};
+
 const mergeSchedules = (...schedules: any[]) => {
     const merged: any = {};
     for (const schedule of schedules) {
@@ -214,7 +286,7 @@ const getInitialState = (): AppState => ({
     strasbourgEvents: [],
     specialStrasbourgEvents: [],
     closedMonths: {},
-    wishes: {},
+    wishes: INITIAL_WISHES,
     jornadasLaborales: INITIAL_JORNADAS,
     manualChangeLog: [],
     manualHours: {},
@@ -223,7 +295,9 @@ const getInitialState = (): AppState => ({
 export const useSupabaseState = () => {
     const [data, setData] = useState<AppState | null>(null);
     const [loading, setLoading] = useState(true);
-
+    const dataRef = useRef(data);
+    dataRef.current = data;
+    
     useEffect(() => {
         let channel: any;
 
@@ -279,7 +353,12 @@ export const useSupabaseState = () => {
                     (payload) => {
                         console.log("📡 Cambio detectado:", payload);
                         if (payload.new && payload.new.data) {
-                            setData(payload.new.data as AppState);
+                           if (JSON.stringify(dataRef.current) !== JSON.stringify(payload.new.data)) {
+                                console.log("🔄 Actualizando estado local.");
+                                setData(payload.new.data as AppState);
+                            } else {
+                                console.log("🧘 Estado local ya sincronizado, ignorando actualización.");
+                            }
                         }
                     }
                 )
@@ -297,9 +376,13 @@ export const useSupabaseState = () => {
     }, []);
 
     const updateData = useCallback(async (updates: Partial<AppState>) => {
-        if (!data) return;
+        const currentData = dataRef.current;
+        if (!currentData) return;
 
-        const newData = { ...data, ...updates };
+        const newData = { ...currentData, ...updates };
+         // Actualizar el estado local inmediatamente para una UI más rápida
+        setData(newData);
+        
         console.log("💾 Guardando cambios...", updates);
 
         const { error } = await supabase
@@ -309,10 +392,12 @@ export const useSupabaseState = () => {
 
         if (error) {
             console.error("❌ Error al guardar:", error);
+            // Si hay un error, podríamos revertir al estado anterior
+            setData(currentData);
         } else {
             console.log("✅ Guardado exitoso");
         }
-    }, [data]);
+    }, []);
 
     return { data, loading, updateData };
 };

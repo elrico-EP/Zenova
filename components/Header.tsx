@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeftIcon, ArrowRightIcon, MaximizeIcon, RestoreIcon } from './Icons';
+import { ArrowLeftIcon, ArrowRightIcon, MaximizeIcon, RestoreIcon, StarIcon } from './Icons';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../hooks/useTranslations';
 import { useUser } from '../contexts/UserContext';
@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
   const handlePrevMonth = () => onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-  const navButtonClass = "px-4 py-2 text-sm font-medium rounded-md transition-colors";
+  const navButtonClass = "px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5";
   const activeNavClass = "bg-white text-zen-800 shadow";
   const inactiveNavClass = "text-white hover:bg-white/20";
 
@@ -128,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hidden lg:flex items-center gap-2 bg-black/20 p-1 rounded-lg">
             <button onClick={() => setView('schedule')} className={`${navButtonClass} ${view === 'schedule' ? activeNavClass : inactiveNavClass}`}>{t.nav_agenda}</button>
             {!permissions.isViewingAsViewer && <button onClick={() => setView('balance')} className={`${navButtonClass} ${view === 'balance' ? activeNavClass : inactiveNavClass}`}>{t.nav_balance}</button>}
-            {!permissions.isViewingAsViewer && <button onClick={() => setView('wishes')} className={`${navButtonClass} ${view === 'wishes' ? activeNavClass : inactiveNavClass}`}>{t.wishesViewButton}</button>}
+            {!permissions.isViewingAsViewer && <button onClick={() => setView('wishes')} className={`${navButtonClass} ${view === 'wishes' ? activeNavClass : inactiveNavClass}`}><StarIcon className="w-4 h-4" />{t.wishesViewButton}</button>}
             {permissions.canManageUsers && user?.role === 'admin' && <button onClick={() => setView('userManagement')} className={`${navButtonClass} ${view === 'userManagement' ? activeNavClass : inactiveNavClass}`}>{t.nav_users}</button>}
         </div>
 

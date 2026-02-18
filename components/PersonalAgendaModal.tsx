@@ -5,7 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, MaximizeIcon, RestoreIcon, PdfIcon, UndoIcon } from './Icons';
-import { ShiftCell } from './ScheduleGrid'; // Re-use for consistent shift display
+import { ShiftCell } from './ShiftCell'; // Re-use for consistent shift display
 import { PersonalBalanceView } from './PersonalBalanceView';
 import { holidays2026 } from '../data/agenda2026';
 import { agenda2026Data } from '../data/agenda2026'; // To get activity level
