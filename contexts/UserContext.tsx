@@ -1,4 +1,3 @@
-
 import React, { useState, createContext, useContext, useMemo, useCallback, useEffect } from 'react';
 import type { User, Nurse, UserRole } from '../types';
 import * as userService from '../firebase/userService';
@@ -146,9 +145,9 @@ useEffect(() => {
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     if (!user) throw new Error("No user authenticated");
-    await userService.changePassword(user.id, currentPassword, newPassword);
-    const updatedUser = await userService.getCurrentUser();
+    const updatedUser = await userService.changePassword(user.id, currentPassword, newPassword);
     setUser(updatedUser);
+    localStorage.setItem('zenova_user', JSON.stringify(updatedUser));
   }, [user]);
 
   const forceSetPassword = useCallback(async (newPassword: string) => {
@@ -156,6 +155,9 @@ useEffect(() => {
     await userService.forceSetPassword(user.id, newPassword);
     const updatedUser = await userService.getCurrentUser();
     setUser(updatedUser);
+    if (updatedUser) {
+        localStorage.setItem('zenova_user', JSON.stringify(updatedUser));
+    }
   }, [user]);
 
   const requestPasswordReset = useCallback(async (username: string): Promise<boolean> => {

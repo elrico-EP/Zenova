@@ -318,7 +318,7 @@ interface ScheduleGridProps {
 const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'CS', 'STRASBOURG']);
 
 export const BASE_CELL_WIDTH = 140;
-export const DAY_COL_WIDTH = 100;
+export const DAY_COL_WIDTH = 140;
 export const PRESENT_COL_WIDTH = 70;
 export const NOTES_COL_WIDTH = 140;
 
@@ -353,7 +353,16 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
             <table className="min-w-full border-collapse table-fixed">
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>
-                        <th className="sticky top-0 left-0 z-30 bg-white border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}></th>
+                        <th className="sticky top-0 left-0 z-30 bg-white/80 backdrop-blur-sm border-b-2 border-slate-200" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}>
+                            <div className="w-full h-16 flex flex-col items-center justify-center p-1">
+                                <span className="text-lg font-bold text-zen-800 capitalize">
+                                    {currentDate.toLocaleString(language, { month: 'long' })}
+                                </span>
+                                <span className="text-sm font-semibold text-slate-500">
+                                    {currentDate.getFullYear()}
+                                </span>
+                            </div>
+                        </th>
                         {nurses.map(nurse => {
                             return (
                                 <th key={nurse.id} className="h-16 text-center border-b-2 border-slate-200 px-1" style={{ width: `${BASE_CELL_WIDTH * zoomLevel}px`, minWidth: `${BASE_CELL_WIDTH * zoomLevel}px`, maxWidth: `${BASE_CELL_WIDTH * zoomLevel}px` }}>
