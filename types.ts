@@ -31,7 +31,10 @@ export type WorkZone =
   | 'VACCIN_AM'
   | 'VACCIN_PM'
   | 'TRAVAIL_C'  // Complemento clínico corto
-  | 'URGENCES_C'; // Complemento clínico corto
+  | 'URGENCES_C' // Complemento clínico corto
+  | 'ADMIN_TARDE' // Nuevo turno manual
+  | 'CS'          // Nuevo turno manual (Congé Spécial)
+  | 'TW_ABROAD';  // Nuevo turno manual
 
 export interface Shift {
   id: WorkZone;
@@ -146,7 +149,7 @@ export type PersonalHoursChangePayload = {
   nurseId: string;
   dateKey: string;
   segments: TimeSegment[];
-  reason?: string;
+  note?: string;
 };
 
 export type SwapRequest = {
@@ -202,6 +205,7 @@ export interface BalanceData {
     annualCounts: ShiftCounts;
     monthlyTotalWorkDays: number;
     annualTotalWorkDays: number;
+
     monthlyTotalHours: number;
     annualTotalHours: number;
     monthlyTargetHours: number;
@@ -237,7 +241,6 @@ export interface JornadaLaboral {
     secondaryReductionDayOfWeek?: 1 | 2 | 3 | 4; // For 80% Friday rule
 }
 
-// FIX: Add missing ShiftRotation and ShiftRotationAssignment type definitions.
 export interface ShiftRotation {
   id: string;
   name: string;
@@ -249,6 +252,11 @@ export interface ShiftRotationAssignment {
   rotationId: string;
   nurseIds: string[];
   startDate: string;
+}
+
+export interface ManualHourEntry {
+    segments: TimeSegment[];
+    note?: string;
 }
 
 export interface AppState {
@@ -264,6 +272,11 @@ export interface AppState {
     wishes: Wishes;
     jornadasLaborales: JornadaLaboral[];
     manualChangeLog: ManualChangeLogEntry[];
+    manualHours: {
+        [nurseId: string]: {
+            [dateKey: string]: ManualHourEntry;
+        };
+    };
 }
 
 export interface HistoryEntry {
@@ -274,7 +287,6 @@ export interface HistoryEntry {
   details: string;
 }
 
-// FIX: Add missing SwapInfo type definition.
 export interface SwapInfo {
   shownShift: ScheduleCell;
   swappedWithNurseId: string;
