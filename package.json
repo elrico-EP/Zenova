@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "lint": "tsc --noEmit",
     "build": "vite build",
-    "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",

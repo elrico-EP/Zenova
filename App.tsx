@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { ScheduleGrid, BASE_CELL_WIDTH, DAY_COL_WIDTH, PRESENT_COL_WIDTH, NOTES_COL_WIDTH } from './components/ScheduleGrid';
 import { Header } from './components/Header';
@@ -14,7 +15,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
-import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState, TimeSegment } from './types';
+import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell, generateAndBalanceGaps } from './utils/scheduleUtils';
 import { calculateHoursForMonth, calculateHoursForDay, calculateHoursDifference } from './utils/hoursUtils';
@@ -29,48 +30,9 @@ import { usePermissions } from './hooks/usePermissions';
 import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
+import { ManualHoursModal } from './components/ManualHoursModal';
 import { MaximizeIcon, RestoreIcon } from './components/Icons';
-import { useSupabaseState } from './hooks/useSupabaseState';
-import { HoursEditPopover } from './components/HoursEditPopover';
-
-const JANUARY_2026_SHIFTS_ORIGINAL: Schedule = {
-    'nurse-1': { '2026-01-05': { custom: 'Adm', type: 'ADMIN' }, '2026-01-06': { custom: 'Adm', type: 'ADMIN' }, '2026-01-07': { custom: 'Adm', type: 'ADMIN' }, '2026-01-08': { custom: 'Adm', type: 'ADMIN' }, '2026-01-09': { custom: 'Adm', type: 'ADMIN' }, '2026-01-12': { custom: 'Adm', type: 'ADMIN' }, '2026-01-13': { custom: 'Adm', type: 'ADMIN' }, '2026-01-14': { custom: 'Adm', type: 'ADMIN' }, '2026-01-15': { custom: 'Adm', type: 'ADMIN' }, '2026-01-16': { custom: 'Adm', type: 'ADMIN' }, '2026-01-19': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-20': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-21': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-22': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-23': { custom: 'STR-PREP', type: 'STRASBOURG' }, '2026-01-26': { custom: 'Adm', type: 'ADMIN' }, '2026-01-27': { custom: 'Adm', type: 'ADMIN' }, '2026-01-28': { custom: 'Adm', type: 'ADMIN' }, '2026-01-29': { custom: 'Adm', type: 'ADMIN' }, '2026-01-30': { custom: 'Adm', type: 'ADMIN' } },
-    'nurse-2': { '2026-01-07': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-08': { custom: 'Adm', type: 'ADMIN' }, '2026-01-09': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-12': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-13': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-14': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-15': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-16': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-19': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-01-20': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-21': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-22': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-23': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-26': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-01-27': { custom: 'Adm', type: 'ADMIN' }, '2026-01-28': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-29': { custom: 'Adm', type: 'ADMIN' }, '2026-01-30': { custom: 'Urg M', type: 'URGENCES' } },
-    'nurse-3': { '2026-01-05': { custom: 'Adm', type: 'ADMIN' }, '2026-01-06': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-07': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-08': { custom: 'TW', type: 'TW' }, '2026-01-09': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-12': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-13': { custom: 'Adm', type: 'ADMIN' }, '2026-01-14': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-15': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-16': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-19': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-20': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-01-21': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-22': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-23': { custom: 'Adm', type: 'ADMIN' }, '2026-01-26': { custom: 'Adm', type: 'ADMIN' }, '2026-01-27': { custom: 'Adm', type: 'ADMIN' }, '2026-01-30': { custom: 'Urg M', type: 'URGENCES' } },
-    'nurse-4': { '2026-01-05': { custom: 'CA', type: 'CA' }, '2026-01-06': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-01-07': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-08': { custom: 'Adm', type: 'ADMIN' }, '2026-01-09': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-19': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-20': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-21': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-22': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-23': { custom: 'STR-PREP', type: 'STRASBOURG' } },
-    'nurse-5': { '2026-01-05': { custom: 'CA', type: 'CA' }, '2026-01-06': { custom: 'Adm', type: 'ADMIN' }, '2026-01-07': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-08': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-09': { custom: 'Adm', type: 'ADMIN' } },
-    'nurse-6': { '2026-01-05': { custom: 'CA', type: 'CA' }, '2026-01-06': { custom: 'CA', type: 'CA' }, '2026-01-07': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-01-08': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-09': { custom: 'Adm', type: 'ADMIN' } },
-    'nurse-7': { '2026-01-05': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-06': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-07': { custom: 'Adm', type: 'ADMIN' }, '2026-01-08': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-01-09': { custom: 'Urg M', type: 'URGENCES' } },
-    'nurse-8': { '2026-01-05': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-06': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-07': { custom: 'TW', type: 'TW' }, '2026-01-08': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-09': { custom: 'Trav M', type: 'TRAVAIL' } },
-    'nurse-9': { '2026-01-05': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-06': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-07': { custom: 'TW', type: 'TW' }, '2026-01-08': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-09': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-19': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-20': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-21': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-22': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-23': { custom: 'STR-PREP', type: 'STRASBOURG' } },
-    'nurse-10': { '2026-01-05': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-01-06': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-07': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-08': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-09': { custom: 'TW', type: 'TW' }, '2026-01-19': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-20': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-21': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-22': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-23': { custom: 'STR-PREP', type: 'STRASBOURG' } },
-    'nurse-11': { '2026-01-12': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-13': { custom: 'TW', type: 'TW' }, '2026-01-14': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-15': { custom: 'Adm', type: 'ADMIN' }, '2026-01-16': { custom: 'Libero', type: 'LIBERO', time: '10:00-16:00' }, '2026-01-19': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-20': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-21': { custom: 'STR', type: 'STRASBOURG' }, '2026-01-22': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-23': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-26': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-27': { custom: 'Urg M', type: 'URGENCES' }, '2026-01-28': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-01-29': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-01-30': { custom: 'Trav M', type: 'TRAVAIL' } }
-};
-
-const FEBRUARY_2026_SHIFTS_ORIGINAL: Schedule = {
-    'nurse-1': { '2026-02-02': { custom: 'Adm', type: 'ADMIN' }, '2026-02-03': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-04': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-05': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-06': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-16': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-17': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-18': { custom: 'Adm', type: 'ADMIN' }, '2026-02-19': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-02-23': { custom: 'Adm', type: 'ADMIN' }, '2026-02-24': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-25': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-26': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-27': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' } },
-    'nurse-2': { '2026-02-02': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-03': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-04': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-05': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '10:00-15:30' }, '2026-02-06': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-02-16': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-02-17': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-18': { custom: 'CA', type: 'CA' }, '2026-02-19': { custom: 'CA', type: 'CA' }, '2026-02-23': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-24': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-18:30' }, '2026-02-25': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-26': { custom: 'Adm', type: 'ADMIN' }, '2026-02-27': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' } },
-    'nurse-3': { '2026-02-02': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-02-03': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-16:00' }, '2026-02-04': { split: [{ custom: 'Recup', type: 'RECUP', time: '08:00-12:30' }, { custom: 'Adm', type: 'ADMIN', time: '12:30-16:00' }] }, '2026-02-05': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-02-06': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-02-16': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-02-17': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-18': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-02-19': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-02-23': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-24': { custom: 'Adm', type: 'ADMIN', time: '08:00-16:00' }, '2026-02-25': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-16:00' }, '2026-02-26': { custom: 'TW', type: 'TW', time: '08:00-16:00' }, '2026-02-27': { custom: 'Adm', type: 'ADMIN', time: '08:00-16:00' } },
-    'nurse-4': { '2026-02-02': { custom: 'Red. 80%', type: 'CA' }, '2026-02-03': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-18:30' }, '2026-02-04': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-05': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-06': { custom: 'CA', type: 'CA', time: '08:00-17:00' }, '2026-02-10': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-11': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-12': { custom: 'Sick', type: 'SICK_LEAVE', time: '08:00-17:00' }, '2026-02-13': { custom: 'Sick', type: 'SICK_LEAVE', time: '08:00-17:00' }, '2026-02-16': { custom: 'Red. 80%', type: 'CA' }, '2026-02-17': { custom: 'Sick', type: 'SICK_LEAVE', time: '08:00-17:00' }, '2026-02-18': { custom: 'Sick', type: 'SICK_LEAVE', time: '08:00-17:00' }, '2026-02-19': { custom: 'Sick', type: 'SICK_LEAVE', time: '08:00-17:00' }, '2026-02-20': { custom: 'Sick', type: 'SICK_LEAVE', time: '08:00-17:00' }, '2026-02-23': { custom: 'Red. 80%', type: 'CA' }, '2026-02-24': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-25': { custom: 'TW', type: 'TW' }, '2026-02-26': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-27': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' } },
-    'nurse-5': { '2026-02-02': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-02-03': { custom: 'FP', type: 'FP', time: '08:00-17:00' }, '2026-02-04': { custom: 'TW', type: 'TW', time: '08:00-17:00' }, '2026-02-05': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-06': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-02-09': { custom: 'FP', type: 'FP' }, '2026-02-10': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-11': { custom: 'FP', type: 'FP', time: '08:00-17:00' }, '2026-02-12': { custom: 'FP', type: 'FP', time: '08:00-17:00' }, '2026-02-13': { custom: 'FP', type: 'FP', time: '08:00-17:00' }, '2026-02-16': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-17': { custom: 'FP', type: 'FP', time: '08:00-17:00' }, '2026-02-18': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-19': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-02-23': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-24': { custom: 'FP', type: 'FP', time: '08:00-17:00' }, '2026-02-25': { custom: 'Adm', type: 'ADMIN' }, '2026-02-26': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-27': { custom: 'TW', type: 'TW', time: '08:00-17:00' } },
-    'nurse-6': { '2026-02-02': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-03': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-02-04': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-02-05': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-06': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-18:30' }, '2026-02-16': { custom: 'CA', type: 'CA' }, '2026-02-17': { custom: 'CA', type: 'CA' }, '2026-02-18': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-19': { custom: 'TW', type: 'TW' }, '2026-02-23': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-02-24': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-25': { custom: 'Adm', type: 'ADMIN' }, '2026-02-26': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-27': { custom: 'TW', type: 'TW', time: '08:00-17:00' } },
-    'nurse-7': { '2026-02-02': { custom: 'CA', type: 'CA' }, '2026-02-03': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-02-04': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '10:00-18:30' }, '2026-02-05': { split: [{ custom: 'STR travel', type: 'ADMIN', time: '08:00-13:30' }, { custom: 'TW', type: 'TW', time: '14:00-17:00' }] }, '2026-02-06': { custom: 'Euroscola', type: 'STRASBOURG', time: '08:00-17:00' }, '2026-02-10': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-02-11': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '09:00-17:45' }, '2026-02-12': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-16': { custom: 'Adm', type: 'ADMIN' }, '2026-02-17': { custom: 'FP', type: 'FP' }, '2026-02-18': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-02-19': { custom: 'TW', type: 'TW' }, '2026-02-23': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-02-24': { custom: 'TW', type: 'TW', time: '08:00-17:00' }, '2026-02-25': { custom: 'Adm', type: 'ADMIN' }, '2026-02-26': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-18:30' }, '2026-02-27': { custom: 'Trav M', type: 'TRAVAIL' } },
-    'nurse-8': { '2026-02-02': { custom: 'CA', type: 'CA' }, '2026-02-03': { custom: 'CA', type: 'CA', time: '08:00-14:00' }, '2026-02-04': { custom: 'CA', type: 'CA', time: '08:00-17:00' }, '2026-02-05': { custom: 'CS', type: 'CS', time: '08:00-17:00' }, '2026-02-06': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-02-10': { custom: 'CS', type: 'CS' }, '2026-02-11': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '09:00-17:45' }, '2026-02-12': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '09:00-17:45' }, '2026-02-13': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-02-16': { custom: 'TW', type: 'TW' }, '2026-02-17': { custom: 'FP', type: 'FP', time: '08:00-14:00' }, '2026-02-18': { custom: 'CA', type: 'CA' }, '2026-02-19': { custom: 'CA', type: 'CA' }, '2026-02-23': { custom: 'Recup', type: 'RECUP' }, '2026-02-24': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-02-25': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-02-26': { custom: 'Urg M', type: 'URGENCES' }, '2026-02-27': { custom: 'Urg M', type: 'URGENCES' } }
-};
-
-const MARCH_2026_SHIFTS_ORIGINAL: Schedule = {
-    'nurse-1': { '2026-03-02': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-03': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-04': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-05': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '10:00-18:30' }, '2026-03-06': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-16': { custom: 'Adm', type: 'ADMIN' }, '2026-03-17': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-18': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-19': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-20': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-23': { custom: 'Adm', type: 'ADMIN' }, '2026-03-24': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-25': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-26': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-27': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-30': { custom: 'Adm', type: 'ADMIN' }, '2026-03-31': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, },
-    'nurse-2': { '2026-03-02': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-03-03': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-04': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-14:00' }, '2026-03-05': { custom: 'Adm', type: 'ADMIN', time: '08:00-14:00' }, '2026-03-06': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '10:00-18:30' }, '2026-03-09': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-10': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-11': { custom: 'Adm', type: 'ADMIN', time: '08:00-14:00' }, '2026-03-16': { custom: 'Adm', type: 'ADMIN' }, '2026-03-17': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-18': { custom: 'Adm', type: 'ADMIN', time: '08:00-14:00' }, '2026-03-19': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-14:00' }, '2026-03-20': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-23': { custom: 'Adm', type: 'ADMIN' }, '2026-03-24': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-25': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-14:00' }, '2026-03-26': { custom: 'Urg M', type: 'URGENCES', time: '08:00-14:00' }, '2026-03-27': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-30': { custom: 'Adm', type: 'ADMIN' }, '2026-03-31': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '09:00-17:45' }, },
-    'nurse-3': { '2026-03-02': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '11:00-18:30' }, '2026-03-03': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-03-04': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '11:00-18:30' }, '2026-03-05': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-16:00' }, '2026-03-06': { custom: 'TW', type: 'TW', time: '08:00-16:00' }, '2026-03-09': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-03-10': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-17:45' }, '2026-03-11': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-16:00' }, '2026-03-12': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-03-13': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-03-16': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-16:00' }, '2026-03-17': { custom: 'Adm', type: 'ADMIN', time: '08:00-16:00' }, '2026-03-18': { custom: 'TW', type: 'TW', time: '08:00-16:00' }, '2026-03-19': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '11:00-18:30' }, '2026-03-20': { custom: 'Adm', type: 'ADMIN', time: '08:00-16:00' }, '2026-03-23': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-16:00' }, '2026-03-24': { custom: 'Adm', type: 'ADMIN', time: '08:00-16:00' }, '2026-03-25': { custom: 'Adm', type: 'ADMIN', time: '08:00-16:00' }, '2026-03-26': { custom: 'Urg M', type: 'URGENCES', time: '08:00-16:00' }, '2026-03-27': { custom: 'TW', type: 'TW', time: '08:00-16:00' }, '2026-03-30': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-16:00' }, '2026-03-31': { custom: 'Adm', type: 'ADMIN', time: '08:00-16:00' }, },
-    'nurse-4': { '2026-03-02': { custom: 'Red. 80%', type: 'CA' }, '2026-03-03': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-04': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-05': { custom: 'TW', type: 'TW', time: '08:00-17:00' }, '2026-03-06': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-09': { custom: 'Red. 80%', type: 'CA' }, '2026-03-10': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-11': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-12': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-16': { custom: 'Red. 80%', type: 'CA' }, '2026-03-17': { custom: 'TW', type: 'TW', time: '08:00-17:00' }, '2026-03-18': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-18:30' }, '2026-03-19': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-20': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-23': { custom: 'Red. 80%', type: 'CA' }, '2026-03-24': { custom: 'TW', type: 'TW', time: '08:00-17:00' }, '2026-03-25': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-26': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-27': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-30': { custom: 'Red. 80%', type: 'CA' }, '2026-03-31': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, },
-    'nurse-5': { '2026-03-02': { custom: 'FP', type: 'FP' }, '2026-03-03': { custom: 'FP', type: 'FP', time: '08:00-17:00' }, '2026-03-04': { custom: 'Urg M', type: 'URGENCES', time: '08:00-15:30' }, '2026-03-05': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-06': { custom: 'Red. 80%', type: 'CA' }, '2026-03-16': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-03-17': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-15:30' }, '2026-03-18': { custom: 'Urg M', type: 'URGENCES', time: '08:00-15:30' }, '2026-03-19': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-20': { custom: 'Red. 80%', type: 'CA' }, '2026-03-23': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-24': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-15:30' }, '2026-03-25': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '11:30-18:30' }, '2026-03-26': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-18:30' }, '2026-03-27': { custom: 'Red. 80%', type: 'CA' }, '2026-03-30': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-31': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-15:30' }, },
-    'nurse-6': { '2026-03-02': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-03-03': { custom: 'TW', type: 'TW', time: '08:00-17:00' }, '2026-03-04': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-05': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-18:30' }, '2026-03-06': { custom: 'Libero', type: 'LIBERO', time: '08:00-17:00' }, '2026-03-12': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-13': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-16': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-03-17': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-18': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-19': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-20': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-23': { custom: 'TW', type: 'TW' }, '2026-03-24': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-25': { custom: 'Adm', type: 'ADMIN' }, '2026-03-26': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-03-27': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-30': { custom: 'Adm', type: 'ADMIN' }, '2026-03-31': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, },
-    'nurse-7': { '2026-03-02': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-03-03': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '10:00-18:30' }, '2026-03-04': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-05': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-06': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-18:30' }, '2026-03-09': { custom: 'Trav T', type: 'TRAVAIL_TARDE' }, '2026-03-10': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '09:00-17:45' }, '2026-03-11': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '09:00-17:45' }, '2026-03-12': { custom: 'Urg M', type: 'URGENCES', time: '09:00-17:45' }, '2026-03-13': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-16': { custom: 'Adm', type: 'ADMIN' }, '2026-03-17': { custom: 'FP', type: 'FP', time: '08:00-17:00' }, '2026-03-18': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-03-19': { custom: 'TW', type: 'TW' }, '2026-03-20': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-23': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-03-24': { custom: 'Urg T', type: 'URGENCES_TARDE', time: '10:00-18:30' }, '2026-03-25': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-26': { custom: 'Adm', type: 'ADMIN' }, '2026-03-27': { 'custom': 'Trav M', 'type': 'TRAVAIL' }, '2026-03-30': { custom: 'TW', type: 'TW' }, '2026-03-31': { custom: 'Urg M', type: 'URGENCES' }, },
-    'nurse-8': { '2026-03-02': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-14:00' }, '2026-03-03': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '10:00-15:30' }, '2026-03-04': { custom: 'TW', type: 'TW', time: '08:00-17:00' }, '2026-03-05': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-06': { custom: 'Adm', type: 'ADMIN', time: '08:00-17:00' }, '2026-03-10': { custom: 'Urg M', type: 'URGENCES', time: '08:00-17:00' }, '2026-03-11': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-03-12': { custom: 'Urg M', type: 'URGENCES' }, '2026-03-13': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-17:00' }, '2026-03-16': { custom: 'Urg M', type: 'URGENCES', time: '08:00-14:00' }, '2026-03-17': { custom: 'FP', type: 'FP', time: '08:00-14:00' }, '2026-03-18': { custom: 'CA', type: 'CA' }, '2026-03-19': { custom: 'CA', type: 'CA' }, '2026-03-20': { custom: 'CA', type: 'CA' }, '2026-03-23': { custom: 'Urg M', type: 'URGENCES', time: '08:00-14:00' }, '2026-03-24': { custom: 'Trav M', type: 'TRAVAIL', time: '08:00-14:00' }, '2026-03-25': { custom: 'TW', type: 'TW' }, '2026-03-26': { custom: 'Urg T', type: 'URGENCES_TARDE' }, '2026-03-27': { custom: 'Trav M', type: 'TRAVAIL' }, '2026-03-30': { custom: 'Urg M', type: 'URGENCES', time: '08:00-14:00' }, '2026-03-31': { custom: 'Trav T', type: 'TRAVAIL_TARDE', time: '09:00-14:45' }, },
-};
-
-
-import { ShiftChangeModal } from './components/ShiftChangeModal';
+import { useSupabaseState } from './hooks/useSupabaseState'
 
 const App: React.FC = () => {
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
@@ -103,11 +65,10 @@ const App: React.FC = () => {
   const [zoomLevel, setZoomLevel] = useState(0.4);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
+  const [manualHoursModalConfig, setManualHoursModalConfig] = useState<{ isOpen: boolean; nurse: Nurse | null; dateKey: string; }>({ isOpen: false, nurse: null, dateKey: '' });
   const [isAnnualPlannerOpen, setIsAnnualPlannerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
   const [showFullscreenToast, setShowFullscreenToast] = useState(false);
-  const [hoursEditState, setHoursEditState] = useState<{ nurseId: string; dateKey: string; anchorEl: HTMLElement } | null>(null);
-  const [shiftChangeConfig, setShiftChangeConfig] = useState<{ isOpen: boolean; nurseId: string; date: string; shift: ScheduleCell } | null>(null);
 
   // State derived from shared state now
   // Mantener nurses localmente si hay cambios pendientes, sino usar Supabase
@@ -117,87 +78,29 @@ const App: React.FC = () => {
   // Sincronizar con Supabase cuando cambia sharedData, pero preservar cambios locales
   useEffect(() => {
     if (sharedData?.nurses && !isEditingNurses) {
-        // Solo actualizar si los datos son realmente diferentes
-        const hasChanges = JSON.stringify(sharedData.nurses) !== JSON.stringify(localNurses);
-        if (hasChanges) {
-            setLocalNurses(sharedData.nurses);
-        }
+        setLocalNurses(sharedData.nurses);
     }
-  }, [sharedData?.nurses, isEditingNurses]);
-  
-  const nurses = localNurses;
-  const agenda = useMemo(() => sharedData?.agenda ?? {}, [sharedData?.agenda]);
-  const manualOverrides = useMemo(() => sharedData?.manualOverrides ?? {}, [sharedData?.manualOverrides]);
-  const notes = useMemo(() => sharedData?.notes ?? {}, [sharedData?.notes]);
-  const vaccinationPeriod = useMemo(() => sharedData?.vaccinationPeriod ?? null, [sharedData?.vaccinationPeriod]);
-  const strasbourgAssignments = useMemo(() => sharedData?.strasbourgAssignments ?? {}, [sharedData?.strasbourgAssignments]);
-  const strasbourgEvents = useMemo(() => sharedData?.strasbourgEvents ?? [], [sharedData?.strasbourgEvents]);
-  const specialStrasbourgEvents = useMemo(() => sharedData?.specialStrasbourgEvents ?? [], [sharedData?.specialStrasbourgEvents]);
-  const closedMonths = useMemo(() => sharedData?.closedMonths ?? {}, [sharedData?.closedMonths]);
-  const wishes = useMemo(() => sharedData?.wishes ?? {}, [sharedData?.wishes]);
-  const jornadasLaborales = useMemo(() => sharedData?.jornadasLaborales ?? [], [sharedData?.jornadasLaborales]);
-  const manualChangeLog = useMemo(() => sharedData?.manualChangeLog ?? [], [sharedData?.manualChangeLog]);
-  const manualHours = useMemo(() => sharedData?.manualHours ?? {}, [sharedData?.manualHours]);
-  const manuallyManagedDays = useMemo(() => sharedData?.manuallyManagedDays ?? {}, [sharedData?.manuallyManagedDays]);
-  
-  const handleOpenShiftChangeModal = useCallback((nurseId: string, date: string, shift: ScheduleCell) => {
-    setShiftChangeConfig({ isOpen: true, nurseId, date, shift });
-  }, []);
+  }, [sharedData?.nurses]);
 
+  const nurses = localNurses;
+  const agenda = sharedData?.agenda ?? {};
+  // Extraer manualOverrides de Supabase
+  const manualOverrides = sharedData?.manualOverrides || {}
+  const notes = sharedData?.notes ?? {};
+  const vaccinationPeriod = sharedData?.vaccinationPeriod ?? null;
+  const strasbourgAssignments = sharedData?.strasbourgAssignments ?? {};
+  const strasbourgEvents = sharedData?.strasbourgEvents ?? [];
+  const specialStrasbourgEvents = sharedData?.specialStrasbourgEvents ?? [];
+  const closedMonths = sharedData?.closedMonths ?? {};
+  const wishes = sharedData?.wishes ?? {};
+  const jornadasLaborales = sharedData?.jornadasLaborales ?? [];
+  const manualChangeLog = sharedData?.manualChangeLog ?? [];
+  
+  const [hours, setHours] = useState<Hours>({});
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   
   const { language } = useLanguage();
   const t = useTranslations();
-  
-  const userRef = useRef(user);
-  userRef.current = user;
-
-  const addHistoryEntry = useCallback((action: string, details: string) => {
-    if (!userRef.current) return;
-    
-    const newEntry: HistoryEntry = {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        user: userRef.current.name,
-        action,
-        details,
-    };
-    
-    setHistory(prevHistory => {
-        const updatedHistory = [newEntry, ...prevHistory].slice(0, 100);
-        try {
-            localStorage.setItem('nursingAppChangeHistory', JSON.stringify(updatedHistory));
-        } catch (error) {
-            console.error("Failed to save history to localStorage:", error);
-        }
-        return updatedHistory;
-    });
-  }, []);
-
-  const handleShiftChange = useCallback(async (nurseId: string, oldDate: string, newDate: string, shift: ScheduleCell) => {
-    const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
-
-    // Remove the shift from the old date
-    if (newOverrides[nurseId] && newOverrides[nurseId][oldDate]) {
-      delete newOverrides[nurseId][oldDate];
-      if (Object.keys(newOverrides[nurseId]).length === 0) {
-        delete newOverrides[nurseId];
-      }
-    }
-
-    // Add the shift to the new date
-    if (!newOverrides[nurseId]) {
-      newOverrides[nurseId] = {};
-    }
-    newOverrides[nurseId][newDate] = shift;
-
-    // Log the change
-    const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
-    const shiftLabel = typeof shift === 'string' ? shift : ('custom' in shift ? shift.custom.split('\n')[0] : 'Split');
-    addHistoryEntry('Shift Moved', `Moved ${shiftLabel} for ${nurseName} from ${oldDate} to ${newDate}`);
-
-    await updateData({ manualOverrides: newOverrides });
-  }, [manualOverrides, updateData, addHistoryEntry, nurses]);
 
   useEffect(() => {
     try {
@@ -251,6 +154,7 @@ const App: React.FC = () => {
   const isMonthClosed = !!closedMonths[monthKey];
 
   const effectiveAgenda = useMemo(() => (year === 2026 ? agenda2026Data : agenda), [year, agenda]);
+  const [schedule, setSchedule] = useState<Schedule>({});
   
   useEffect(() => {
     const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
@@ -268,28 +172,13 @@ const App: React.FC = () => {
 
   // Base overrides (only fixed events, NO manual changes) for the "Original Planning"
   const baseOverrides = useMemo(() => {
-    // Start with a deep copy of January's data
-    const merged: Schedule = JSON.parse(JSON.stringify(JANUARY_2026_SHIFTS_ORIGINAL));
-
-    // Merge February's data into it
-    for (const nurseId in FEBRUARY_2026_SHIFTS_ORIGINAL) {
-        if (!merged[nurseId]) merged[nurseId] = {};
-        Object.assign(merged[nurseId], FEBRUARY_2026_SHIFTS_ORIGINAL[nurseId]);
-    }
-
-    // Merge March's data into it
-    for (const nurseId in MARCH_2026_SHIFTS_ORIGINAL) {
-        if (!merged[nurseId]) merged[nurseId] = {};
-        Object.assign(merged[nurseId], MARCH_2026_SHIFTS_ORIGINAL[nurseId]);
-    }
-    
+    const merged: Schedule = {};
     specialStrasbourgEvents.forEach(event => {
         if (!event.startDate || !event.endDate || !event.nurseIds) return;
         for (let d = new Date(event.startDate); d <= new Date(event.endDate); d.setDate(d.getDate() + 1)) {
             const dateKey = d.toISOString().split('T')[0];
             event.nurseIds.forEach(nurseId => {
                 if (!merged[nurseId]) merged[nurseId] = {};
-                // Special events should override the base plan
                 const timeString = event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : undefined;
                 merged[nurseId][dateKey] = { custom: event.name, type: 'STRASBOURG', time: timeString };
             });
@@ -313,7 +202,7 @@ const App: React.FC = () => {
         }
     });
     return merged;
-  }, [manualOverrides, specialStrasbourgEvents]);
+  }, [manualOverrides, specialStrasbourgEvents, sharedData]);
 
   const { fullOriginalSchedule, fullCurrentSchedule } = useMemo(() => {
     const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
@@ -329,7 +218,7 @@ const App: React.FC = () => {
         const activeNursesForDate = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
 
         originalSchedules.push(recalculateScheduleForMonth(activeNursesForDate, date, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales));
-        currentSchedules.push(recalculateScheduleForMonth(activeNursesForDate, date, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manuallyManagedDays));
+        currentSchedules.push(recalculateScheduleForMonth(activeNursesForDate, date, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales));
     });
     
     const mergeSchedules = (schedules: Schedule[]): Schedule => {
@@ -347,13 +236,11 @@ const App: React.FC = () => {
         fullOriginalSchedule: mergeSchedules(originalSchedules),
         fullCurrentSchedule: mergeSchedules(currentSchedules)
     };
-}, [nurses, currentDate, effectiveAgenda, baseOverrides, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manuallyManagedDays]);
+}, [nurses, currentDate, effectiveAgenda, baseOverrides, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
   
   const currentSchedule = useMemo(() => {
-    return recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manuallyManagedDays);
-  }, [activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manuallyManagedDays]);
-
-  const schedule = currentSchedule;
+    return recalculateScheduleForMonth(activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
+  }, [activeNurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
 
   // Forzar recálculo cuando cambian los datos de Supabase
 useEffect(() => {
@@ -362,38 +249,44 @@ useEffect(() => {
     }
 }, [sharedData?.manualOverrides]) // <-- Solo esta dependencia, no todo sharedData
   
+ useEffect(() => {
+    console.log('✅ Schedule actualizado correctamente')
+    setSchedule(currentSchedule);
+}, [currentSchedule]);
 
-  const hours = useMemo(() => {
+  useEffect(() => {
     const calculatedHoursForMonth = calculateHoursForMonth(activeNurses, currentDate, effectiveAgenda, schedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
-    
-    // Merge with manual hours from Supabase
-    for (const nurseId in manualHours) {
-        if (!calculatedHoursForMonth[nurseId]) continue;
-        for (const dateKey in manualHours[nurseId]) {
-            if (calculatedHoursForMonth[nurseId][dateKey]) {
-                const entry = manualHours[nurseId][dateKey];
-                calculatedHoursForMonth[nurseId][dateKey].segments = entry.segments;
-                calculatedHoursForMonth[nurseId][dateKey].note = entry.note;
-                
-                let manualDuration = 0;
-                entry.segments?.forEach(segment => {
-                    manualDuration += calculateHoursDifference(segment.startTime, segment.endTime);
-                });
-                calculatedHoursForMonth[nurseId][dateKey].manual = manualDuration;
+    setHours(prevHours => {
+        const newHoursState = JSON.parse(JSON.stringify(calculatedHoursForMonth));
+        for (const nurseId in newHoursState) {
+            if (activeNurses.some(n => n.id === nurseId) && prevHours[nurseId]) {
+                for (const dateKey in newHoursState[nurseId]) {
+                    if (prevHours[nurseId][dateKey]) {
+                        const manualData = prevHours[nurseId][dateKey];
+                        if (manualData.manual !== undefined) newHoursState[nurseId][dateKey].manual = manualData.manual;
+                        if (manualData.segments) newHoursState[nurseId][dateKey].segments = manualData.segments;
+                        if (manualData.note) newHoursState[nurseId][dateKey].note = manualData.note;
+                    }
+                }
             }
         }
-    }
-    return calculatedHoursForMonth;
-  }, [activeNurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, manualHours]);
+        return newHoursState;
+    });
+  }, [activeNurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales]);
 
   const balanceData = useMemo<BalanceData[]>(() => {
     if (nurses.length === 0) return [];
     const annualSchedules: { [month: number]: Schedule } = {};
     for (let m = 0; m < 12; m++) {
-      annualSchedules[m] = recalculateScheduleForMonth(nurses, new Date(year, m, 1), effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manuallyManagedDays);
+      annualSchedules[m] = recalculateScheduleForMonth(nurses, new Date(year, m, 1), effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
     }
     return nurses.map(nurse => {
-      const emptyCounts = (): ShiftCounts => ({ TRAVAIL: 0, TRAVAIL_TARDE: 0, URGENCES: 0, URGENCES_TARDE: 0, ADMIN: 0, TW: 0, CA: 0, FP: 0, SICK_LEAVE: 0, STRASBOURG: 0, LIBERO: 0, VACCIN: 0, VACCIN_AM: 0, VACCIN_PM: 0 });
+      const emptyCounts = (): ShiftCounts => ({ 
+        TRAVAIL: 0, TRAVAIL_TARDE: 0, URGENCES: 0, URGENCES_TARDE: 0, 
+        ADMIN: 0, ADM_TARDE: 0, TW: 0, TW_ABROAD: 0, CA: 0, FP: 0, 
+        CS: 0, RECUP: 0, SICK_LEAVE: 0, STRASBOURG: 0, LIBERO: 0, 
+        VACCIN: 0, VACCIN_AM: 0, VACCIN_PM: 0, VACCIN_PM_PLUS: 0
+      });
       const annualCounts = emptyCounts();
       const monthlyCounts = emptyCounts();
       let annualWorkedHours = 0;
@@ -428,8 +321,30 @@ useEffect(() => {
         monthlyTargetHours: 0, annualTargetHours: 0, monthlyBalance: monthlyWorkedHours, annualBalance: annualWorkedHours, hasConsecutiveAdmTw: false,
       };
     });
-  }, [nurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, year, jornadasLaborales, specialStrasbourgEvents, manuallyManagedDays]);
+  }, [nurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, year, jornadasLaborales, specialStrasbourgEvents]);
   
+  const addHistoryEntry = useCallback((action: string, details: string) => {
+    if (!user) return;
+    
+    const newEntry: HistoryEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: user.name,
+        action,
+        details,
+    };
+    
+    setHistory(prevHistory => {
+        const updatedHistory = [newEntry, ...prevHistory].slice(0, 100);
+        try {
+            localStorage.setItem('nursingAppChangeHistory', JSON.stringify(updatedHistory));
+        } catch (error) {
+            console.error("Failed to save history to localStorage:", error);
+        }
+        return updatedHistory;
+    });
+  }, [user]);
+
   const handleClearGlobalHistory = useCallback(() => {
     const newEntry: HistoryEntry = {
         id: Date.now().toString(),
@@ -458,13 +373,9 @@ useEffect(() => {
     
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
     const newLog: ManualChangeLogEntry[] = [...(manualChangeLog ?? [])];
-    const newManuallyManagedDays = { ...manuallyManagedDays };
 
     for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
         const dateKey = d.toISOString().split('T')[0];
-        // Mark this day as manually managed
-        newManuallyManagedDays[dateKey] = true;
-
         for (const nurseId of nurseIds) {
             const originalCellForLog = currentSchedule[nurseId]?.[dateKey];
             if (!newOverrides[nurseId]) newOverrides[nurseId] = {};
@@ -489,87 +400,11 @@ useEffect(() => {
         }
     }
     
-    await updateData({
-        manualOverrides: newOverrides,
-        manualChangeLog: newLog,
-        manuallyManagedDays: newManuallyManagedDays
-    });
-
-    console.log('✅ Admin changes saved, automatic balancing disabled for these days.');
-  }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses, manuallyManagedDays]);
+       await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
+    // Ya no recargamos, los cambios se ven en tiempo real
+    console.log('✅ Cambios guardados, se verán automáticamente')
+  }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
-  const handleUndoManualChange = useCallback(async (logId: string) => {
-    if (!permissions.isViewingAsAdmin) return;
-
-    const logEntryToUndo = manualChangeLog.find(log => log.id === logId);
-    if (!logEntryToUndo) {
-        console.error("Log entry not found for undo:", logId);
-        return;
-    }
-
-    // Find all changes for this specific cell and sort them by time
-    const changesForCell = manualChangeLog
-        .filter(log => log.nurseId === logEntryToUndo.nurseId && log.dateKey === logEntryToUndo.dateKey)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    // Check if the entry to undo is the most recent one
-    if (changesForCell.length > 0 && changesForCell[0].id !== logId) {
-        alert("You can only undo the most recent manual change for a given day. Please find and undo the latest change for this cell first.");
-        return;
-    }
-
-    if (!window.confirm(t.admin_confirm_delete_change)) return;
-
-    const nurseName = nurses.find(n => n.id === logEntryToUndo.nurseId)?.name || 'Unknown';
-    addHistoryEntry(t.history_undo, `Reverted change for ${nurseName} on ${logEntryToUndo.dateKey}`);
-
-    const payload: ManualChangePayload = {
-        nurseIds: [logEntryToUndo.nurseId],
-        startDate: logEntryToUndo.dateKey,
-        endDate: logEntryToUndo.dateKey,
-        // If originalShift was undefined, it means the cell was empty, so we 'DELETE' the override.
-        shift: logEntryToUndo.originalShift === undefined ? 'DELETE' : logEntryToUndo.originalShift,
-        scope: 'single'
-    };
-
-    // Re-use the existing handler to apply the change and create a new log entry for the reversal.
-    await handleManualChange(payload);
-  }, [manualChangeLog, permissions.isViewingAsAdmin, t, nurses, addHistoryEntry, handleManualChange]);
-  
-  const handleClearManualChangesForNurseMonth = useCallback(async (nurseId: string, monthKey: string) => {
-      const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
-      addHistoryEntry('Clear Manual History', `Cleared manual changes for ${nurseName} for month ${monthKey}`);
-
-      // Filter out log entries to create the new log state
-      const newLog = manualChangeLog.filter(log => !(log.nurseId === nurseId && log.dateKey.startsWith(monthKey)));
-      
-      // Create a deep copy of the current overrides to modify
-      const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
-
-      // If the nurse has any overrides, filter them
-      if (newOverrides[nurseId]) {
-          const nurseSchedule = newOverrides[nurseId];
-          const updatedNurseSchedule: Schedule[string] = {};
-
-          // Rebuild the schedule for the nurse, keeping only entries NOT in the specified month
-          for (const dateKey in nurseSchedule) {
-              if (!dateKey.startsWith(monthKey)) {
-                  updatedNurseSchedule[dateKey] = nurseSchedule[dateKey];
-              }
-          }
-          
-          // If the nurse has no overrides left, remove the nurse from the overrides object
-          if (Object.keys(updatedNurseSchedule).length === 0) {
-              delete newOverrides[nurseId];
-          } else {
-              newOverrides[nurseId] = updatedNurseSchedule;
-          }
-      }
-
-      // Update the state in Supabase with the new log and new overrides
-      await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
-  }, [manualOverrides, manualChangeLog, updateData, addHistoryEntry, nurses]);
-
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
     addHistoryEntry(t.history_bulk_edit, t.history_bulk_edit_details);
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
@@ -595,8 +430,7 @@ useEffect(() => {
         vaccinationPeriod,
         strasbourgAssignments,
         jornadasLaborales,
-        specialStrasbourgEvents,
-        manuallyManagedDays
+        specialStrasbourgEvents
     );
     const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
     for (const nurseId in generatedForGaps) {
@@ -606,7 +440,7 @@ useEffect(() => {
         Object.assign(newOverrides[nurseId], generatedForGaps[nurseId]);
     }
     await updateData({ manualOverrides: newOverrides });
-  }, [nurses, year, effectiveAgenda, manualOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, manuallyManagedDays, updateData, addHistoryEntry, t]);
+  }, [nurses, year, effectiveAgenda, manualOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, updateData, addHistoryEntry, t]);
 
   const handleDeleteManualOverride = useCallback(async (payload: { nurseId: string, dateKey: string }) => {
       const { nurseId, dateKey } = payload;
@@ -626,31 +460,7 @@ useEffect(() => {
   const handleNoteChange = useCallback((dateKey: string, text: string, color: string) => {
       addHistoryEntry(t.history_noteChange, `Changed note on ${dateKey}`);
       updateData({ notes: { ...notes, [dateKey]: { text, color } } });
-  }, [notes, updateData, addHistoryEntry, t]);
-
-  const handleManualHoursChange = useCallback(async (payload: PersonalHoursChangePayload) => {
-      const { nurseId, dateKey, segments, note } = payload;
-      const newManualHours = JSON.parse(JSON.stringify(manualHours));
-
-      if (!newManualHours[nurseId]) {
-          newManualHours[nurseId] = {};
-      }
-
-      const hasValidSegments = segments && segments.some(s => s.startTime && s.endTime);
-
-      if (hasValidSegments) {
-          newManualHours[nurseId][dateKey] = { segments, note };
-      } else {
-          // If no valid segments, delete the entry to revert to theoretical hours
-          delete newManualHours[nurseId][dateKey];
-          if (Object.keys(newManualHours[nurseId]).length === 0) {
-              delete newManualHours[nurseId];
-          }
-      }
-
-      addHistoryEntry(t.history_adminSetHours, `Set hours for ${nurses.find(n => n.id === nurseId)?.name} on ${dateKey}`);
-      await updateData({ manualHours: newManualHours });
-  }, [manualHours, updateData, addHistoryEntry, t, nurses]);
+  }, [notes, updateData, addHistoryEntry, t.history_noteChange]);
 
 const handleAddNurse = useCallback((name: string) => {
     setIsEditingNurses(true);
@@ -679,17 +489,20 @@ const handleAddNurse = useCallback((name: string) => {
     updateData({ nurses: updatedNurses });
     
     setTimeout(() => setIsEditingNurses(false), 1000); // ← AÑADIR ESTO AL FINAL
-  }, [localNurses, setLocalNurses, updateData, addHistoryEntry, t]);
+  }, [localNurses, setLocalNurses, updateData, addHistoryEntry, t.history_updateNurseName]);
 
   const handleToggleMonthLock = useCallback(() => {
     addHistoryEntry('Toggle Lock', `Month ${monthKey} ${!isMonthClosed ? 'locked' : 'unlocked'}`);
-    updateData({ closedMonths: {...closedMonths, [monthKey]: !isMonthClosed} });
+    console.log(`Toggling month lock for ${monthKey}. Current state: ${isMonthClosed}`);
+    const newClosedMonths = {...closedMonths, [monthKey]: !isMonthClosed};
+    console.log('New closedMonths state:', newClosedMonths);
+    updateData({ closedMonths: newClosedMonths });
   }, [closedMonths, monthKey, isMonthClosed, updateData, addHistoryEntry]);
   
   const handleStrasbourgUpdate = useCallback((weekId: string, nurseIds: string[]) => {
     addHistoryEntry(t.history_strasbourgUpdate, `Updated assignments for week ${weekId}`);
     updateData({ strasbourgAssignments: { ...strasbourgAssignments, [weekId]: nurseIds } });
-  }, [strasbourgAssignments, updateData, addHistoryEntry, t]);
+  }, [strasbourgAssignments, updateData, addHistoryEntry, t.history_strasbourgUpdate]);
 
   const handleSpecialStrasbourgEventsChange = useCallback((newEvents: SpecialStrasbourgEvent[]) => {
       addHistoryEntry(t.history_specialEvent, t.history_specialEvent);
@@ -712,7 +525,7 @@ const handleAddNurse = useCallback((name: string) => {
     updateData({ jornadasLaborales: newJornadas });
   }, [updateData, addHistoryEntry, t]);
 
-  const handleConfirmSwap = useCallback(async (payload: { date: string; nurse1Id: string; nurse2Id: string }) => {
+  const handleConfirmSwap = useCallback((payload: { date: string; nurse1Id: string; nurse2Id: string }) => {
     const { date, nurse1Id, nurse2Id } = payload;
     const nurse1Name = nurses.find(n => n.id === nurse1Id)?.name || 'N/A';
     const nurse2Name = nurses.find(n => n.id === nurse2Id)?.name || 'N/A';
@@ -739,6 +552,29 @@ const handleAddNurse = useCallback((name: string) => {
     updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
   }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
+  const handleOpenManualHoursModal = useCallback((dateKey: string, nurseId: string) => {
+    const nurse = nurses.find(n => n.id === nurseId);
+    if (nurse) {
+      setManualHoursModalConfig({ isOpen: true, nurse, dateKey });
+    }
+  }, [nurses]);
+
+  const handlePersonalHoursChange = useCallback(async (payload: PersonalHoursChangePayload) => {
+    const { nurseId, dateKey, segments, reason } = payload;
+    const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
+    addHistoryEntry('Hours Change', `Modified hours for ${nurseName} on ${dateKey}`);
+    
+    const newHours = JSON.parse(JSON.stringify(hours));
+    if (!newHours[nurseId]) newHours[nurseId] = {};
+    newHours[nurseId][dateKey] = {
+        ...newHours[nurseId][dateKey],
+        segments,
+        note: reason
+    };
+    
+    await updateData({ hours: newHours });
+  }, [hours, nurses, updateData, addHistoryEntry]);
+
   const handleOpenSwapPanelFromCell = (dateKey: string, nurseId: string) => {
     setSwapPanelConfig({ isOpen: true, initialDate: dateKey, initialNurseId: nurseId });
   };
@@ -790,7 +626,7 @@ const handleAddNurse = useCallback((name: string) => {
   const handleVaccinationPeriodChange = useCallback((period: { start: string, end: string } | null) => {
       addHistoryEntry(t.history_vaccinationPeriodChange, `Period set to ${period ? `${period.start} to ${period.end}` : 'None'}`);
       updateData({ vaccinationPeriod: period });
-  }, [addHistoryEntry, updateData, t]);
+  }, [addHistoryEntry, updateData, t.history_vaccinationPeriodChange]);
 
   if (isAuthLoading || isStateLoading) { return ( <div className="min-h-screen flex items-center justify-center bg-zen-50"> <div className="text-center"> <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> <p className="mt-2 text-zen-600">{t.loadingData}</p> </div> </div> ); }
   if (!user) { return <LoginScreen />; }
@@ -875,25 +711,7 @@ const handleAddNurse = useCallback((name: string) => {
                             />
                         </div>
                     )}
-                    <ScheduleGrid 
-                      ref={scheduleGridRef} 
-                      nurses={activeNurses} 
-                      schedule={schedule} 
-                      currentDate={currentDate} 
-                      violations={[]} 
-                      agenda={effectiveAgenda} 
-                      notes={notes} 
-                      hours={hours} 
-                      onNoteChange={handleNoteChange} 
-                      vaccinationPeriod={vaccinationPeriod} 
-                      zoomLevel={zoomLevel} 
-                      strasbourgAssignments={strasbourgAssignments} 
-                      isMonthClosed={isMonthClosed} 
-                      jornadasLaborales={jornadasLaborales} 
-                      onCellDoubleClick={handleOpenSwapPanelFromCell} 
-                      onOpenHoursEdit={(nurseId, dateKey, anchorEl) => setHoursEditState({ nurseId, dateKey, anchorEl })}
-                      onCellClick={handleOpenShiftChangeModal}
-                    />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={activeNurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} />
                   </div>
                 </div>
               ) : view === 'balance' ? ( 
@@ -906,7 +724,7 @@ const handleAddNurse = useCallback((name: string) => {
                     nurses={activeNurses} 
                     year={year} 
                     wishes={wishes} 
-                    onWishesChange={(nurseId, dateKey, text) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], text } } } })} 
+                    onWishesChange={(nurseId, dateKey, text, shiftType) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], text, shiftType } } } })} 
                     onWishValidationChange={(nurseId, dateKey, isValidated) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], validated: isValidated } } } })} 
                     agenda={effectiveAgenda} 
                   /> 
@@ -925,23 +743,6 @@ const handleAddNurse = useCallback((name: string) => {
       </main>
 
       {/* Modals outside main layout flow */}
-      {hoursEditState && permissions.isViewingAsAdmin && (
-        <HoursEditPopover
-            anchorEl={hoursEditState.anchorEl}
-            initialSegments={hours[hoursEditState.nurseId]?.[hoursEditState.dateKey]?.segments}
-            initialNote={hours[hoursEditState.nurseId]?.[hoursEditState.dateKey]?.note}
-            onSave={(segments, note) => {
-                handleManualHoursChange({
-                    nurseId: hoursEditState.nurseId,
-                    dateKey: hoursEditState.dateKey,
-                    segments,
-                    note,
-                });
-                setHoursEditState(null);
-            }}
-            onClose={() => setHoursEditState(null)}
-        />
-      )}
       {isAnnualPlannerOpen && permissions.isViewingAsAdmin && (
           <AnnualPlannerModal
               isOpen={isAnnualPlannerOpen}
@@ -973,10 +774,6 @@ const handleAddNurse = useCallback((name: string) => {
               history={history} 
               onExportAnnual={handleExportAnnualAgenda} 
               jornadasLaborales={jornadasLaborales}
-              manualHours={manualHours}
-              onManualHoursChange={handleManualHoursChange}
-              onUndoManualChange={handleUndoManualChange}
-              onClearHistory={handleClearManualChangesForNurseMonth}
           /> 
       )}
       {permissions.canManageJornadas && isJornadaManagerOpen && (<JornadaLaboralManager nurses={nurses} jornadas={jornadasLaborales} onClose={() => setIsJornadaManagerOpen(false)} onSave={handleJornadasChange} />)}
@@ -987,23 +784,24 @@ const handleAddNurse = useCallback((name: string) => {
               nurses={nurses} 
               schedule={currentSchedule} 
               onConfirmSwap={handleConfirmSwap}
+              onManualChange={handleManualChange}
               initialDate={swapPanelConfig.initialDate}
               initialNurseId={swapPanelConfig.initialNurseId}
               isMonthClosed={isMonthClosed}
           />
       )}
+      <ManualHoursModal
+          isOpen={manualHoursModalConfig.isOpen}
+          onClose={() => setManualHoursModalConfig({ ...manualHoursModalConfig, isOpen: false })}
+          nurse={manualHoursModalConfig.nurse}
+          dateKey={manualHoursModalConfig.dateKey}
+          scheduleCell={manualHoursModalConfig.nurse ? currentSchedule[manualHoursModalConfig.nurse.id]?.[manualHoursModalConfig.dateKey] : undefined}
+          hours={hours}
+          onSave={handlePersonalHoursChange}
+          isMonthClosed={isMonthClosed}
+      />
       <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
-      {shiftChangeConfig?.isOpen && (
-        <ShiftChangeModal
-          isOpen={shiftChangeConfig.isOpen}
-          onClose={() => setShiftChangeConfig(null)}
-          nurseId={shiftChangeConfig.nurseId}
-          date={shiftChangeConfig.date}
-          shift={shiftChangeConfig.shift}
-          onShiftChange={handleShiftChange}
-        />
-      )}
-      <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} onClearHistory={handleClearGlobalHistory} />
+      <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} history={history} />
     </div>
   );
 };
