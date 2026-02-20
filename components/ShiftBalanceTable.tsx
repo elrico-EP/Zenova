@@ -16,10 +16,17 @@ const headers: { key: keyof ShiftCounts | 'totalWorkDays', shiftId: WorkZone | '
     { key: 'URGENCES', shiftId: 'URGENCES' },
     { key: 'URGENCES_TARDE', shiftId: 'URGENCES_TARDE' },
     { key: 'ADMIN', shiftId: 'ADMIN' },
+    { key: 'ADM_TARDE', shiftId: 'ADM_TARDE' },
     { key: 'TW', shiftId: 'TW' },
+    { key: 'TW_ABROAD', shiftId: 'TW_ABROAD' },
     { key: 'CA', shiftId: 'CA' },
     { key: 'FP', shiftId: 'FP' },
+    { key: 'CS', shiftId: 'CS' },
+    { key: 'RECUP', shiftId: 'RECUP' },
+    { key: 'SICK_LEAVE', shiftId: 'SICK_LEAVE' },
     { key: 'STRASBOURG', shiftId: 'STRASBOURG' },
+    { key: 'LIBERO', shiftId: 'LIBERO' },
+    { key: 'VACCIN_PM_PLUS', shiftId: 'VACCIN_PM_PLUS' },
     { key: 'totalWorkDays', shiftId: 'TOTAL' as any },
 ];
 

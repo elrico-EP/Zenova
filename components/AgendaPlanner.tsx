@@ -36,16 +36,21 @@ export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agend
   const effectiveAgenda = is2026 ? agenda2026Data : agenda;
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md relative">
-      <h3 className="font-bold text-lg mb-4 text-gray-700">{t.agendaPlanner}</h3>
-      {is2026 && <p className="text-sm text-gray-600 mb-4">{t.agenda2026Warning}</p>}
+    <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100 relative">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="font-bold text-sm text-slate-700 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-zen-500"></span>
+          {t.agendaPlanner}
+        </h3>
+        {is2026 && <span className="text-[10px] text-slate-400 font-medium italic">{t.agenda2026Warning}</span>}
+      </div>
       
       <div className="absolute top-2 right-2 z-10">
         {children}
       </div>
 
-      <div className="overflow-x-auto pb-3 -mb-3">
-        <div className="flex space-x-3">
+      <div className="overflow-x-auto pb-2 -mb-2 custom-scrollbar">
+        <div className="flex space-x-2">
           {weeks.map(week => {
             const level = effectiveAgenda[week.id] || 'NORMAL';
             const config = activityConfig[level];
@@ -53,13 +58,15 @@ export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agend
               <button
                 key={week.id}
                 onClick={() => handleWeekSelect(week.id)}
-                className={`p-2 rounded-lg text-center transition-all duration-200 ${config.color} ${config.textColor} cursor-pointer hover:shadow-lg hover:-translate-y-0.5 w-32 flex-shrink-0 flex flex-col justify-between h-24`}
+                className={`p-1.5 rounded-md text-center transition-all duration-200 ${config.color} ${config.textColor} cursor-pointer hover:shadow-md hover:-translate-y-0.5 w-24 flex-shrink-0 flex flex-col justify-between h-16 border border-black/5`}
               >
                 <div>
-                  <div className="font-bold text-sm">{t.week} {week.id.split('-W')[1]}</div>
-                  <div className="text-xs mt-1">{week.label}</div>
+                  <div className="font-bold text-[10px] opacity-80">{t.week} {week.id.split('-W')[1]}</div>
+                  <div className="text-[9px] font-medium truncate">{week.label}</div>
                 </div>
-                <div className="text-sm mt-1 font-medium bg-white/20 rounded-full px-2 py-0.5 self-center">{config.label}</div>
+                <div className="text-[10px] font-bold bg-white/30 rounded px-1.5 py-0.5 self-center truncate w-full">
+                  {config.label}
+                </div>
               </button>
             );
           })}

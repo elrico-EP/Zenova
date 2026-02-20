@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeftIcon, ArrowRightIcon, MaximizeIcon, RestoreIcon, StarIcon } from './Icons';
+// FIX: Add MaximizeIcon and RestoreIcon for the fullscreen toggle button.
+import { ArrowLeftIcon, ArrowRightIcon, MaximizeIcon, RestoreIcon } from './Icons';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../hooks/useTranslations';
 import { useUser } from '../contexts/UserContext';
@@ -92,6 +93,7 @@ interface HeaderProps {
   onOpenHelp: () => void;
   onOpenHistory: () => void;
   onOpenAnnualPlanner: () => void;
+  // FIX: Add missing props to support fullscreen toggle functionality passed from App.tsx
   onToggleFullscreen: () => void;
   isFullscreen: boolean;
 }
@@ -100,6 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
   monthName, year, onDateChange, currentDate, isMonthClosed, onToggleMonthLock,
   schedule, nurses, notes, agenda, hours, jornadasLaborales, onExportPdf,
   view, setView, onOpenHelp, onOpenHistory, onOpenAnnualPlanner,
+  // FIX: Destructure new fullscreen props to be used in the component.
   onToggleFullscreen, isFullscreen
 }) => {
   const t = useTranslations();
@@ -110,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
   const handlePrevMonth = () => onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-  const navButtonClass = "px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5";
+  const navButtonClass = "px-4 py-2 text-sm font-medium rounded-md transition-colors";
   const activeNavClass = "bg-white text-zen-800 shadow";
   const inactiveNavClass = "text-white hover:bg-white/20";
 
@@ -128,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hidden lg:flex items-center gap-2 bg-black/20 p-1 rounded-lg">
             <button onClick={() => setView('schedule')} className={`${navButtonClass} ${view === 'schedule' ? activeNavClass : inactiveNavClass}`}>{t.nav_agenda}</button>
             {!permissions.isViewingAsViewer && <button onClick={() => setView('balance')} className={`${navButtonClass} ${view === 'balance' ? activeNavClass : inactiveNavClass}`}>{t.nav_balance}</button>}
-            {!permissions.isViewingAsViewer && <button onClick={() => setView('wishes')} className={`${navButtonClass} ${view === 'wishes' ? activeNavClass : inactiveNavClass}`}><StarIcon className="w-4 h-4" />{t.wishesViewButton}</button>}
+            {!permissions.isViewingAsViewer && <button onClick={() => setView('wishes')} className={`${navButtonClass} ${view === 'wishes' ? activeNavClass : inactiveNavClass}`}>{t.wishesViewButton}</button>}
             {permissions.canManageUsers && user?.role === 'admin' && <button onClick={() => setView('userManagement')} className={`${navButtonClass} ${view === 'userManagement' ? activeNavClass : inactiveNavClass}`}>{t.nav_users}</button>}
         </div>
 
@@ -150,18 +153,19 @@ export const Header: React.FC<HeaderProps> = ({
         
         <div className="flex items-center gap-2 flex-wrap justify-end">
             {permissions.canLockMonth && (
-                <button
-                    onClick={onToggleMonthLock}
-                    className={`px-3 py-2 flex items-center gap-2 text-sm font-medium border rounded-md shadow-sm transition-colors ${
+                <button 
+                    onClick={onToggleMonthLock} 
+                    className={`px-3 py-2 flex items-center gap-2 text-sm font-bold rounded-md shadow-sm transition-all duration-200 ${
                         isMonthClosed 
-                        ? 'bg-red-900/50 border-red-400/50 text-red-200 hover:bg-red-800/50'
-                        : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                        ? 'bg-red-600 text-white hover:bg-red-700 ring-2 ring-red-300 ring-offset-1' 
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700'
                     }`}
+                    title={isMonthClosed ? t.unlockMonth : t.lockMonth}
                 >
-                    {isMonthClosed 
-                        ? <><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm0 10a1 1 0 100-2 1 1 0 000 2z" /><path d="M4 8V7a4 4 0 118 0v1h2V7a6 6 0 10-12 0v1h2z" /></svg> <span>{t.unlockMonth}</span></>
-                        : <><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" /></svg> <span>{t.lockMonth}</span></>
-                    }
+                    <span>{isMonthClosed ? '🔒' : '🔓'}</span>
+                    <span className="hidden sm:inline">
+                        {isMonthClosed ? t.locked : t.editable}
+                    </span>
                 </button>
             )}
             <ExportControls schedule={schedule} nurses={nurses} currentDate={currentDate} onExportPdf={onExportPdf} notes={notes} agenda={agenda} hours={hours} jornadasLaborales={jornadasLaborales} />

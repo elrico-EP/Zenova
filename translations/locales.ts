@@ -1,4 +1,3 @@
-
 export const locales = {
   es: {
     // General
@@ -22,6 +21,8 @@ export const locales = {
     copyToSheets: 'Copiar para Sheets',
     copied: '¡Copiado!',
     help: 'Ayuda',
+    locked: 'Bloqueado',
+    editable: 'Editable',
     lockMonth: 'Bloquear Mes',
     unlockMonth: 'Desbloquear Mes',
     viewAsAdmin: 'Ver como Administrador',
@@ -74,6 +75,7 @@ export const locales = {
     lang_en: 'English',
     lang_fr: 'Français',
     edit: 'Editar',
+    advancedSettings: 'Configuración Avanzada',
     error_selectNurse: 'Debes seleccionar un enfermero/a.',
     error_selectDateRange: 'Debes seleccionar un rango de fechas.',
     'planner.annual_planner_title': 'Plan Anual',
@@ -195,8 +197,8 @@ export const locales = {
     applyingChanges: 'Aplicando...',
     applyChanges: 'Aplicar Cambios',
     step1_nurses: '1. Seleccionar enfermero',
-    step2_shift: '2. Seleccionar Turno',
-    step3_dates: '3. Seleccionar Rango de Fechas',
+    step2_shift: '3. Seleccionar Turno',
+    step3_dates: '2. Seleccionar Rango de Fechas',
     step4_hours: '4. Seleccionar Rango de Horas (Opcional)',
     step5_scope: '5. Definir Alcance',
     startTime: 'Hora Inicio',
@@ -204,9 +206,11 @@ export const locales = {
     setCustomHours: 'Definir Horario',
     swapShifts: 'Intercambiar Turnos',
     changeMyHours: 'Cambiar Horas',
+    changeShiftHours: 'Cambiar Horas del Turno',
     nurse1: 'Enfermero/a 1',
     nurse2: 'Enfermero/a 2',
     reasonForChange: 'Motivo del cambio (ej. consulta médica)',
+    reasonForChangePlaceholder: 'Escribe aquí el motivo del cambio...',
     previewChanges: 'Previsualizar Cambios',
     confirmAndApply: 'Confirmar y Aplicar Cambios',
     previewTitle: 'Resumen de Cambios Automáticos',
@@ -342,8 +346,9 @@ export const locales = {
     for: 'Para',
     absenceType: 'Tipo de Ausencia',
     leaveType_CA: 'Congé Annuel (Vacaciones)',
-    leaveType_SICK_LEAVE: 'Baja Médica',
+    leaveType_SICK_LEAVE: 'CM (Congé Maladie)',
     leaveType_FP: 'Formación Profesional',
+    leaveType_CS: 'Congé Spécial',
     error_dateOrder: 'La fecha de inicio no puede ser posterior a la fecha de fin.',
     applyToWorkdays: 'Aplicar a Días Laborables',
 
@@ -412,8 +417,8 @@ export const locales = {
     individual_original_planning: "Planning Original",
     individual_manual_changes_month: "Cambios Manuales del Mes",
     individual_no_manual_changes: "No hay cambios manuales este mes.",
-    individual_clear_history: "Limpiar historial de este mes",
-    individual_confirm_clear_history: "¿Estás seguro de que quieres borrar todos los cambios manuales de este mes para este enfermero/a? Esta acción no se puede deshacer.",
+    individual_clear_history: "Limpiar historial",
+    individual_confirm_clear_history: "¿Estás seguro de que quieres borrar todo el historial de cambios manuales? Esta acción no se puede deshacer.",
     individual_hours_summary: "Resumen de Horas",
     individual_hours_worked: "Horas Realizadas",
     individual_total_worked: "Total trabajadas",
@@ -567,17 +572,21 @@ export const locales = {
     shift_URGENCES_TARDE_desc: 'Urgencias (Tarde)',
     shift_TRAVAIL_TARDE_desc: 'Trabajo (Tarde)',
     shift_ADMIN_desc: 'Administración',
+    shift_ADM_TARDE_desc: 'Administración Tarde',
     shift_TW_desc: 'Teletrabajo',
+    shift_TW_ABROAD_desc: 'Teletrabajo en el extranjero',
     shift_STRASBOURG_desc: 'Sesión Estrasburgo',
-    shift_LIBERO_desc: 'Poste especial pre-sesión',
+    shift_LIBERO_desc: 'Turno especial pre-sesión',
     shift_RECUP_desc: 'Recuperación de horas',
     shift_FP_desc: 'Formación Profesional',
-    shift_SICK_LEAVE_desc: 'Baja por Enfermedad',
+    shift_CS_desc: 'Congé Spécial',
+    shift_SICK_LEAVE_desc: 'CM (Congé Maladie)',
     shift_CA_desc: 'Congé Annuel',
     shift_F_desc: 'Día Festivo',
     shift_VACCIN_desc: 'Campaña de Vacunación',
     shift_VACCIN_AM_desc: 'Vacunación (Mañana)',
     shift_VACCIN_PM_desc: 'Vacunación (Tarde)',
+    shift_VACCIN_PM_PLUS_desc: 'Vacunación (Tarde + Cierre)',
     shift_free: 'Libre',
     shift_complex: 'Complejo',
   },
@@ -603,6 +612,8 @@ export const locales = {
     copyToSheets: 'Copy for Sheets',
     copied: 'Copied!',
     help: 'Help',
+    locked: 'Locked',
+    editable: 'Editable',
     lockMonth: 'Lock Month',
     unlockMonth: 'Unlock Month',
     viewAsAdmin: 'View as Admin',
@@ -655,6 +666,7 @@ export const locales = {
     lang_en: 'English',
     lang_fr: 'Français',
     edit: 'Edit',
+    advancedSettings: 'Advanced Settings',
     error_selectNurse: 'You must select a nurse.',
     error_selectDateRange: 'You must select a date range.',
     'planner.annual_planner_title': 'Annual Plan',
@@ -776,8 +788,8 @@ export const locales = {
     applyingChanges: 'Applying...',
     applyChanges: 'Apply Changes',
     step1_nurses: '1. Select Nurse',
-    step2_shift: '2. Select Shift',
-    step3_dates: '3. Select Date Range',
+    step2_shift: '3. Select Shift',
+    step3_dates: '2. Select Date Range',
     step4_hours: '4. Select Time Range (Optional)',
     step5_scope: '5. Define Scope',
     startTime: 'Start Time',
@@ -785,9 +797,11 @@ export const locales = {
     setCustomHours: 'Set Custom Hours',
     swapShifts: 'Swap Shifts',
     changeMyHours: 'Change Hours',
+    changeShiftHours: 'Change Shift Hours',
     nurse1: 'Nurse 1',
     nurse2: 'Nurse 2',
     reasonForChange: 'Reason for change (e.g., medical appointment)',
+    reasonForChangePlaceholder: 'Type the reason for the change here...',
     previewChanges: 'Preview Changes',
     confirmAndApply: 'Confirm and Apply Changes',
     previewTitle: 'Summary of Automatic Changes',
@@ -923,8 +937,9 @@ export const locales = {
     for: 'For',
     absenceType: 'Type of Absence',
     leaveType_CA: 'Annual Leave',
-    leaveType_SICK_LEAVE: 'Sick Leave',
+    leaveType_SICK_LEAVE: 'CM (Congé Maladie)',
     leaveType_FP: 'Professional Training',
+    leaveType_CS: 'Congé Spécial',
     error_dateOrder: 'Start date cannot be after end date.',
     applyToWorkdays: 'Apply to Workdays',
 
@@ -993,8 +1008,8 @@ export const locales = {
     individual_original_planning: "Original Planning",
     individual_manual_changes_month: "Manual Changes This Month",
     individual_no_manual_changes: "No manual changes this month.",
-    individual_clear_history: "Clear this month's history",
-    individual_confirm_clear_history: "Are you sure you want to delete all manual changes for this month for this nurse? This action cannot be undone.",
+    individual_clear_history: "Clear History",
+    individual_confirm_clear_history: "Are you sure you want to delete all manual change history? This action cannot be undone.",
     individual_hours_summary: "Hours Summary",
     individual_hours_worked: "Worked Hours",
     individual_total_worked: "Total Worked",
@@ -1148,17 +1163,21 @@ export const locales = {
     shift_URGENCES_TARDE_desc: 'Emergencies (Afternoon)',
     shift_TRAVAIL_TARDE_desc: 'Work (Afternoon)',
     shift_ADMIN_desc: 'Administration',
+    shift_ADM_TARDE_desc: 'Administration Afternoon',
     shift_TW_desc: 'Telework',
+    shift_TW_ABROAD_desc: 'Telework Abroad',
     shift_STRASBOURG_desc: 'Strasbourg Session',
     shift_LIBERO_desc: 'Special pre-session shift',
     shift_RECUP_desc: 'Hours Recovery',
     shift_FP_desc: 'Professional Training',
-    shift_SICK_LEAVE_desc: 'Sick Leave',
+    shift_CS_desc: 'Congé Spécial',
+    shift_SICK_LEAVE_desc: 'CM (Congé Maladie)',
     shift_CA_desc: 'Annual Leave',
     shift_F_desc: 'Holiday',
     shift_VACCIN_desc: 'Vaccination Campaign',
     shift_VACCIN_AM_desc: 'Vaccination (Morning)',
     shift_VACCIN_PM_desc: 'Vaccination (Afternoon)',
+    shift_VACCIN_PM_PLUS_desc: 'Vaccination (Afternoon + Closing)',
     shift_free: 'Free',
     shift_complex: 'Complex',
   },
@@ -1184,6 +1203,8 @@ export const locales = {
     copyToSheets: 'Copier pour Sheets',
     copied: 'Copié !',
     help: 'Aide',
+    locked: 'Verrouillé',
+    editable: 'Modifiable',
     lockMonth: 'Verrouiller le Mois',
     unlockMonth: 'Déverrouiller le Mois',
     viewAsAdmin: "Vue Administrateur",
@@ -1236,6 +1257,7 @@ export const locales = {
     lang_en: 'English',
     lang_fr: 'Français',
     edit: 'Modifier',
+    advancedSettings: 'Paramètres Avancés',
     error_selectNurse: 'Vous devez sélectionner un(e) infirmier/ère.',
     error_selectDateRange: 'Vous devez sélectionner une plage de dates.',
     'planner.annual_planner_title': 'Plan Annuel',
@@ -1354,8 +1376,8 @@ export const locales = {
     applyingChanges: 'Application...',
     applyChanges: 'Appliquer les Changements',
     step1_nurses: "1. Sélectionner l'Infirmier/ère",
-    step2_shift: '2. Sélectionner le Poste',
-    step3_dates: '3. Sélectionner la Plage de Dates',
+    step2_shift: '3. Sélectionner le Poste',
+    step3_dates: '2. Sélectionner la Plage de Dates',
     step4_hours: '4. Sélectionner la Plage Horaire (Optionnel)',
     step5_scope: '5. Définir la Portée',
     startTime: 'Heure de Début',
@@ -1363,9 +1385,11 @@ export const locales = {
     setCustomHours: 'Définir un Horaire',
     swapShifts: 'Échanger les Postes',
     changeMyHours: 'Changer mes Heures',
+    changeShiftHours: 'Modifier les heures du poste',
     nurse1: 'Infirmier/ère 1',
     nurse2: 'Infirmier/ère 2',
     reasonForChange: 'Motif du changement (ex. rendez-vous médical)',
+    reasonForChangePlaceholder: 'Tapez le motif du changement ici...',
     previewChanges: 'Aperçu des Changements',
     confirmAndApply: 'Confirmer et Appliquer',
     previewTitle: 'Résumé des Changements Automatiques',
@@ -1483,8 +1507,238 @@ export const locales = {
     leaveType_CA: 'Congé Annuel',
     leaveType_SICK_LEAVE: 'Arrêt Maladie',
     leaveType_FP: 'Formation Professionnelle',
-    error_dateOrder: 'La date de',
+    error_dateOrder: 'La date de début ne peut pas être postérieure à la date de fin.',
+    applyToWorkdays: 'Appliquer aux Jours Ouvrables',
+    addNotePlaceholder: 'Ajouter une note...',
+    color: 'Couleur',
+    historyLog: 'Historique des Changements',
+    history_undo: 'Annuler',
+    history_addNurse: 'Infirmier/ère ajouté(e)',
+    history_removeNurse: 'Infirmier/ère supprimé(e)',
+    history_updateNurseName: 'Nom modifié',
+    history_manualChange: 'Changement de poste manuel',
+    history_timeChange: "Ajustement d'horaires",
+    history_noteChange: 'Note de jour',
+    history_personalNoteChange: 'Note personnelle',
+    history_workConditionsChange: 'Conditions de travail',
+    history_strasbourgUpdate: 'Affectation Strasbourg',
+    history_vaccinationPeriodChange: 'Période de vaccination',
+    history_swapShifts: 'Échange de postes',
+    history_undoSwap: "Annuler l'échange de postes",
+    history_setPersonalHours: 'Changement d\'heures personnel',
+    history_adminSetHours: 'Ajustement d\'heures (Admin)',
+    history_jornadaChange: 'Conditions de travail mises à jour',
+    history_specialEvent: 'Événement Strasbourg',
+    history_massAbsence: 'Affectation d\'absence en masse',
+    history_reset_overrides: 'Réinitialisation de l\'historique manuel',
+    history_reset_overrides_details: 'Toutes les modifications manuelles de postes ont été effacées.',
+    'history.too_many': 'Avertissement : L\'historique a dépassé 100 modifications et a été tronqué.',
+    history_bulk_edit: 'Édition en masse',
+    history_bulk_edit_details: 'Postes manuels mis à jour.',
+    history_generate_rest_year: 'Génération automatique des postes',
+    history_generate_rest_year_details: 'Postes générés automatiquement pour remplir les trous et équilibrer l\'année.',
+    
+    // Balance Page
+    balancePageTitle: 'Bilan des Gardes et des Heures',
+    travMonthHeader: 'Travail (Mois)',
+    urgMonthHeader: 'Urgences (Mois)',
+    admMonthHeader: 'Admin',
+    twMonthHeader: 'TT',
+    holidaysHeader: 'CA',
+    trainingHeader: 'FP',
+    sickLeaveHeader: 'Arrêt',
+    hoursMonthHeader: 'Total Heures (Mois)',
+    hoursYearHeader: 'Total Heures (Année)',
+    theoreticalHoursMonth: 'Heures Théoriques du Mois',
+    theoreticalHoursCalculation: "Base 40h/sem, ajustée selon les conditions de travail et les jours fériés.",
+    balance_info_title: 'Bilan des Heures (Informatif)',
+    balance_info_realizadas: 'Heures réalisées (mois)',
+    balance_info_teoricas: 'Heures théoriques (mois)',
+    balance_info_diferencia: 'Différence',
+    summaryAndBalance: 'Résumé et Bilan',
+    monthlyHoursSummary: 'Résumé Mensuel des Heures',
+    totalHours: 'Total Heures',
+    by: 'Par',
+    with: 'Avec',
+    personalBalanceTitle: 'Bilan des Gardes',
+    shift: 'Poste',
+    month: 'Mois',
+    year: 'Année',
+    totalWorkDays: 'Total Jours Trav.',
+
+    // Individual Agenda Modal
+    individual_current_planning: "Planning Actuel",
+    individual_original_planning: "Planning Original",
+    individual_manual_changes_month: "Changements Manuels du Mois",
+    individual_no_manual_changes: "Aucun changement manuel ce mois-ci.",
+    individual_clear_history: "Effacer l'historique",
+    individual_confirm_clear_history: "Êtes-vous sûr de vouloir supprimer tout l'historique des modifications manuelles ? Cette action est irréversible.",
+    individual_hours_summary: "Résumé des Heures",
+    individual_hours_worked: "Heures Effectuées",
+    individual_total_worked: "Total travaillé",
+    individual_difference: "Différence",
+    individual_month_difference_sum: "Solde",
+    individual_previous_month: "Mois précédent",
+    individual_month_total: "Total mois",
+    individual_nurse_label: "Infirmier/ère",
+    balance_planned: "Planifié",
+    balance_manual: "Manuel",
+    balance_weekly: "Solde",
+    
+    // Admin Controls
+    admin_delete_change: 'Êtes-vous sûr de vouloir annuler cette modification manuelle ? Le poste reviendra à sa valeur calculée d\'origine.',
+    admin_confirm_delete_change: 'Êtes-vous sûr de vouloir supprimer cette modification manuelle ? Le poste reviendra à sa valeur calculée d\'origine.',
+    admin_clear_history: "Effacer l'historique",
+    admin_confirm_clear_history: "Êtes-vous sûr de vouloir effacer tout l'historique global des changements ? Cette action est irréversible.",
+    history_clear_log: "L'historique global a été effacé",
+    history_clear_log_details: "L'ensemble de l'historique des changements a été supprimé.",
+
+    // Work Conditions Bar
+    activeWorkConditions: 'Conditions de travail actives ce mois-ci :',
+    reduction: 'Réduction',
+
+    // Strasbourg
+    strasbourgPlanner: 'Planificateur Annuel Strasbourg',
+    strasbourgEvents: 'Événements Strasbourg',
+    filterByNurse: 'Filtrer par infirmier/ère...',
+    nobodyAssigned: "Personne d'assigné.",
+    addNurse: 'Ajouter un(e) infirmier/ère',
+    editSession: 'Modifier la session',
+    editEvent: "Modifier l'Événement",
+    createEvent: 'Créer un Événement',
+    eventInfo: "Informations sur l'Événement",
+    eventName: "Nom de l'événement",
+    assignment: 'Affectation',
+    confirmEvent: "Confirmer l'Événement",
+    noEventsToShow: "Aucun événement à afficher.",
+    assignedNurses: 'Assignés',
+    deleteEventConfirm: 'Êtes-vous sûr de vouloir supprimer cet événement ?',
+    event_type_selector_title: "Sélectionner le type d'événement",
+    event_type_euroscola: "Euroscola",
+    event_type_tuesday_permanence: "Permanence du Mardi",
+    event_type_wednesday_permanence: "Permanence du Mercredi",
+    event_type_other: "Autre Événement",
+    fixed_schedule: "Horaire fixe",
+    validation_only_tuesdays: "Cet événement ne peut être programmé que les mardis.",
+    validation_only_wednesdays: "Cet événement ne peut être programmé que les mercredis.",
+
+    helpManualRedesign: {
+      title: "📖 Manuel Utilisateur Définitif : Zenova",
+      sections: [
+        {
+          title: "1. Introduction : La philosophie de Zenova",
+          content: [
+            "Bienvenue sur <strong>Zenova</strong>, votre assistant numérique pour la planification des postes de l'équipe infirmière. Le nom \"Zenova\" représente notre double engagement : la paix intérieure (<strong>Zen</strong>) dont nous avons besoin pour soigner, et l'explosion créative (<strong>Nova</strong>) que nous appliquons pour résoudre la complexité de la planification.",
+            "<strong>Le principe clé :</strong> Zenova repose sur un système hybride : <ol class='list-decimal list-inside pl-4 space-y-2'><li><strong>Base automatisée et équitable :</strong> Le système génère automatiquement une ébauche de planning (<strong>planning théorique</strong>) qui respecte les règles de couverture, l'équité des postes (urgences, travail, etc.) et les conditions de travail de chaque personne (temps partiel, etc.). Cette base est la \"source de vérité\" pour le calcul des heures théoriques.</li><li><strong>Flexibilité humaine avec des remplacements visuels :</strong> Nous comprenons que la réalité quotidienne exige de la flexibilité. Pour cela, Zenova introduit les <strong>Échanges Visuels de Postes</strong>, une couche de modification <strong>purement esthétique</strong> qui n'altère pas la base de calcul.</li></ol>",
+            "Cela garantit que le système reste juste et équilibré à long terme, tandis que l'affichage quotidien s'adapte aux besoins de l'équipe."
+          ]
+        },
+        {
+          title: "2. Rôles et accès : Que pouvez-vous faire ?",
+          content: [
+            "L'application dispose de deux niveaux d'accès pour garantir la sécurité et une gestion appropriée.",
+            "<h4>2.1 Rôle d'Administrateur</h4><p>L'administrateur a un contrôle total sur la planification et la configuration.</p><ul class='list-disc list-inside pl-4 space-y-1'><li>✅ <strong>Peut tout voir et tout modifier :</strong> Le Planning Général, le Planning Individuel de N'IMPORTE QUEL infirmier/ère, gérer l'équipe, configurer les temps de travail, gérer les événements, et verrouiller/déverrouiller les mois.</li><li>✅ <strong>Peut créer, modifier et annuler les Échanges Visuels de Postes.</strong></li><li>✅ <strong>Peut consulter l'Historique des Changements complet.</strong></li><li>✅ <strong>Peut \"se connecter en tant que\"</strong> pour voir l'application exactement comme un infirmier/ère la voit, idéal pour l'assistance.</li></ul>",
+            "<h4>2.2 Rôle d'Infirmier/ère (Utilisateur Standard)</h4><p>L'utilisateur standard a accès à ses propres informations et à la vue d'ensemble de l'équipe.</p><ul class='list-disc list-inside pl-4 space-y-1'><li>✅ <strong>Peut voir :</strong> Son propre Planning Individuel et le Planning Général (en lecture seule).</li><li>✅ <strong>Peut modifier dans son Planning Individuel :</strong> Ses heures réelles d'arrivée et de départ et ses notes personnelles.</li><li>❌ <strong>NE PEUT PAS :</strong> Modifier le Planning Général, créer des Échanges Visuels, voir le Planning Individuel d'autres collègues, ou modifier la configuration de l'équipe.</li></ul>"
+          ]
+        },
+        {
+          title: "3. L'interface principale : Un aperçu rapide",
+          content: [
+            "L'écran est divisé en trois zones principales :",
+            "<ol class='list-decimal list-inside pl-4 space-y-2'><li><strong>Barre supérieure (En-tête) :</strong> Contient le logo, le sélecteur de mois/année, la navigation entre les vues, les contrôles d'exportation et le menu utilisateur.</li><li><strong>Panneau latéral gauche (Barre latérale) :</strong> Outils de gestion pour les administrateurs et l'historique des changements.</li><li><strong>Zone de contenu principale :</strong> Affiche le Planning Général, le Bilan Annuel ou le calendrier des Souhaits.</li></ol>"
+          ]
+        },
+        {
+            title: "4. Le Planning Général : Le cœur de la planification",
+            content: [
+                "C'est la grille principale qui affiche l'horaire de toute l'équipe pour le mois sélectionné.",
+                "<h4>4.1 Structure de la grille</h4><ul class='list-disc list-inside pl-4 space-y-1'><li><strong>Lignes :</strong> Chaque ligne représente un jour du mois.</li><li><strong>Columnes :</strong> La première colonne est le jour, les suivantes sont chaque infirmier/ère, et les dernières (pour les admins) sont les <strong>Présents</strong> et les <strong>Notes</strong> du jour.</li><li><strong>Cellule :</strong> L'intersection d'un jour et d'un infirmier/ère, affichant le poste attribué.</li></ul>",
+                "<h4>4.2 Types de postes et leur signification (Glossaire détaillé)</h4><div class='overflow-x-auto'><table class='w-full text-left border-collapse'><thead><tr class='bg-slate-100'><th class='p-2 border'>Code</th><th class='p-2 border'>Étiquette</th><th class='p-2 border'>Description et objectif</th></tr></thead><tbody>" +
+                "<tr><td class='p-2 border'><strong>URG M/T</strong></td><td class='p-2 border'>Urg M/T</td><td class='p-2 border'><strong>Urgences (Matin/Après-midi):</strong> Poste clinique aux urgences.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>TRAV M/T</strong></td><td class='p-2 border'>Trav M/T</td><td class='p-2 border'><strong>Travail (Matin/Après-midi):</strong> Poste clinique planifié (consultations, etc.).</td></tr>" +
+                "<tr><td class='p-2 border'><strong>ADMIN</strong></td><td class='p-2 border'>Adm</td><td class='p-2 border'><strong>Administration :</strong> Tâches administratives. Flexible pour réaffectation.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>TW</strong></td><td class='p-2 border'>TT</td><td class='p-2 border'><strong>Télétravail :</strong> Tâches à domicile. Flexible pour réaffectation.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>STRASBOURG</strong></td><td class='p-2 border'>STR</td><td class='p-2 border'><strong>Session de Strasbourg :</strong> Du Lundi au Jeudi. Compte pour 10h/jour.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>STR-PREP</strong></td><td class='p-2 border'>(vide)</td><td class='p-2 border'><strong>Préparation Strasbourg :</strong> Vendredi précédent. Cellule vide avec fond rose.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>VACCIN</strong></td><td class='p-2 border'>Vac</td><td class='p-2 border'><strong>Campagne de vaccination.</strong></td></tr>" +
+                "<tr><td class='p-2 border'><strong>SPLIT</strong></td><td class='p-2 border'>(divisé)</td><td class='p-2 border'><strong>Poste fractionné :</strong> Combine deux demi-postes.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>CA</strong></td><td class='p-2 border'>CA</td><td class='p-2 border'><strong>Congé Annuel :</strong> Absence justifiée. Ne compte pas d'heures.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>SICK</strong></td><td class='p-2 border'>Arrêt</td><td class='p-2 border'><strong>Arrêt maladie :</strong> Absence justifiée. Ne compte pas d'heures.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>FP</strong></td><td class='p-2 border'>FP</td><td class='p-2 border'><strong>Formation Professionnelle :</strong> Absence justifiée. Ne compte pas d'heures.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>RECUP</strong></td><td class='p-2 border'>Récup</td><td class='p-2 border'><strong>Récupération d'heures :</strong> Jour de repos compensatoire. Ne compte pas d'heures.</td></tr></tbody></table></div>",
+                "<h4>4.3 Types de semaines et leur code couleur</h4><ul class='list-disc list-inside pl-4 space-y-1'><li><strong>Normale (Fond Blanc/Gris clair) :</strong> Activité standard.</li><li><strong>Session (Fond Rose) :</strong> Semaine de session à Strasbourg.</li><li><strong>White/Green (Fond Vert clair) :</strong> Semaines de moindre activité ou de transition.</li><li><strong>Réduite (Fond Jaune clair) :</strong> Périodes de faible activité avec moins de personnel.</li><li><strong>Fermé (Fond Gris) :</strong> Le service est fermé.</li></ul>"
+            ]
+        },
+        {
+          title: "5. L'Échange Visuel de Postes : L'outil clé",
+          content: [
+            "C'est la fonctionnalité la plus importante pour une gestion quotidienne flexible.",
+            "<h4>5.1 À quoi ça sert ?</h4><p>Pour refléter sur le planning un accord d'échange de postes entre deux personnes <strong>pour un jour donné</strong>, sans altérer le système de calcul des heures. C'est un \"post-it\" numérique sur le planning officiel.</p>",
+            "<h4>5.2 Comment ça marche ? (Pas à pas pour les Admins)</h4><ol class='list-decimal list-inside pl-4 space-y-1'><li><strong>Accès :</strong> Faites un <strong>double-clic</strong> sur la cellule de l'infirmier/ère et du jour à modifier.</li><li><strong>Panneau latéral :</strong> Un panneau s'ouvrira à droite.</li><li><strong>Sélection :</strong> Recherchez et sélectionnez le second infirmier/ère.</li><li><strong>Aperçu :</strong> Le panneau vous montrera clairement le résultat de l'échange.</li><li><strong>Confirmation :</strong> Appuyez sur \"Confirmer l'échange\".</li></ol>",
+            "<h4>5.3 Que se passe-t-il ensuite ?</h4><ul class='list-disc list-inside pl-4 space-y-1'><li>Les cellules des deux personnes afficheront le poste échangé.</li><li>Une icône 🔁 apparaîtra.</li><li>Au survol de l'icône, une infobulle vous informera du poste réel.</li><li>Une entrée sera créée dans l'Historique des Changements.</li></ul>",
+            "<h4>5.4 Ce qu'un échange visuel FAIT et ne FAIT PAS</h4><div class='overflow-x-auto'><table class='w-full text-left border-collapse'><thead><tr class='bg-slate-100'><th class='p-2 border'>✅ Ce qu'il FAIT</th><th class='p-2 border'>❌ Ce qu'il ne FAIT PAS</th></tr></thead><tbody>" +
+            "<tr><td class='p-2 border'>Modifie <strong>visuellement</strong> le poste.</td><td class='p-2 border'><strong>NE modifie PAS</strong> le poste de base de l'algorithme.</td></tr>" +
+            "<tr><td class='p-2 border'>Ajoute une icône 🔁.</td><td class='p-2 border'><strong>N'affecte PAS</strong> le calcul des heures théoriques.</td></tr>" +
+            "<tr><td class='p-2 border'>Permet de savoir qui est réellement à chaque poste.</td><td class='p-2 border'><strong>NE modifie PAS</strong> le bilan des types de postes.</td></tr>" +
+            "<tr><td class='p-2 border'>Enregistre l'action dans l'Historique.</td><td class='p-2 border'><strong>N'est PAS</strong> reflété dans le Planning Individuel.</td></tr></tbody></table></div>"
+          ]
+        },
+        {
+            title: "6. Le Planning Individuel : Votre espace personnel",
+            content: [
+                "Accessible en cliquant sur l'icône 📅 à côté de votre nom. Il s'ouvre dans une fenêtre séparée.",
+                "<h4>6.1 Fonctionnalités clés</h4><ul class='list-disc list-inside pl-4 space-y-1'><li><strong>Calendrier personnel :</strong> Affiche vos postes <strong>de base (théoriques)</strong>. Ne reflète pas les échanges visuels.</li><li><strong>Saisie des heures réelles :</strong> La fonction la plus importante ! Vous pouvez entrer vos heures d'arrivée et de départ réelles. <strong>Ces heures ont la priorité</strong> pour le calcul de votre bilan.</li><li><strong>Pause automatique :</strong> Le système déduit 30 minutes de pause pour les journées de 6 heures ou plus.</li><li><strong>Notes personnelles :</strong> Visibles uniquement par vous.</li><li><strong>Bilan informatif :</strong> Un résumé de vos postes et heures du mois et de l'année.</li><li><strong>Agrandir/Restaurer :</strong> Utilisez les icônes ⛶ / 🗗 pour voir en plein écran.</li></ul>"
+            ]
+        },
+        {
+            title: "7. Bilans et calcul des heures : Comprendre les chiffres",
+            content: [
+                "Le système distingue les heures théoriques et réelles pour offrir flexibilité et équité.",
+                "<h4>7.1 Heures théoriques</h4><ul class='list-disc list-inside pl-4 space-y-1'><li>Calculées automatiquement par le système.</li><li><strong>Base :</strong> Chaque type de poste a une durée standard (ex: `TRAV M` = 8.5h du L-J et 6h le V).</li><li><strong>Modificadores :</strong> Ajustées selon le temps de travail.</li><li><strong>Usage :</strong> Servent à générer le planning initial et comme valeur par défaut.</li></ul>",
+                "<h4>7.2 Heures réelles (saisies)</h4><ul class='list-disc list-inside pl-4 space-y-1'><li>Celles que vous entrez dans votre Planning Individuel.</li><li><strong>Elles sont la source de vérité pour votre bilan personnel.</strong></li><li><strong>Exemple :</strong> Votre poste théorique est de 8:00 à 17:00 (8.5h), mais un jour vous restez jusqu'à 17:30. Si vous saisissez \"08:00 - 17:30\", votre bilan pour ce jour sera de 9h.</li></ul>",
+                "<h4>7.3 Le bilan final</h4><p>C'est un outil <strong>informatif</strong>. Il compare les heures que vous avez effectuées avec celles que vous auriez théoriquement dû faire.</p>"
+            ]
+        },
+        {
+            title: "8. Glossaire des icônes et symboles",
+            content: [
+                "<div class='overflow-x-auto'><table class='w-full text-left border-collapse'><thead><tr class='bg-slate-100'><th class='p-2 border'>Icône</th><th class='p-2 border'>Nom</th><th class='p-2 border'>Emplacement</th><th class='p-2 border'>Signification</th></tr></thead><tbody>" +
+                "<tr><td class='p-2 border text-center'>🔁</td><td class='p-2 border'>Échange Visuel</td><td class='p-2 border'>Cellule du Planning Général</td><td class='p-2 border'>Le poste affiché n'est pas l'original.</td></tr>" +
+                "<tr><td class='p-2 border text-center'>📅</td><td class='p-2 border'>Ouvrir Planning Individuel</td><td class='p-2 border'>À côté de chaque nom</td><td class='p-2 border'>Ouvre le planning personnel.</td></tr>" +
+                "<tr><td class='p-2 border text-center'>⛶ / 🗗</td><td class='p-2 border'>Agrandir / Restaurer</td><td class='p-2 border'>Fenêtre du Planning Individuel</td><td class='p-2 border'>Bascule la vue plein écran.</td></tr>" +
+                "<tr><td class='p-2 border text-center'>✏️</td><td class='p-2 border'>Modifier</td><td class='p-2 border'>Panneaux d'administration</td><td class='p-2 border'>Ouvre le formulaire de modification.</td></tr>" +
+                "<tr><td class='p-2 border text-center'>🗑️</td><td class='p-2 border'>Supprimer</td><td class='p-2 border'>Panneaux d'administration</td><td class='p-2 border'>Supprime un élément.</td></tr>" +
+                "<tr><td class='p-2 border text-center'>🔒 / 🔓</td><td class='p-2 border'>Verrouiller / Déverrouiller</td><td class='p-2 border'>Barre supérieure</td><td class='p-2 border'>Empêche ou autorise la modification.</td></tr></tbody></table></div>"
+            ]
+        },
+        {
+            title: "9. Foire aux questions (FAQ)",
+            content: [
+                "<ul class='list-disc list-inside pl-4 space-y-2'><li><strong>Q : J'ai fait un échange visuel, mais mon Planning Individuel affiche toujours mon poste original. Est-ce une erreur ?</strong><br><strong>R :</strong> Non, c'est le comportement attendu. Le Planning Individuel affiche toujours le poste <strong>de base/théorique</strong>.</li><li><strong>Q : Pourquoi la cellule du vendredi de préparation pour Strasbourg est-elle vide ?</strong><br><strong>R :</strong> C'est un choix de conception pour réduire le bruit visuel. Le fond rose indique déjà une semaine de session.</li><li><strong>Q : J'ai saisi mes heures réelles, mais le Planning Général affiche toujours l'horaire théorique. N'est-ce pas enregistré ?</strong><br><strong>R :</strong> Si, c'est enregistré. Le Planning Général montre toujours l'information théorique. Vos heures réelles sont utilisées pour <strong>votre bilan personnel</strong>.</li><li><strong>Q : Comment annuler un échange visuel ?</strong><br><strong>R :</strong> Un administrateur peut appliquer un nouvel échange pour revenir à l'état initial ou contacter le support.</li><li><strong>Q : Si je suis à temps partiel, comment cela s'applique-t-il ?</strong><br><strong>R :</strong> L'administrateur le configure et le système l'applique automatiquement. Vous verrez un poste spécial ou un horaire ajusté.</li></ul>"
+            ]
+        }
+      ]
+    },
+    shift_URGENCES_desc: 'Urgences (Matin)',
+    shift_TRAVAIL_desc: 'Travail (Matin)',
+    shift_URGENCES_TARDE_desc: 'Urgences (Après-midi)',
+    shift_TRAVAIL_TARDE_desc: 'Travail (Après-midi)',
+    shift_ADMIN_desc: 'Administration',
+    shift_TW_desc: 'Télétravail',
+    shift_STRASBOURG_desc: 'Session Strasbourg',
+    shift_LIBERO_desc: 'Poste spécial pré-session',
+    shift_RECUP_desc: "Récupération d'heures",
+    shift_FP_desc: 'Formation Professionnelle',
+    shift_SICK_LEAVE_desc: 'Arrêt Maladie',
+    shift_CA_desc: 'Congé Annuel',
+    shift_F_desc: 'Jour Férié',
+    shift_VACCIN_desc: 'Campagne de Vaccination',
+    shift_VACCIN_AM_desc: 'Vaccination (Matin)',
+    shift_VACCIN_PM_desc: 'Vaccination (Après-midi)',
+    shift_VACCIN_PM_PLUS_desc: 'Vaccination (Après-midi + Fermeture)',
+    shift_free: 'Libre',
+    shift_complex: 'Complexe',
   }
 };
-// FIX: Export the Locale type for use throughout the application.
-export type Locale = typeof locales['en'];
+
+export type Locale = typeof locales.en;

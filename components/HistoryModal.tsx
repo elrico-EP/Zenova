@@ -2,18 +2,15 @@ import React from 'react';
 import { useTranslations } from '../hooks/useTranslations';
 import type { HistoryEntry } from '../types';
 import { HistoryLog } from './HistoryLog';
-import { usePermissions } from '../hooks/usePermissions';
 
 interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   history: HistoryEntry[];
-  onClearHistory: () => void;
 }
 
-export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, onClearHistory }) => {
+export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history }) => {
   const t = useTranslations();
-  const permissions = usePermissions();
 
   if (!isOpen) {
     return null;
@@ -41,24 +38,9 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
           </button>
         </header>
 
-        <main className="overflow-y-auto pr-2 flex-grow">
+        <main className="overflow-y-auto pr-2">
           <HistoryLog history={history} />
         </main>
-        
-        {permissions.isViewingAsAdmin && (
-          <footer className="pt-4 border-t mt-4 flex justify-end flex-shrink-0">
-            <button
-              onClick={() => {
-                if (window.confirm(t.admin_confirm_clear_history)) {
-                  onClearHistory();
-                }
-              }}
-              className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-md hover:bg-red-700 disabled:opacity-50"
-            >
-              {t.admin_clear_history}
-            </button>
-          </footer>
-        )}
       </div>
     </div>
   );

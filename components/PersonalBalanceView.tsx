@@ -13,11 +13,17 @@ const balanceHeaders: { key: keyof ShiftCounts; label: string }[] = [
     { key: 'URGENCES', label: SHIFTS['URGENCES'].label },
     { key: 'URGENCES_TARDE', label: SHIFTS['URGENCES_TARDE'].label },
     { key: 'ADMIN', label: SHIFTS['ADMIN'].label },
+    { key: 'ADM_TARDE', label: SHIFTS['ADM_TARDE'].label },
     { key: 'TW', label: SHIFTS['TW'].label },
+    { key: 'TW_ABROAD', label: SHIFTS['TW_ABROAD'].label },
     { key: 'CA', label: SHIFTS['CA'].label },
     { key: 'FP', label: SHIFTS['FP'].label },
+    { key: 'CS', label: SHIFTS['CS'].label },
+    { key: 'RECUP', label: SHIFTS['RECUP'].label },
     { key: 'SICK_LEAVE', label: SHIFTS['SICK_LEAVE'].label },
     { key: 'STRASBOURG', label: SHIFTS['STRASBOURG'].label },
+    { key: 'LIBERO', label: SHIFTS['LIBERO'].label },
+    { key: 'VACCIN_PM_PLUS', label: SHIFTS['VACCIN_PM_PLUS'].label },
 ];
 
 export const PersonalBalanceView: React.FC<PersonalBalanceViewProps> = ({ balanceData }) => {

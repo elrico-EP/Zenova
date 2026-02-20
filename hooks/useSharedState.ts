@@ -1,10 +1,10 @@
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import type { AppState, ScheduleCell, JornadaLaboral } from '../types';
 import { INITIAL_NURSES } from '../constants';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026 } from '../data/agenda2026';
-import { supabase } from '../firebase/supabase-config';
 
 const COLLECTION_NAME = 'appState';
 const DOCUMENT_ID = 'global';
@@ -24,103 +24,10 @@ const JANUARY_2026_SHIFTS: any = {
     'nurse-11': { '2026-01-12': 'TRAVAIL', '2026-01-13': 'TW', '2026-01-14': 'URGENCES', '2026-01-15': 'ADMIN', '2026-01-16': { custom: 'LIB', type: 'LIBERO', time: '10:00 - 16:00' }, '2026-01-19': 'STRASBOURG', '2026-01-20': 'STRASBOURG', '2026-01-21': 'STRASBOURG', '2026-01-22': 'TRAVAIL_TARDE', '2026-01-23': 'TRAVAIL', '2026-01-26': 'TRAVAIL', '2026-01-27': 'URGENCES', '2026-01-28': 'TRAVAIL', '2026-01-29': 'TRAVAIL_TARDE', '2026-01-30': 'TRAVAIL' },
 };
 
-const FEBRUARY_2026_SHIFTS: any = {
-    // Elvio (nurse-1)
-    'nurse-1': {
-        '2026-02-02': 'ADMIN', '2026-02-03': 'ADMIN', '2026-02-04': 'ADMIN', '2026-02-05': 'ADMIN', '2026-02-06': 'ADMIN',
-        '2026-02-09': 'STRASBOURG', '2026-02-10': 'STRASBOURG', '2026-02-11': 'STRASBOURG', '2026-02-12': 'STRASBOURG',
-        '2026-02-16': 'URGENCES', '2026-02-17': 'URGENCES', '2026-02-18': 'ADMIN', '2026-02-19': 'URGENCES_TARDE', '2026-02-20': 'ADMIN',
-        '2026-02-23': 'ADMIN', '2026-02-24': 'ADMIN', '2026-02-25': 'URGENCES', '2026-02-26': 'ADMIN', '2026-02-27': 'ADMIN',
-    },
-    // Tanja (nurse-2)
-    'nurse-2': {
-        '2026-02-02': 'TRAVAIL', '2026-02-03': 'URGENCES', '2026-02-04': 'URGENCES_TARDE', '2026-02-06': 'TRAVAIL',
-        '2026-02-09': 'STRASBOURG', '2026-02-10': 'STRASBOURG', '2026-02-11': 'STRASBOURG', '2026-02-12': 'STRASBOURG',
-        '2026-02-16': 'TRAVAIL_TARDE', '2026-02-17': 'TRAVAIL', '2026-02-18': 'CA', '2026-02-19': 'CA', '2026-02-20': 'CA',
-        '2026-02-23': 'URGENCES', '2026-02-24': 'TRAVAIL_TARDE', '2026-02-25': 'TRAVAIL', '2026-02-26': 'ADMIN', '2026-02-27': 'TRAVAIL',
-    },
-    // Virginie (nurse-3)
-    'nurse-3': {
-        '2026-02-02': 'TRAVAIL_TARDE', '2026-02-03': 'TRAVAIL', '2026-02-04': { split: ['RECUP', 'ADMIN'] }, '2026-02-06': 'URGENCES',
-        '2026-02-09': 'STRASBOURG', '2026-02-10': 'STRASBOURG', '2026-02-11': 'STRASBOURG', '2026-02-12': 'STRASBOURG',
-        '2026-02-16': 'URGENCES_TARDE', '2026-02-17': 'URGENCES', '2026-02-18': 'TRAVAIL', '2026-02-19': 'URGENCES', '2026-02-20': 'TRAVAIL',
-        '2026-02-23': 'TRAVAIL', '2026-02-24': 'ADMIN', '2026-02-25': 'TRAVAIL', '2026-02-26': 'TW', '2026-02-27': 'ADMIN',
-    },
-    // Paola (nurse-4)
-    'nurse-4': { 
-        '2026-02-02': 'CA', '2026-02-03': 'TRAVAIL_TARDE', '2026-02-04': 'URGENCES', '2026-02-06': 'CA',
-        '2026-02-09': 'CA', '2026-02-10': 'TRAVAIL', '2026-02-11': 'URGENCES_TARDE', '2026-02-12': 'SICK_LEAVE', '2026-02-13': 'SICK_LEAVE',
-        '2026-02-16': 'CA', '2026-02-17': 'SICK_LEAVE', '2026-02-18': 'SICK_LEAVE', '2026-02-19': 'SICK_LEAVE', '2026-02-20': 'SICK_LEAVE',
-        '2026-02-23': 'CA', '2026-02-24': 'URGENCES', '2026-02-25': 'TW', '2026-02-26': 'URGENCES', '2026-02-27': 'TRAVAIL',
-    },
-    // Elena (nurse-5)
-    'nurse-5': {
-        '2026-02-02': 'URGENCES_TARDE', '2026-02-03': 'FP', '2026-02-04': 'TW', '2026-02-06': 'TRAVAIL',
-        '2026-02-09': { custom: 'Stage plaies', type: 'FP' }, '2026-02-10': 'URGENCES', '2026-02-11': { custom: 'Universidad', type: 'FP' }, '2026-02-12': { custom: 'Universidad', type: 'FP' }, '2026-02-13': { custom: 'Universidad', type: 'FP' },
-        '2026-02-16': 'TRAVAIL', '2026-02-17': { custom: 'BLS', type: 'FP' }, '2026-02-18': 'URGENCES', '2026-02-19': 'TRAVAIL_TARDE', '2026-02-20': 'TRAVAIL',
-        '2026-02-23': 'URGENCES', '2026-02-24': { custom: 'Stage plaies', type: 'FP' }, '2026-02-25': 'ADMIN', '2026-02-26': 'URGENCES', '2026-02-27': 'TW',
-    },
-    // Miguel (nurse-6)
-    'nurse-6': {
-        '2026-02-02': 'URGENCES', '2026-02-03': 'TRAVAIL', '2026-02-04': 'TRAVAIL', '2026-02-05': 'CS', '2026-02-06': 'TRAVAIL_TARDE',
-        '2026-02-09': 'STRASBOURG', '2026-02-10': 'STRASBOURG', '2026-02-11': 'STRASBOURG', '2026-02-12': 'STRASBOURG',
-        '2026-02-16': 'CA', '2026-02-17': 'CA', '2026-02-18': 'TRAVAIL', '2026-02-19': 'TW', '2026-02-20': 'URGENCES',
-        '2026-02-23': 'URGENCES_TARDE', '2026-02-24': 'URGENCES', '2026-02-25': 'ADMIN', '2026-02-26': 'TRAVAIL', '2026-02-27': 'TW',
-    },
-    // Gorka (nurse-7)
-    'nurse-7': {
-        '2026-02-02': 'CA', '2026-02-03': 'ADMIN', '2026-02-04': 'URGENCES_TARDE', '2026-02-05': { custom: 'STR travel', type: 'ADMIN' }, '2026-02-06': { custom: 'Euroscola', type: 'STRASBOURG'},
-        '2026-02-09': 'TRAVAIL_TARDE', '2026-02-10': 'TRAVAIL_TARDE', '2026-02-11': 'TRAVAIL_TARDE', '2026-02-12': 'URGENCES', '2026-02-13': { custom: 'Euroscola', type: 'STRASBOURG'},
-        '2026-02-16': 'ADMIN', '2026-02-17': { custom: 'BLS', type: 'FP' }, '2026-02-18': 'URGENCES_TARDE', '2026-02-19': 'TW', '2026-02-20': 'URGENCES',
-        '2026-02-23': 'TRAVAIL_TARDE', '2026-02-24': 'TW', '2026-02-25': 'ADMIN', '2026-02-26': 'TRAVAIL_TARDE', '2026-02-27': 'TRAVAIL',
-    },
-    // Katelijn (nurse-8)
-    'nurse-8': {
-        '2026-02-02': 'CA', '2026-02-03': 'CA', '2026-02-04': 'CA', '2026-02-05': 'TRAVAIL', '2026-02-06': 'URGENCES',
-        '2026-02-09': 'TRAVAIL', '2026-02-10': 'CS', '2026-02-11': 'URGENCES_TARDE', '2026-02-12': 'URGENCES_TARDE', '2026-02-13': 'TRAVAIL',
-        '2026-02-16': 'TW', '2026-02-17': { custom: 'BLS', type: 'FP' }, '2026-02-18': 'CA', '2026-02-19': 'CA', '2026-02-20': 'CA',
-        '2026-02-23': 'RECUP', '2026-02-24': 'TRAVAIL', '2026-02-25': 'TRAVAIL_TARDE', '2026-02-26': 'URGENCES', '2026-02-27': 'URGENCES',
-    },
-    // Joseph (nurse-9)
-    'nurse-9': {
-        '2026-02-02': 'URGENCES', '2026-02-03': 'URGENCES_TARDE', '2026-02-04': 'TRAVAIL', '2026-02-06': 'ADMIN',
-        '2026-02-09': 'URGENCES_TARDE', '2026-02-10': 'URGENCES', '2026-02-11': 'TRAVAIL', '2026-02-12': 'TRAVAIL', '2026-02-13': 'URGENCES',
-        '2026-02-16': 'TRAVAIL', '2026-02-17': 'TRAVAIL', '2026-02-18': 'ADMIN', '2026-02-19': 'URGENCES', '2026-02-20': 'CA',
-        '2026-02-23': 'TW', '2026-02-24': 'CS', '2026-02-25': 'ADMIN', '2026-02-26': 'TRAVAIL', '2026-02-27': 'URGENCES',
-    },
-    // Tatiana (nurse-10)
-    'nurse-10': {
-        '2026-02-02': 'URGENCES', '2026-02-03': 'URGENCES_TARDE', '2026-02-04': 'TRAVAIL', '2026-02-06': 'URGENCES_TARDE',
-        '2026-02-09': 'TRAVAIL', '2026-02-10': 'URGENCES', '2026-02-11': 'TRAVAIL_TARDE', '2026-02-12': 'TRAVAIL', '2026-02-13': 'TRAVAIL',
-        '2026-02-16': 'ADMIN', '2026-02-17': 'TRAVAIL', '2026-02-18': 'URGENCES_TARDE', '2026-02-19': 'CA', '2026-02-20': 'URGENCES',
-        '2026-02-23': 'TRAVAIL_TARDE', '2026-02-24': 'TRAVAIL', '2026-02-25': 'TRAVAIL_TARDE', '2026-02-26': 'URGENCES', '2026-02-27': 'TRAVAIL',
-    },
-    // Becario (nurse-11)
-    'nurse-11': {
-        '2026-02-02': 'URGENCES', '2026-02-04': 'TRAVAIL', '2026-02-05': 'TRAVAIL', '2026-02-06': 'ADMIN',
-        '2026-02-09': 'URGENCES_TARDE', '2026-02-10': 'URGENCES', '2026-02-11': 'TRAVAIL', '2026-02-12': 'TRAVAIL', '2026-02-13': 'TRAVAIL',
-        '2026-02-16': 'TRAVAIL', '2026-02-17': 'TRAVAIL', '2026-02-18': 'ADMIN', '2026-02-19': 'URGENCES', '2026-02-20': 'CA',
-        '2026-02-23': 'TW', '2026-02-24': 'ADMIN', '2026-02-25': 'ADMIN', '2026-02-26': 'TRAVAIL', '2026-02-27': 'URGENCES',
-    }
-};
-
-const mergeSchedules = (...schedules: any[]) => {
-    const merged: any = {};
-    for (const schedule of schedules) {
-        for (const nurseId in schedule) {
-            if (!merged[nurseId]) {
-                merged[nurseId] = {};
-            }
-            Object.assign(merged[nurseId], schedule[nurseId]);
-        }
-    }
-    return merged;
-};
-
 const getInitialState = (): AppState => ({
     nurses: INITIAL_NURSES,
     agenda: agenda2026Data,
-    manualOverrides: mergeSchedules(JANUARY_2026_SHIFTS, FEBRUARY_2026_SHIFTS),
+    manualOverrides: JANUARY_2026_SHIFTS,
     notes: {
         '2026-01-05': { text: 'No PS no VAs', color: 'bg-yellow-100' },
     },
@@ -132,103 +39,63 @@ const getInitialState = (): AppState => ({
     wishes: {},
     jornadasLaborales: INITIAL_JORNADAS,
     manualChangeLog: [],
-    // FIX: Add missing manualHours property
-    manualHours: {},
 });
 
-export const useSupabaseState = () => {
+export const useSharedState = () => {
     const [data, setData] = useState<AppState | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const docRef = useMemo(() => doc(db, COLLECTION_NAME, DOCUMENT_ID), []);
+
     useEffect(() => {
-        let channel: any;
-
-        const initData = async () => {
-            console.log("🔥 Supabase: Cargando datos...");
-            
-            // Leer datos iniciales
-            const { data: existingData, error } = await supabase
-                .from('app_state')
-                .select('data')
-                .eq('id', 1)
-                .single();
-
-            if (error) {
-                console.error("❌ Error al leer:", error);
-                return;
-            }
-
-            if (!existingData?.data || Object.keys(existingData.data).length === 0) {
-                console.log("💾 Inicializando datos...");
-                const initialState = getInitialState();
-                
-                const { error: updateError } = await supabase
-                    .from('app_state')
-                    .update({ data: initialState })
-                    .eq('id', 1);
-
-                if (updateError) {
-                    console.error("❌ Error al inicializar:", updateError);
+        console.log("🔥 useSharedState: Iniciando listener...");
+        setLoading(true);
+        const unsubscribe = onSnapshot(docRef, 
+            async (snapshot) => {
+            console.log("📸 Snapshot recibido:", snapshot.exists(), snapshot.id);
+                if (snapshot.exists()) {
+                 console.log("✅ Datos encontrados:", snapshot.data());
+                 setData(snapshot.data() as AppState);
                 } else {
-                    console.log("✅ Datos inicializados");
-                    setData(initialState);
-                }
-            } else {
-                console.log("✅ Datos cargados:", existingData.data);
-                setData(existingData.data as AppState);
-            }
-
-            setLoading(false);
-
-            // Escuchar cambios en tiempo real
-            console.log("👂 Escuchando cambios en tiempo real...");
-            channel = supabase
-                .channel('app_state_changes')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'app_state',
-                        filter: 'id=eq.1'
-                    },
-                    (payload) => {
-                        console.log("📡 Cambio detectado:", payload);
-                        if (payload.new && payload.new.data) {
-                            setData(payload.new.data as AppState);
-                        }
+                    console.log("❌ No shared state found. Creating initial global state...");
+                    const initialState = getInitialState();
+                    try {
+                        console.log("💾 Guardando estado inicial...");
+                        await setDoc(docRef, initialState , { merge: true });
+                        console.log("✅ Estado inicial guardado");
+                        setData(initialState);
+                    } catch (err) {
+                        console.error("❌ Error seeding global state:", err);
                     }
-                )
-                .subscribe();
-        };
-
-        initData();
+                }
+                setLoading(false);
+            },
+            (error) => {
+                console.error("🔥 Firestore real-time error:", error);
+                setLoading(false);
+            }
+        );
 
         return () => {
-            if (channel) {
-                console.log("🔌 Desconectando listener...");
-                supabase.removeChannel(channel);
-            }
+        console.log("🔌 useSharedState: Desconectando listener...");
+        unsubscribe();
         };
-    }, []);
+    }, [docRef]);
+
 
     const updateData = useCallback(async (updates: Partial<AppState>) => {
-        if (!data) return;
-
-        const newData = { ...data, ...updates };
-        console.log("💾 Guardando cambios...", updates);
-
-        const { error } = await supabase
-            .from('app_state')
-            .update({ data: newData })
-            .eq('id', 1);
-
-        if (error) {
-            console.error("❌ Error al guardar:", error);
-        } else {
-            console.log("✅ Guardado exitoso");
+        try {
+            await updateDoc(docRef, updates as any);
+        } catch (error) {
+            console.error("Failed to update shared Firestore state:", error);
+            // Fallback for permissions issues or missing doc: try to set instead of update
+            if ((error as any).code === 'not-found') {
+                 await setDoc(docRef, updates, { merge: true });
+            } else {
+                throw error;
+            }
         }
-    }, [data]);
+    }, [docRef]);
 
     return { data, loading, updateData };
 };

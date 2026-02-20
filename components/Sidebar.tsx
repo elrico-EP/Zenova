@@ -182,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
   const t = useTranslations();
   const permissions = usePermissions();
   
-  return (
+    return (
     <div className="space-y-6">
         {permissions.isViewingAsUser && (
             <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-md border border-slate-200/80 space-y-3">
@@ -205,8 +205,10 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
         )}
 
+        {/* 1. Team */}
         {permissions.canManageTeam && <ManageTeamModule nurses={props.nurses} onAddNurse={props.onAddNurse} onRemoveNurse={props.onRemoveNurse} onUpdateNurseName={props.onUpdateNurseName} onOpenAgenda={props.onOpenAgenda} isMonthClosed={props.isMonthClosed} />}
         
+        {/* 2. Manual Edit */}
         {permissions.canDoManualChanges && (
             <CollapsibleModule title={t.manualChangeTitle} disabled={props.isMonthClosed}>
                 <ManualChangeModal
@@ -224,34 +226,55 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
             </CollapsibleModule>
         )}
 
-        {permissions.canManageJornadas && (
-             <CollapsibleModule title={t.jornada_title}>
-                <button onClick={props.onOpenJornadaManager} className="w-full px-4 py-2 bg-zen-700 text-white font-semibold rounded-md hover:bg-zen-600">
-                    {t.jornada_manageButton}
-                </button>
+        {/* 3. Mass Assign Absence */}
+        {permissions.canDoMassAbsence && (
+            <CollapsibleModule title={t.massAssignAbsence} disabled={props.isMonthClosed}>
+                <MassAbsenceModule nurses={props.activeNursesForMonth} currentDate={props.currentDate} onMassAbsenceApply={props.onMassAbsenceApply} />
             </CollapsibleModule>
         )}
 
+        {/* 4. Strasbourg Events */}
         {permissions.canManageStrasbourg && (
-            <>
-                <CollapsibleModule title={t.strasbourgPlanner} disabled={props.isMonthClosed}>
-                    <StrasbourgAnnualPlanner nurses={props.nurses} strasbourgAssignments={props.strasbourgAssignments} onStrasbourgUpdate={props.onStrasbourgUpdate} />
-                </CollapsibleModule>
-                
-                <CollapsibleModule title={t.strasbourgEvents} disabled={props.isMonthClosed}>
-                    <StrasbourgEventsModule
-                        events={props.specialStrasbourgEvents}
-                        nurses={props.nurses}
-                        onEventsChange={props.onSpecialStrasbourgEventsChange}
-                        isAdmin={permissions.isViewingAsAdmin}
-                        effectiveUser={null}
-                    />
-                </CollapsibleModule>
-            </>
+            <CollapsibleModule title={t.strasbourgEvents} disabled={props.isMonthClosed}>
+                <StrasbourgEventsModule
+                    events={props.specialStrasbourgEvents}
+                    nurses={props.nurses}
+                    onEventsChange={props.onSpecialStrasbourgEventsChange}
+                    isAdmin={permissions.isViewingAsAdmin}
+                    effectiveUser={null}
+                />
+            </CollapsibleModule>
         )}
 
-        {permissions.canDoMassAbsence && <CollapsibleModule title={t.massAssignAbsence} disabled={props.isMonthClosed}><MassAbsenceModule nurses={props.activeNursesForMonth} currentDate={props.currentDate} onMassAbsenceApply={props.onMassAbsenceApply} /></CollapsibleModule>}
-        {permissions.canManageVaccination && <CollapsibleModule title={t.vaccinationCampaign} disabled={props.isMonthClosed}><VaccinationPeriodPlanner period={props.vaccinationPeriod} onPeriodChange={props.onVaccinationPeriodChange} /></CollapsibleModule>}
+        {/* 5. Advanced Settings (Combined) */}
+        {permissions.isViewingAsAdmin && (
+            <CollapsibleModule title={t.advancedSettings} disabled={props.isMonthClosed}>
+                <div className="space-y-6">
+                    {permissions.canManageJornadas && (
+                        <div className="space-y-2">
+                            <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider">{t.jornada_title}</h4>
+                            <button onClick={props.onOpenJornadaManager} className="w-full px-4 py-2 bg-zen-700 text-white font-semibold rounded-md hover:bg-zen-600 text-sm">
+                                {t.jornada_manageButton}
+                            </button>
+                        </div>
+                    )}
+
+                    {permissions.canManageStrasbourg && (
+                        <div className="space-y-2 pt-4 border-t border-slate-100">
+                            <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider">{t.strasbourgPlanner}</h4>
+                            <StrasbourgAnnualPlanner nurses={props.nurses} strasbourgAssignments={props.strasbourgAssignments} onStrasbourgUpdate={props.onStrasbourgUpdate} />
+                        </div>
+                    )}
+
+                    {permissions.canManageVaccination && (
+                        <div className="space-y-2 pt-4 border-t border-slate-100">
+                            <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider">{t.vaccinationCampaign}</h4>
+                            <VaccinationPeriodPlanner period={props.vaccinationPeriod} onPeriodChange={props.onVaccinationPeriodChange} />
+                        </div>
+                    )}
+                </div>
+            </CollapsibleModule>
+        )}
         
     </div>
   );

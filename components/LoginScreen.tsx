@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { ZenovaLogo } from './ZenovaLogo';
@@ -19,6 +20,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = () => {
     login(username, password);
   };
 
+  // FIX: Ensure error message is a renderable string, not an object.
   const resolvedMessage = authError ? t[authError as keyof Locale] : null;
   const errorMessage = authError ? (typeof resolvedMessage === 'string' ? resolvedMessage : authError) : null;
 

@@ -11,6 +11,7 @@ const ShiftChip: React.FC<{ cell: ScheduleCell }> = ({ cell }) => {
     
     let shiftId: WorkZone | undefined;
     if (typeof cell === 'string') {
+        // FIX: `typeof cell === 'string'` narrows `cell` to type `string`, which is not assignable to `WorkZone`. Cast `cell` to `WorkZone` to fix this type error.
         shiftId = cell as WorkZone;
     } else if (typeof cell === 'object' && 'custom' in cell) {
         shiftId = cell.type;

@@ -69,7 +69,7 @@ export const calculateHoursForDay = (
     const shifts = getShiftsFromCellUtil(scheduleCell);
 
     // Absences should count for the theoretical hours for that day.
-    if (shifts.length > 0 && ['CA', 'CS', 'SICK_LEAVE', 'FP'].includes(shifts[0])) {
+    if (shifts.length > 0 && ['CA', 'SICK_LEAVE', 'FP'].includes(shifts[0])) {
         return calculateNurseTheoreticalHoursForDay(nurse, date, agenda, jornadasLaborales);
     }
 
@@ -116,7 +116,7 @@ export const calculateHoursForDay = (
         const isPreSessionFriday = isFriday && agenda[getWeekIdentifier(nextMonday)] === 'SESSION';
 
         // Standard work shifts (Absences are now handled above)
-        if (['URGENCES', 'TRAVAIL', 'ADMIN', 'TW', 'TW_ABROAD'].includes(primaryShift)) {
+        if (['URGENCES', 'TRAVAIL', 'ADMIN', 'TW'].includes(primaryShift)) {
              if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                 baseHours = isFriday ? 6.0 : 8.5;
             }
@@ -133,7 +133,7 @@ export const calculateHoursForDay = (
             baseHours = 3.0;
         }
         // Afternoon shifts with complex rules
-        else if (['URGENCES_TARDE', 'TRAVAIL_TARDE', 'ADMIN_TARDE'].includes(primaryShift)) {
+        else if (['URGENCES_TARDE', 'TRAVAIL_TARDE'].includes(primaryShift)) {
             const weekId = getWeekIdentifier(date);
             const activityLevel = agenda[weekId] || 'NORMAL';
 

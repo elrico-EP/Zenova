@@ -4,8 +4,8 @@ import { useTranslations } from '../hooks/useTranslations';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
-import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, MaximizeIcon, RestoreIcon, PdfIcon, UndoIcon } from './Icons';
-import { ShiftCell } from './ShiftCell'; // Re-use for consistent shift display
+import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, MaximizeIcon, RestoreIcon, PdfIcon } from './Icons';
+import { ShiftCell } from './ScheduleGrid'; // Re-use for consistent shift display
 import { PersonalBalanceView } from './PersonalBalanceView';
 import { holidays2026 } from '../data/agenda2026';
 import { agenda2026Data } from '../data/agenda2026'; // To get activity level
@@ -102,8 +102,6 @@ interface PersonalAgendaModalProps {
   history: HistoryEntry[];
   onExportAnnual: (nurse: Nurse, useOriginal: boolean) => Promise<void>;
   jornadasLaborales: JornadaLaboral[];
-  onUndoManualChange: (logId: string) => Promise<void>;
-  onClearHistory: (nurseId: string, monthKey: string) => void;
 }
 
 const CommentModal: React.FC<{
@@ -194,8 +192,6 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   history,
   onExportAnnual,
   jornadasLaborales,
-  onUndoManualChange,
-  onClearHistory,
 }) => {
   const t = useTranslations();
   const { language } = useLanguage();
@@ -453,16 +449,9 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   
   const manualChangesForMonth = useMemo(() => {
     const monthPrefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-    
-    // For Jan, Feb, Mar 2026, these are considered the baseline, not changes. So, we show an empty history.
-    const virginMonths = ['2026-01', '2026-02', '2026-03'];
-    if (virginMonths.includes(monthPrefix)) {
-        return [];
-    }
-
     return manualChangeLog
       .filter(log => log.nurseId === nurse.id && log.dateKey.startsWith(monthPrefix))
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Sort descending
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
   }, [manualChangeLog, nurse.id, currentDate]);
   
   const handleExportMonthPdf = async () => {
@@ -581,7 +570,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                                     <div className="w-full h-full p-1 flex items-center justify-center relative" title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}>
                                                         <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-xs text-center`}><span className="truncate px-1">{specialEvent.name}</span>{specialEvent.startTime && specialEvent.endTime && <span className="text-[10px] opacity-80 mt-1">{calculateEventHours(specialEvent.startTime, specialEvent.endTime).toFixed(1)}h</span>}</div>
                                                     </div>
-                                                ) : <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales)} hasManualHours={!!(dayData.startTime && dayData.endTime)} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false} isMonthClosed={true} onOpenHoursEdit={() => {}}/></div>}
+                                                ) : <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales)} hasManualHours={!!(dayData.startTime && dayData.endTime)} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false}/></div>}
                                                 {reductionTooltip && (
                                                     <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm ring-1 ring-white" title={reductionTooltip}>
                                                         R
@@ -686,18 +675,6 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                     <div className="bg-white p-4 rounded-lg text-sm space-y-2 shadow-sm border">
                         <div className="flex justify-between items-center">
                             <h4 className="font-semibold text-gray-700">{t.individual_manual_changes_month}</h4>
-                            {permissions.isViewingAsAdmin && manualChangesForMonth.length > 0 && (
-                                <button
-                                    onClick={() => {
-                                        if (window.confirm(t.individual_confirm_clear_history)) {
-                                            onClearHistory(nurse.id, monthKey);
-                                        }
-                                    }}
-                                    className="text-xs text-red-500 hover:underline"
-                                >
-                                    {t.individual_clear_history}
-                                </button>
-                            )}
                         </div>
                         {manualChangesForMonth.length === 0 ? (
                             <p className="text-xs text-slate-500 italic text-center py-2">{t.individual_no_manual_changes}</p>
@@ -705,24 +682,11 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                             <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
                                 {manualChangesForMonth.map(change => (
                                     <div key={change.id} className="text-xs p-2 bg-slate-100 rounded-md">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-bold text-slate-800">{new Date(change.dateKey + 'T12:00:00').toLocaleDateString(language, { day: '2-digit', month: '2-digit' })}</p>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <ShiftDisplay cell={change.originalShift} />
-                                                    <span>&rarr;</span>
-                                                    <ShiftDisplay cell={change.newShift} />
-                                                </div>
-                                            </div>
-                                            {permissions.isViewingAsAdmin && (
-                                                <button 
-                                                    onClick={() => onUndoManualChange(change.id)} 
-                                                    title={t.history_undo} 
-                                                    className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-full flex-shrink-0"
-                                                >
-                                                    <UndoIcon className="w-4 h-4" />
-                                                </button>
-                                            )}
+                                        <p className="font-bold text-slate-800">{new Date(change.dateKey + 'T12:00:00').toLocaleDateString(language, { day: '2-digit', month: '2-digit' })}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <ShiftDisplay cell={change.originalShift} />
+                                            <span>&rarr;</span>
+                                            <ShiftDisplay cell={change.newShift} />
                                         </div>
                                     </div>
                                 ))}

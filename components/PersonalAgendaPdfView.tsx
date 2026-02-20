@@ -1,7 +1,8 @@
+
 import React, { useMemo } from 'react';
 import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, SpecialStrasbourgEvent, JornadaLaboral } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { ShiftCell } from './ShiftCell';
+import { ShiftCell } from './ScheduleGrid';
 import { holidays2026 } from '../data/agenda2026';
 import { agenda2026Data } from '../data/agenda2026';
 import { getWeekIdentifier } from '../utils/dateUtils';
@@ -90,19 +91,17 @@ export const PersonalAgendaPdfView: React.FC<PersonalAgendaPdfViewProps> = ({
                             ) : (
                                 <ShiftCell 
                                   shiftCell={shiftCell} 
+                                  // FIX: Pass jornadasLaborales to getScheduleCellHours
                                   hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda2026Data, jornadasLaborales)} 
                                   hasManualHours={false}
                                   isWeekend={isWeekend} 
                                   isClosingDay={isHoliday || activityLevel === 'CLOSED'} 
                                   nurseId={nurse.id} 
-                                  dateKey={dateKey}
                                   weekId={weekId} 
                                   activityLevel={activityLevel} 
                                   strasbourgAssignments={strasbourgAssignments} 
                                   dayOfWeek={dayOfWeek} 
                                   isShortFriday={false}
-                                  onOpenHoursEdit={() => {}}
-                                  isMonthClosed={true}
                                 />
                             )}
                         </div>

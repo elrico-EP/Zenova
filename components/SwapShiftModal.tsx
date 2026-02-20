@@ -67,12 +67,11 @@ export const SwapShiftPanel: React.FC<SwapShiftPanelProps> = ({ isOpen, onClose,
     if (isMonthClosed) { setError(t.unlockMonth); return; }
     if (!initialNurseId || !nurse2Id) { setError(t.swap_error_nurses); return; }
     
-    if (shift1 === shift2) { // Allow swapping same shifts (effectively does nothing but useful for re-assignment logic)
+    if (shift1 === shift2) { // Allow swapping same shifts
         // No error, just proceed.
     }
 
     if (!shift1 && !shift2) {
-        // If both are free, there's nothing to swap.
         setError(t.swap_error_noShift);
         return;
     }
