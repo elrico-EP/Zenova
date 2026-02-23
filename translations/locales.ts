@@ -39,7 +39,7 @@ export const locales = {
     profilePageTitle: 'Mi Perfil',
     userInformation: 'Información de Usuario',
     fullName: 'Nombre Completo',
-    username: 'Nombre de Usuario',
+    username: 'Usuario',
     associatedNurse: 'Enfermero/a Asociado',
     changePasswordSectionTitle: 'Cambiar Contraseña',
     currentPassword: 'Contraseña Actual',
@@ -109,7 +109,7 @@ export const locales = {
     login_button: 'Entrar',
     login_loading: 'Iniciando sesión...',
     login_error: 'Credenciales incorrectas. Por favor, inténtalo de nuevo.',
-    backToLogin: 'al inicio de sesión',
+    backToLogin: 'Volver al inicio de sesión',
     saving: 'Guardando...',
     forgotPasswordAdmin: 'Si olvidaste tu contraseña, por favor contacta a un administrador.',
     userNotFound: 'Usuario no encontrado.',
@@ -137,7 +137,7 @@ export const locales = {
     newUser: 'Nuevo Usuario',
     editUser: 'Editar Usuario',
     deleteUserConfirm: '¿Estás seguro de que quieres eliminar este usuario? Esta acción no se puede deshacer.',
-    usernameInUseError: 'El nombre de usuario ya está en uso.',
+    usernameInUseError: 'El usuario ya está en uso.',
     associateNurseError: 'Debe asociar un enfermero/a a este usuario.',
     passwordInfo: '(dejar en blanco para no cambiar)',
     selectNursePrompt: 'Seleccionar enfermero/a...',
@@ -338,7 +338,6 @@ export const locales = {
     planningNotice: 'Aviso de Planificación',
     agendaPopupMessage: 'Recuerda: al entrar en octubre, es necesario revisar y configurar la nueva agenda para el próximo año ({year}).',
     understood: 'Entendido',
-    
     deleteAssignment: 'Eliminar Asignación',
 
     // Mass Leave Modal
@@ -410,7 +409,7 @@ export const locales = {
     shift: 'Turno',
     month: 'Mes',
     year: 'Año',
-    totalWorkDays: 'Total Días Trab.',
+    totalWorkDays: 'Total Días Trabajados',
 
     // Individual Agenda Modal
     individual_current_planning: "Planning Actual",
@@ -501,12 +500,16 @@ export const locales = {
                 "<h4>4.1 Estructura de la Cuadrícula</h4><ul class='list-disc list-inside pl-4 space-y-1'><li><strong>Filas:</strong> Cada fila representa un día del mes.</li><li><strong>Columnas:</strong> La primera columna es el día, las siguientes son cada enfermero/a, y las últimas (para admins) son <strong>Presentes</strong> y <strong>Notas</strong> del día.</li><li><strong>Celda:</strong> La intersección de un día y un enfermero/a, mostrando el turno asignado.</li></ul>",
                 "<h4>4.2 Tipos de Turnos y su Significado (Glosario Detallado)</h4><div class='overflow-x-auto'><table class='w-full text-left border-collapse'><thead><tr class='bg-slate-100'><th class='p-2 border'>Código</th><th class='p-2 border'>Etiqueta</th><th class='p-2 border'>Descripción y Propósito</th></tr></thead><tbody>" +
                 "<tr><td class='p-2 border'><strong>URG M/T</strong></td><td class='p-2 border'>Urg M/T</td><td class='p-2 border'><strong>Urgencias (Mañana/Tarde):</strong> Turno clínico en el área de urgencias.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>URG PM +</strong></td><td class='p-2 border'>Urg PM +</td><td class='p-2 border'><strong>Urgencias Tarde + Cierre:</strong> Turno de tarde que incluye el cierre del servicio.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>TRAV M/T</strong></td><td class='p-2 border'>Trav M/T</td><td class='p-2 border'><strong>Trabajo (Mañana/Tarde):</strong> Turno clínico planificado.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>TRAV PM +</strong></td><td class='p-2 border'>Trav PM +</td><td class='p-2 border'><strong>Trabajo Tarde + Cierre:</strong> Turno de tarde que incluye el cierre del servicio.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>ADMIN</strong></td><td class='p-2 border'>Adm</td><td class='p-2 border'><strong>Administración:</strong> Tareas administrativas. Flexible para reasignar.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>ADM PM +</strong></td><td class='p-2 border'>Adm PM +</td><td class='p-2 border'><strong>Administración Tarde + Cierre:</strong> Turno de tarde que incluye el cierre del servicio.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>TW</strong></td><td class='p-2 border'>TW</td><td class='p-2 border'><strong>Teletrabajo:</strong> Tareas desde casa. Flexible para reasignar.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>STRASBOURG</strong></td><td class='p-2 border'>STR</td><td class='p-2 border'><strong>Sesión de Estrasburgo:</strong> Lunes a Jueves. Suma 10h/día.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>STR-PREP</strong></td><td class='p-2 border'>(vacío)</td><td class='p-2 border'><strong>Preparación Estrasburgo:</strong> Viernes previo. Celda vacía con fondo rosa.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>VACCIN</strong></td><td class='p-2 border'>Vac</td><td class='p-2 border'><strong>Campaña de Vacunación.</strong></td></tr>" +
+                "<tr><td class='p-2 border'><strong>VAC PM +</strong></td><td class='p-2 border'>Vac PM +</td><td class='p-2 border'><strong>Vacunación Tarde + Cierre:</strong> Turno de tarde de vacunación que incluye el cierre.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>SPLIT</strong></td><td class='p-2 border'>(dividido)</td><td class='p-2 border'><strong>Turno Partido:</strong> Combina dos medios turnos.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>CA</strong></td><td class='p-2 border'>CA</td><td class='p-2 border'><strong>Congé Annuel (Vacaciones):</strong> Ausencia justificada. No suma horas.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>SICK</strong></td><td class='p-2 border'>Sick</td><td class='p-2 border'><strong>Baja por Enfermedad:</strong> Ausencia justificada. No suma horas.</td></tr>" +
@@ -567,8 +570,8 @@ export const locales = {
     },
 
     // Shift descriptions
-    shift_URGENCES_desc: 'Urgencias (Matin)',
-    shift_TRAVAIL_desc: 'Trabajo (Matin)',
+    shift_URGENCES_desc: 'Urgencias (Mañana)',
+    shift_TRAVAIL_desc: 'Trabajo (Mañana)',
     shift_URGENCES_TARDE_desc: 'Urgencias (Tarde)',
     shift_TRAVAIL_TARDE_desc: 'Trabajo (Tarde)',
     shift_ADMIN_desc: 'Administración',
@@ -587,8 +590,11 @@ export const locales = {
     shift_VACCIN_AM_desc: 'Vacunación (Mañana)',
     shift_VACCIN_PM_desc: 'Vacunación (Tarde)',
     shift_VACCIN_PM_PLUS_desc: 'Vacunación (Tarde + Cierre)',
+    shift_URGENCES_TARDE_PLUS_desc: 'Urgencias (Tarde + Cierre)',
+    shift_TRAVAIL_TARDE_PLUS_desc: 'Trabajo (Tarde + Cierre)',
+    shift_ADM_TARDE_PLUS_desc: 'Administración (Tarde + Cierre)',
     shift_free: 'Libre',
-    shift_complex: 'Complejo',
+    shift_complex: 'Complejo'
   },
   en: {
     // General
@@ -646,7 +652,7 @@ export const locales = {
     confirm: 'Confirm',
     actions: 'Actions',
     allFieldsRequired: 'All fields are required.',
-    undefined: 'Indefinite',
+    undefined: 'Undefined',
     loadingData: 'Loading data...',
     nav_agenda: 'Schedule',
     nav_balance: 'Balance',
@@ -700,7 +706,7 @@ export const locales = {
     login_button: 'Log In',
     login_loading: 'Logging in...',
     login_error: 'Incorrect credentials. Please try again.',
-    backToLogin: 'back to login',
+    backToLogin: 'Back to login',
     saving: 'Saving...',
     forgotPasswordAdmin: 'If you forgot your password, please contact an administrator.',
     userNotFound: 'User not found.',
@@ -936,8 +942,8 @@ export const locales = {
     massAssignAbsence: 'Mass Assign Absence',
     for: 'For',
     absenceType: 'Type of Absence',
-    leaveType_CA: 'Annual Leave',
-    leaveType_SICK_LEAVE: 'CM (Congé Maladie)',
+    leaveType_CA: 'Congé Annuel (Annual Leave)',
+    leaveType_SICK_LEAVE: 'Sick Leave',
     leaveType_FP: 'Professional Training',
     leaveType_CS: 'Congé Spécial',
     error_dateOrder: 'Start date cannot be after end date.',
@@ -981,9 +987,9 @@ export const locales = {
     urgMonthHeader: 'Emergencies (Month)',
     admMonthHeader: 'Admin',
     twMonthHeader: 'TW',
-    holidaysHeader: 'Leave',
+    holidaysHeader: 'CA',
     trainingHeader: 'Training',
-    sickLeaveHeader: 'Sick',
+    sickLeaveHeader: 'Sick Leave',
     hoursMonthHeader: 'Total Hours (Month)',
     hoursYearHeader: 'Total Hours (Year)',
     theoreticalHoursMonth: 'Theoretical Monthly Hours',
@@ -1001,7 +1007,7 @@ export const locales = {
     shift: 'Shift',
     month: 'Month',
     year: 'Year',
-    totalWorkDays: 'Total Work Days',
+    totalWorkDays: 'Total Worked Days',
     
     // Individual Agenda Modal
     individual_current_planning: "Current Planning",
@@ -1092,12 +1098,16 @@ export const locales = {
                 "<h4>4.1 Grid Structure</h4><ul class='list-disc list-inside pl-4 space-y-1'><li><strong>Rows:</strong> Each row represents a day of the month.</li><li><strong>Columns:</strong> The first column shows the day. The following columns represent each nurse. The last columns (for admins only) show the number of <strong>Present</strong> staff and the <strong>Notes</strong> for the day.</li><li><strong>Cell:</strong> The intersection of a day and a nurse, displaying the assigned shift.</li></ul>",
                 "<h4>4.2 Shift Types and Their Meanings (Detailed Glossary)</h4><div class='overflow-x-auto'><table class='w-full text-left border-collapse'><thead><tr class='bg-slate-100'><th class='p-2 border'>Code</th><th class='p-2 border'>Label</th><th class='p-2 border'>Description & Purpose</th></tr></thead><tbody>" +
                 "<tr><td class='p-2 border'><strong>URG M/T</strong></td><td class='p-2 border'>Urg M/T</td><td class='p-2 border'><strong>Emergencies (Morning/Afternoon):</strong> Clinical shift in the emergency area.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>URG PM +</strong></td><td class='p-2 border'>Urg PM +</td><td class='p-2 border'><strong>Emergencies Afternoon + Closing:</strong> Afternoon shift that includes service closing.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>TRAV M/T</strong></td><td class='p-2 border'>Trav M/T</td><td class='p-2 border'><strong>Work (Morning/Afternoon):</strong> Planned clinical shift (consultations, etc.).</td></tr>" +
+                "<tr><td class='p-2 border'><strong>TRAV PM +</strong></td><td class='p-2 border'>Trav PM +</td><td class='p-2 border'><strong>Work Afternoon + Closing:</strong> Afternoon shift that includes service closing.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>ADMIN</strong></td><td class='p-2 border'>Adm</td><td class='p-2 border'><strong>Administration:</strong> Administrative tasks. Flexible for reassignment if there are absences.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>ADM PM +</strong></td><td class='p-2 border'>Adm PM +</td><td class='p-2 border'><strong>Administration Afternoon + Closing:</strong> Afternoon shift that includes service closing.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>TW</strong></td><td class='p-2 border'>TW</td><td class='p-2 border'><strong>Telework:</strong> Tasks that can be performed from home. Also a flexible shift.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>STRASBOURG</strong></td><td class='p-2 border'>STR</td><td class='p-2 border'><strong>Strasbourg Session:</strong> Assigned from Monday to Thursday to those traveling. Counts as 10h/day.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>STR-PREP</strong></td><td class='p-2 border'>(empty)</td><td class='p-2 border'><strong>Strasbourg Preparation:</strong> Friday before a session. <strong>The cell appears empty</strong> but has a pink background.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>VACCIN</strong></td><td class='p-2 border'>Vac</td><td class='p-2 border'><strong>Vaccination Campaign:</strong> Specific shift during the campaign.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>VAC PM +</strong></td><td class='p-2 border'>Vac PM +</td><td class='p-2 border'><strong>Vaccination Afternoon + Closing:</strong> Afternoon vaccination shift that includes closing.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>SPLIT</strong></td><td class='p-2 border'>(split)</td><td class='p-2 border'><strong>Split Shift:</strong> The cell is divided to combine two half-shifts (e.g., ADM + VAC PM).</td></tr>" +
                 "<tr><td class='p-2 border'><strong>CA</strong></td><td class='p-2 border'>CA</td><td class='p-2 border'><strong>Congé Annuel (Annual Leave):</strong> Justified absence. Does not count towards hours.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>SICK</strong></td><td class='p-2 border'>Sick</td><td class='p-2 border'><strong>Sick Leave:</strong> Justified absence. Does not count towards hours.</td></tr>" +
@@ -1170,14 +1180,17 @@ export const locales = {
     shift_LIBERO_desc: 'Special pre-session shift',
     shift_RECUP_desc: 'Hours Recovery',
     shift_FP_desc: 'Professional Training',
-    shift_CS_desc: 'Congé Spécial',
-    shift_SICK_LEAVE_desc: 'CM (Congé Maladie)',
-    shift_CA_desc: 'Annual Leave',
+    shift_CS_desc: 'Special Leave',
+    shift_SICK_LEAVE_desc: 'Sick Leave',
+    shift_CA_desc: 'Congé Annuel (Annual Leave)',
     shift_F_desc: 'Holiday',
     shift_VACCIN_desc: 'Vaccination Campaign',
     shift_VACCIN_AM_desc: 'Vaccination (Morning)',
     shift_VACCIN_PM_desc: 'Vaccination (Afternoon)',
     shift_VACCIN_PM_PLUS_desc: 'Vaccination (Afternoon + Closing)',
+    shift_URGENCES_TARDE_PLUS_desc: 'Emergencies (Afternoon + Closing)',
+    shift_TRAVAIL_TARDE_PLUS_desc: 'Work (Afternoon + Closing)',
+    shift_ADM_TARDE_PLUS_desc: 'Administration (Afternoon + Closing)',
     shift_free: 'Free',
     shift_complex: 'Complex',
   },
@@ -1221,7 +1234,7 @@ export const locales = {
     profilePageTitle: 'Mon Profil',
     userInformation: "Informations de l'Utilisateur",
     fullName: 'Nom Complet',
-    username: "Nom d'utilisateur",
+    username: 'Utilisateur',
     associatedNurse: 'Infirmier/ère Associé(e)',
     changePasswordSectionTitle: 'Changer le Mot de Passe',
     currentPassword: 'Mot de Passe Actuel',
@@ -1284,19 +1297,19 @@ export const locales = {
     // --- Login & Password Reset Flow ---
     login_welcome: 'Bienvenue chez Zenova',
     login_instruction: 'Connectez-vous pour accéder au planificateur.',
-    login_username: "Nom d'utilisateur ou E-mail",
-    login_username_placeholder: "Votre nom d'utilisateur ou e-mail",
+    login_username: 'Utilisateur ou E-mail',
+    login_username_placeholder: 'Votre utilisateur ou e-mail',
     login_password: 'Mot de passe',
     login_password_placeholder: 'Mot de passe',
     login_button: 'Se connecter',
     login_loading: 'Connexion en cours...',
     login_error: 'Identifiants incorrects. Veuillez réessayer.',
-    backToLogin: 'retour à la connexion',
+    backToLogin: 'Retour à la connexion',
     saving: 'Enregistrement...',
     forgotPasswordAdmin: 'Si vous avez oublié votre mot de passe, veuillez contacter un administrateur.',
     userNotFound: 'Utilisateur non trouvé.',
     passwordResetTitle: 'Récupérer le Mot de Passe',
-    passwordResetInstruction: "Entrez votre nom d'utilisateur. S'il existe, un administrateur sera averti pour procéder à la réinitialisation.",
+    passwordResetInstruction: "Entrez votre utilisateur. S'il existe, un administrateur sera averti pour procéder à la réinitialisation.",
     passwordReset_verifying: 'Vérification en cours...',
     passwordReset_button: 'Récupérer le mot de passe',
     passwordResetSuccess: 'Mot de passe mis à jour avec succès. Vous pouvez maintenant vous connecter.',
@@ -1318,9 +1331,9 @@ export const locales = {
     newUser: 'Nouvel Utilisateur',
     editUser: "Modifier l'Utilisateur",
     deleteUserConfirm: 'Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.',
-    usernameInUseError: "Ce nom d'utilisateur est déjà utilisé.",
+    usernameInUseError: "Cet utilisateur est déjà utilisé.",
     associateNurseError: 'Vous devez associer un(e) infirmier/ère à cet utilisateur.',
-    passwordInfo: '(laisser vide pour ne pas changer)',
+    passwordInfo: '(laisser en blanc pour ne pas changer)',
     selectNursePrompt: 'Sélectionner un(e) infirmier/ère...',
     
     // Shift Rotations
@@ -1487,7 +1500,7 @@ export const locales = {
     activity_NORMAL: 'Normal',
     activity_SESSION: 'Session',
     activity_WHITE_GREEN: 'White/Green',
-    activity_REDUCED: 'Réduit',
+    activity_REDUCED: 'Réduite',
     activity_CLOSED: 'Fermé',
     wishesPageTitle: 'Souhaits et Incidents',
     wishesViewButton: 'Souhaits',
@@ -1505,8 +1518,9 @@ export const locales = {
     for: 'Pour',
     absenceType: "Type d'Absence",
     leaveType_CA: 'Congé Annuel',
-    leaveType_SICK_LEAVE: 'Arrêt Maladie',
+    leaveType_SICK_LEAVE: 'CM (Congé Maladie)',
     leaveType_FP: 'Formation Professionnelle',
+    leaveType_CS: 'Congé Spécial',
     error_dateOrder: 'La date de début ne peut pas être postérieure à la date de fin.',
     applyToWorkdays: 'Appliquer aux Jours Ouvrables',
     addNotePlaceholder: 'Ajouter une note...',
@@ -1564,7 +1578,7 @@ export const locales = {
     shift: 'Poste',
     month: 'Mois',
     year: 'Année',
-    totalWorkDays: 'Total Jours Trav.',
+    totalWorkDays: 'Total Jours Travaillés',
 
     // Individual Agenda Modal
     individual_current_planning: "Planning Actuel",
@@ -1655,12 +1669,16 @@ export const locales = {
                 "<h4>4.1 Structure de la grille</h4><ul class='list-disc list-inside pl-4 space-y-1'><li><strong>Lignes :</strong> Chaque ligne représente un jour du mois.</li><li><strong>Columnes :</strong> La première colonne est le jour, les suivantes sont chaque infirmier/ère, et les dernières (pour les admins) sont les <strong>Présents</strong> et les <strong>Notes</strong> du jour.</li><li><strong>Cellule :</strong> L'intersection d'un jour et d'un infirmier/ère, affichant le poste attribué.</li></ul>",
                 "<h4>4.2 Types de postes et leur signification (Glossaire détaillé)</h4><div class='overflow-x-auto'><table class='w-full text-left border-collapse'><thead><tr class='bg-slate-100'><th class='p-2 border'>Code</th><th class='p-2 border'>Étiquette</th><th class='p-2 border'>Description et objectif</th></tr></thead><tbody>" +
                 "<tr><td class='p-2 border'><strong>URG M/T</strong></td><td class='p-2 border'>Urg M/T</td><td class='p-2 border'><strong>Urgences (Matin/Après-midi):</strong> Poste clinique aux urgences.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>URG PM +</strong></td><td class='p-2 border'>Urg PM +</td><td class='p-2 border'><strong>Urgences Après-midi + Fermeture:</strong> Poste d'après-midi incluant la fermeture du service.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>TRAV M/T</strong></td><td class='p-2 border'>Trav M/T</td><td class='p-2 border'><strong>Travail (Matin/Après-midi):</strong> Poste clinique planifié (consultations, etc.).</td></tr>" +
+                "<tr><td class='p-2 border'><strong>TRAV PM +</strong></td><td class='p-2 border'>Trav PM +</td><td class='p-2 border'><strong>Travail Après-midi + Fermeture:</strong> Poste d'après-midi incluant la fermeture du service.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>ADMIN</strong></td><td class='p-2 border'>Adm</td><td class='p-2 border'><strong>Administration :</strong> Tâches administratives. Flexible pour réaffectation.</td></tr>" +
+                "<tr><td class='p-2 border'><strong>ADM PM +</strong></td><td class='p-2 border'>Adm PM +</td><td class='p-2 border'><strong>Administration Après-midi + Fermeture:</strong> Poste d'après-midi incluant la fermeture du service.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>TW</strong></td><td class='p-2 border'>TT</td><td class='p-2 border'><strong>Télétravail :</strong> Tâches à domicile. Flexible pour réaffectation.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>STRASBOURG</strong></td><td class='p-2 border'>STR</td><td class='p-2 border'><strong>Session de Strasbourg :</strong> Du Lundi au Jeudi. Compte pour 10h/jour.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>STR-PREP</strong></td><td class='p-2 border'>(vide)</td><td class='p-2 border'><strong>Préparation Strasbourg :</strong> Vendredi précédent. Cellule vide avec fond rose.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>VACCIN</strong></td><td class='p-2 border'>Vac</td><td class='p-2 border'><strong>Campagne de vaccination.</strong></td></tr>" +
+                "<tr><td class='p-2 border'><strong>VAC PM +</strong></td><td class='p-2 border'>Vac PM +</td><td class='p-2 border'><strong>Vaccination Après-midi + Fermeture:</strong> Poste d'après-midi de vaccination incluant la fermeture.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>SPLIT</strong></td><td class='p-2 border'>(divisé)</td><td class='p-2 border'><strong>Poste fractionné :</strong> Combine deux demi-postes.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>CA</strong></td><td class='p-2 border'>CA</td><td class='p-2 border'><strong>Congé Annuel :</strong> Absence justifiée. Ne compte pas d'heures.</td></tr>" +
                 "<tr><td class='p-2 border'><strong>SICK</strong></td><td class='p-2 border'>Arrêt</td><td class='p-2 border'><strong>Arrêt maladie :</strong> Absence justifiée. Ne compte pas d'heures.</td></tr>" +
@@ -1736,6 +1754,9 @@ export const locales = {
     shift_VACCIN_AM_desc: 'Vaccination (Matin)',
     shift_VACCIN_PM_desc: 'Vaccination (Après-midi)',
     shift_VACCIN_PM_PLUS_desc: 'Vaccination (Après-midi + Fermeture)',
+    shift_URGENCES_TARDE_PLUS_desc: 'Urgences (Après-midi + Fermeture)',
+    shift_TRAVAIL_TARDE_PLUS_desc: 'Travail (Après-midi + Fermeture)',
+    shift_ADM_TARDE_PLUS_desc: 'Administration (Après-midi + Fermeture)',
     shift_free: 'Libre',
     shift_complex: 'Complexe',
   }

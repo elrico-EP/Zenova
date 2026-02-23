@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Nurse, SpecialStrasbourgEvent, User, SpecialStrasbourgEventType } from '../types';
+import type { Nurse, SpecialStrasbourgEvent, User, SpecialStrasbourgEventType, HistoryEntry } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
 import { Locale } from '../translations/locales';
 
@@ -10,6 +10,8 @@ interface StrasbourgEventsModuleProps {
     onEventsChange: (events: SpecialStrasbourgEvent[]) => void;
     isAdmin: boolean;
     effectiveUser: User | Nurse | null;
+    log: HistoryEntry[];
+    onClearLog: () => void;
 }
 
 const checkDaysOfWeek = (start: string, end: string, expectedDay: number): boolean => {
@@ -173,9 +175,9 @@ const EventTypeSelector: React.FC<{
     );
 };
 
-export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ events, nurses, onEventsChange, isAdmin, effectiveUser }) => {
+export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ events, nurses, onEventsChange, isAdmin, effectiveUser, log, onClearLog }) => {
     const t = useTranslations();
-    const [view, setView] = useState<'list' | 'selectType' | 'form'>('list');
+    const [view, setView] = useState<'list' | 'selectType' | 'form' | 'history'>('list');
     const [editingEvent, setEditingEvent] = useState<Partial<SpecialStrasbourgEvent> | null>(null);
 
     const filteredEvents = useMemo(() => {
@@ -214,9 +216,48 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
         return <EventForm event={editingEvent} nurses={nurses} onSave={handleSave} onCancel={handleCancel} />;
     }
 
+    if (view === 'history') {
+        return (
+            <div className="space-y-4">
+                <header className="flex items-center justify-between">
+                    <button onClick={() => setView('list')} className="text-sm font-bold text-zen-600 hover:underline flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        Volver
+                    </button>
+                    {isAdmin && log.length > 0 && (
+                        <button 
+                            onClick={() => { if(window.confirm('¿Borrar historial de eventos?')) onClearLog(); }}
+                            className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase tracking-widest"
+                        >
+                            Limpiar Historial
+                        </button>
+                    )}
+                </header>
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+                    {log.length === 0 ? (
+                        <p className="text-slate-500 italic text-center py-8">No hay registros.</p>
+                    ) : (
+                        log.map(entry => (
+                            <div key={entry.id} className="text-[10px] p-2 bg-slate-50 rounded border border-slate-200">
+                                <p className="font-bold text-slate-700">{entry.action}</p>
+                                <p className="text-slate-600">{entry.details}</p>
+                                <p className="text-slate-400 mt-1">{entry.user} - {new Date(entry.timestamp).toLocaleString()}</p>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-4 text-sm">
-            {isAdmin && <button onClick={handleAddNew} className="w-full px-4 py-2 bg-zen-700 text-white font-semibold rounded-md hover:bg-zen-600">+ {t.createEvent}</button>}
+            <div className="flex gap-2">
+                {isAdmin && <button onClick={handleAddNew} className="flex-grow px-4 py-2 bg-zen-700 text-white font-semibold rounded-md hover:bg-zen-600">+ {t.createEvent}</button>}
+                <button onClick={() => setView('history')} className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200" title="Ver Historial">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
+            </div>
             <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                 {filteredEvents.length === 0 && <p className="text-slate-500 italic text-center p-4">{t.noEventsToShow}</p>}
                 {filteredEvents.map(event => {

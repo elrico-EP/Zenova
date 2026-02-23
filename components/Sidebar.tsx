@@ -46,6 +46,21 @@ const ManageTeamModule: React.FC<{ nurses: Nurse[]; onAddNurse: (name: string) =
                         </div>
                         <div className="flex items-center flex-shrink-0">
                            {permissions.canOpenPersonalAgenda(nurse.id) && <button onClick={() => onOpenAgenda(nurse)} title={t.openPersonalAgenda} className="text-slate-500 hover:text-zen-600 p-1.5 rounded-full hover:bg-zen-100 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg></button>}
+                           {permissions.isViewingAsAdmin && (
+                               <button 
+                                   onClick={() => {
+                                       if (window.confirm(`¿Estás seguro de que quieres borrar todos los cambios manuales de ${nurse.name} para este mes?`)) {
+                                           (onRemoveNurse as any)(nurse.id, 'RESET_MONTH'); 
+                                       }
+                                   }} 
+                                   title="Resetear mes (borrar cambios manuales)" 
+                                   className="text-slate-500 hover:text-amber-600 p-1.5 rounded-full hover:bg-amber-100 transition-colors"
+                               >
+                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                       <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                                   </svg>
+                               </button>
+                           )}
                            {permissions.canManageTeam && <button onClick={() => { if (window.confirm(t.confirmDeleteNurseMessage)) onRemoveNurse(nurse.id);}} title={t.deleteNurse} className="text-slate-500 hover:text-red-600 p-1.5 rounded-full hover:bg-red-100 transition-colors disabled:opacity-50" disabled={!canEditTeam}><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg></button>}
                         </div>
                     </div>
@@ -170,6 +185,8 @@ interface SidebarProps {
   strasbourgAssignments: Record<string, string[]>; onStrasbourgUpdate: (weekId: string, nurseIds: string[]) => void;
   specialStrasbourgEvents: SpecialStrasbourgEvent[];
   onSpecialStrasbourgEventsChange: (events: SpecialStrasbourgEvent[]) => void;
+  specialStrasbourgEventsLog: HistoryEntry[];
+  onClearStrasbourgLog: () => void;
   vaccinationPeriod: { start: string; end: string } | null; onVaccinationPeriodChange: (period: { start: string; end: string } | null) => void;
   isMonthClosed: boolean;
   onOpenJornadaManager: () => void;
@@ -242,6 +259,8 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
                     onEventsChange={props.onSpecialStrasbourgEventsChange}
                     isAdmin={permissions.isViewingAsAdmin}
                     effectiveUser={null}
+                    log={props.specialStrasbourgEventsLog}
+                    onClearLog={props.onClearStrasbourgLog}
                 />
             </CollapsibleModule>
         )}

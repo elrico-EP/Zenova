@@ -75,11 +75,12 @@ export const getScheduleCellHours = (
     switch (shiftType) {
         case 'VACCIN_AM': baseHours = '08:00 - 14:00'; break;
         case 'VACCIN_PM': baseHours = '14:00 - 17:00'; break;
+        case 'VACCIN_PM_PLUS': baseHours = '14:00 - 18:00'; break;
         case 'URGENCES_C': baseHours = '14:00 - 17:00'; break;
         case 'TRAVAIL_C': baseHours = '14:00 - 17:00'; break;
         case 'VACCIN': baseHours = '08:00 - 14:00'; break;
         default:
-            const isAfternoonShift = shiftType === 'URGENCES_TARDE' || shiftType === 'TRAVAIL_TARDE';
+            const isAfternoonShift = shiftType.includes('_TARDE') || shiftType.includes('_PM');
             const nextMonday = new Date(date);
             nextMonday.setUTCDate(date.getUTCDate() + (8 - dayOfWeek) % 7 || 7);
             const isPreSessionFriday = date.getUTCDay() === 5 && agenda[getWeekIdentifier(nextMonday)] === 'SESSION';
@@ -91,7 +92,12 @@ export const getScheduleCellHours = (
             } else if (date.getUTCDay() === 5) {
                 baseHours = '08:00 - 14:00';
             } else if (isAfternoonShift) {
-                baseHours = activityLevel === 'NORMAL' ? '10:00 - 18:30' : '09:00 - 17:45';
+                const isPlus = shiftType.endsWith('_PLUS');
+                if (activityLevel === 'NORMAL') {
+                    baseHours = isPlus ? '10:00 - 19:00' : '10:00 - 18:30';
+                } else {
+                    baseHours = isPlus ? '09:00 - 18:15' : '09:00 - 17:45';
+                }
             } else {
                 baseHours = '08:00 - 17:00';
             }
@@ -318,11 +324,37 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
             let internHandledByException = false;
             const intern = dutyPool.find(n => n.id === 'nurse-11');
             if (intern) {
-                const isOctober = month === 9;
-                const weekOfMonth = Math.ceil(currentDate.getUTCDate() / 7);
-                if (isOctober && dayOfWeek >= 1 && dayOfWeek <= 5) {
-                    if (weekOfMonth === 1) { dailyAssignments[intern.id] = 'ADMIN'; internHandledByException = true; } 
-                    else if (weekOfMonth === 2) { dailyAssignments[intern.id] = 'TRAVAIL'; internHandledByException = true; }
+                // Intern logic: Present Oct-Feb. March starts new cycle.
+                // Manual presence allowed Mar-Sep, then Oct starts new cycle.
+                const isInternSeason = month >= 9 || month <= 1; // Oct (9) to Feb (1)
+                
+                // Check if intern is manually assigned in manualOverrides for this month
+                const isManuallyPresent = Object.values(manualOverrides[intern.id] || {}).length > 0;
+                
+                if (isInternSeason || isManuallyPresent) {
+                    // Calculate week of the current "cycle"
+                    // Cycle 1: Oct - Feb (Starts in Oct)
+                    // Cycle 2: Mar - Sep (Starts in Mar if manually added)
+                    let cycleStartMonth = isInternSeason ? 9 : 2; // Oct or March
+                    if (month < 9 && month > 1 && isManuallyPresent) cycleStartMonth = 2;
+                    
+                    // If we are in the Jan/Feb part of the Oct-Feb cycle, the cycle started last year
+                    const cycleYear = (month <= 1) ? year - 1 : year;
+                    const cycleStartDate = new Date(Date.UTC(cycleYear, cycleStartMonth, 1));
+                    
+                    // Calculate weeks since cycle start
+                    const diffTime = Math.abs(currentDate.getTime() - cycleStartDate.getTime());
+                    const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+                    const weekOfCycle = (diffWeeks % 4) + 1; // 4-week rotation
+
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                        if (weekOfCycle === 1) dailyAssignments[intern.id] = 'ADMIN';
+                        else if (weekOfCycle === 2) dailyAssignments[intern.id] = 'TRAVAIL';
+                        else if (weekOfCycle === 3) dailyAssignments[intern.id] = 'URGENCES';
+                        else dailyAssignments[intern.id] = 'TRAVAIL'; // Default for week 4
+                        
+                        internHandledByException = true;
+                    }
                 }
             }
             if (internHandledByException) { dutyPool = dutyPool.filter(n => n.id !== 'nurse-11'); }

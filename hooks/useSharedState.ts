@@ -39,6 +39,7 @@ const getInitialState = (): AppState => ({
     wishes: {},
     jornadasLaborales: INITIAL_JORNADAS,
     manualChangeLog: [],
+    specialStrasbourgEventsLog: [],
 });
 
 export const useSharedState = () => {

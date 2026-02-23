@@ -7,9 +7,11 @@ interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   history: HistoryEntry[];
+  onClearHistory: () => void;
+  onDeleteHistoryEntry: (id: string) => void;
 }
 
-export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history }) => {
+export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, onClearHistory, onDeleteHistoryEntry }) => {
   const t = useTranslations();
 
   if (!isOpen) {
@@ -39,7 +41,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
         </header>
 
         <main className="overflow-y-auto pr-2">
-          <HistoryLog history={history} />
+          <HistoryLog 
+            history={history} 
+            onClearAll={onClearHistory}
+            onDeleteEntry={onDeleteHistoryEntry}
+          />
         </main>
       </div>
     </div>

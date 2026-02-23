@@ -30,10 +30,11 @@ const getInitialState = (): AppState => ({
     strasbourgAssignments: INITIAL_STRASBOURG_ASSIGNMENTS_2026,
     strasbourgEvents: [],
     specialStrasbourgEvents: [],
-    closedMonths: {},
+    closedMonths: { '2026-00': true, '2026-01': true }, // January and February 2026
     wishes: {},
     jornadasLaborales: INITIAL_JORNADAS,
     manualChangeLog: [],
+    specialStrasbourgEventsLog: [],
 });
 
 export const useSupabaseState = () => {
@@ -46,39 +47,74 @@ export const useSupabaseState = () => {
         const initData = async () => {
             console.log("🔥 Supabase: Cargando datos...");
             
-            // Leer datos iniciales
-            const { data: existingData, error } = await supabase
-                .from('app_state')
-                .select('data')
-                .eq('id', 1)
-                .single();
-
-            if (error) {
-                console.error("❌ Error al leer:", error);
-                return;
-            }
-
-            if (!existingData?.data || Object.keys(existingData.data).length === 0) {
-                console.log("💾 Inicializando datos...");
-                const initialState = getInitialState();
-                
-                const { error: updateError } = await supabase
+            try {
+                // Leer datos iniciales
+                const { data: existingData, error } = await supabase
                     .from('app_state')
-                    .update({ data: initialState })
-                    .eq('id', 1);
+                    .select('data')
+                    .eq('id', 1)
+                    .single();
 
-                if (updateError) {
-                    console.error("❌ Error al inicializar:", updateError);
+                if (error) {
+                    console.error("❌ Error al leer app_state:", error);
+                    
+                    // Si el error es que no existe la fila, intentamos crearla
+                    if (error.code === 'PGRST116' || error.message?.includes('JSON object requested, but 0 rows were returned')) {
+                        console.log("💾 Fila no encontrada, intentando inicializar...");
+                        const initialState = getInitialState();
+                        const { error: insertError } = await supabase
+                            .from('app_state')
+                            .insert([{ id: 1, data: initialState }]);
+                        
+                        if (insertError) {
+                            console.error("❌ Error al insertar fila inicial:", insertError);
+                        } else {
+                            setData(initialState);
+                        }
+                    }
+                } else if (!existingData?.data || Object.keys(existingData.data).length === 0) {
+                    console.log("💾 Datos vacíos, inicializando...");
+                    const initialState = getInitialState();
+                    
+                    const { error: updateError } = await supabase
+                        .from('app_state')
+                        .update({ data: initialState })
+                        .eq('id', 1);
+
+                    if (updateError) {
+                        console.error("❌ Error al inicializar datos vacíos:", updateError);
+                    } else {
+                        console.log("✅ Datos inicializados");
+                        setData(initialState);
+                    }
                 } else {
-                    console.log("✅ Datos inicializados");
-                    setData(initialState);
+                    console.log("✅ Datos cargados:", existingData.data);
+                    let loadedData = existingData.data as AppState;
+                    
+                    // RECOVERY LOGIC: Ensure 2026 agenda and closed months are present if they were "lost"
+                    let needsPatch = false;
+                    if (!loadedData.agenda || Object.keys(loadedData.agenda).length < 10) {
+                        console.log("🩹 Patching missing agenda...");
+                        loadedData.agenda = { ...agenda2026Data, ...(loadedData.agenda || {}) };
+                        needsPatch = true;
+                    }
+                    if (!loadedData.closedMonths || Object.keys(loadedData.closedMonths).length === 0) {
+                        console.log("🩹 Patching missing closed months...");
+                        loadedData.closedMonths = { '2026-00': true, '2026-01': true };
+                        needsPatch = true;
+                    }
+                    
+                    if (needsPatch) {
+                        await supabase.from('app_state').update({ data: loadedData }).eq('id', 1);
+                    }
+                    
+                    setData(loadedData);
                 }
-            } else {
-                console.log("✅ Datos cargados:", existingData.data);
-                setData(existingData.data as AppState);
+            } catch (err) {
+                console.error("❌ Error inesperado en initData:", err);
+            } finally {
+                setLoading(false);
             }
-
-            setLoading(false);
 
             // Escuchar cambios en tiempo real
             console.log("👂 Escuchando cambios en tiempo real...");
@@ -95,7 +131,12 @@ export const useSupabaseState = () => {
                     (payload) => {
                         console.log("📡 Cambio detectado:", payload);
                         if (payload.new && payload.new.data) {
-                            setData(payload.new.data as AppState);
+                            setData(currentData => {
+                                if (JSON.stringify(currentData) !== JSON.stringify(payload.new.data)) {
+                                    return payload.new.data as AppState;
+                                }
+                                return currentData;
+                            });
                         }
                     }
                 )
@@ -112,23 +153,30 @@ export const useSupabaseState = () => {
         };
     }, []);
 
-    const updateData = useCallback(async (updates: Partial<AppState>) => {
-        if (!data) return;
-
-        const newData = { ...data, ...updates };
-        console.log("💾 Guardando cambios...", updates);
-
-        const { error } = await supabase
-            .from('app_state')
-            .update({ data: newData })
-            .eq('id', 1);
-
-        if (error) {
-            console.error("❌ Error al guardar:", error);
-        } else {
-            console.log("✅ Guardado exitoso");
-        }
-    }, [data]);
+    const updateData = useCallback((updates: Partial<AppState>) => {
+        // Use functional update for setData to get the latest state without 'data' in dependency array
+        setData(currentData => {
+            const newData = { ...currentData, ...updates };
+            if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
+                // Perform optimistic update
+                // Then, persist to Supabase
+                supabase
+                    .from('app_state')
+                    .update({ data: newData })
+                    .eq('id', 1)
+                    .then(({ error }) => {
+                        if (error) {
+                            console.error("❌ Error al guardar:", error);
+                            // Revert optimistic update if there's an error, or let real-time listener handle it
+                        } else {
+                            console.log("✅ Guardado exitoso");
+                        }
+                    });
+                return newData;
+            }
+            return currentData;
+        });
+    }, []);
 
     return { data, loading, updateData };
 };
