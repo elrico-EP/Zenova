@@ -34,6 +34,9 @@ export type WorkZone =
   | 'VACCIN_AM'
   | 'VACCIN_PM'
   | 'VACCIN_PM_PLUS'
+  | 'URGENCES_TARDE_PLUS'
+  | 'TRAVAIL_TARDE_PLUS'
+  | 'ADM_TARDE_PLUS'
   | 'TRAVAIL_C'  // Complemento clínico corto
   | 'URGENCES_C'; // Complemento clínico corto
 
@@ -203,6 +206,9 @@ export interface ShiftCounts {
     VACCIN_AM: number;
     VACCIN_PM: number;
     VACCIN_PM_PLUS: number;
+    URGENCES_TARDE_PLUS: number;
+    TRAVAIL_TARDE_PLUS: number;
+    ADM_TARDE_PLUS: number;
 }
 
 export interface BalanceData {
@@ -274,6 +280,7 @@ export interface AppState {
     wishes: Wishes;
     jornadasLaborales: JornadaLaboral[];
     manualChangeLog: ManualChangeLogEntry[];
+    specialStrasbourgEventsLog: HistoryEntry[];
 }
 
 export interface HistoryEntry {

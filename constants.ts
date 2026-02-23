@@ -3,12 +3,12 @@ import type { Shift, Nurse } from './types';
 
 export const SHIFTS: Record<string, Shift> = {
   // Mapa de colores definitivo según la especificación del usuario.
-  'URGENCES': { id: 'URGENCES', label: 'Urg M', description: 'shift_URGENCES_desc', color: 'bg-blue-200', textColor: 'text-blue-800' },
-  'TRAVAIL': { id: 'TRAVAIL', label: 'Trav M', description: 'shift_TRAVAIL_desc', color: 'bg-yellow-200', textColor: 'text-yellow-800' },
-  'URGENCES_TARDE': { id: 'URGENCES_TARDE', label: 'Urg T', description: 'shift_URGENCES_TARDE_desc', color: 'bg-blue-500', textColor: 'text-blue-50' },
-  'TRAVAIL_TARDE': { id: 'TRAVAIL_TARDE', label: 'Trav T', description: 'shift_TRAVAIL_TARDE_desc', color: 'bg-yellow-500', textColor: 'text-yellow-50' },
-  'ADMIN': { id: 'ADMIN', label: 'Adm', description: 'shift_ADMIN_desc', color: 'bg-orange-200', textColor: 'text-orange-800' },
-  'ADM_TARDE': { id: 'ADM_TARDE', label: 'Adm T', description: 'shift_ADM_TARDE_desc', color: 'bg-orange-400', textColor: 'text-orange-900' },
+  'URGENCES': { id: 'URGENCES', label: 'Urg AM', description: 'shift_URGENCES_desc', color: 'bg-blue-200', textColor: 'text-blue-800' },
+  'TRAVAIL': { id: 'TRAVAIL', label: 'Trav AM', description: 'shift_TRAVAIL_desc', color: 'bg-yellow-200', textColor: 'text-yellow-800' },
+  'URGENCES_TARDE': { id: 'URGENCES_TARDE', label: 'Urg PM', description: 'shift_URGENCES_TARDE_desc', color: 'bg-blue-500', textColor: 'text-blue-50' },
+  'TRAVAIL_TARDE': { id: 'TRAVAIL_TARDE', label: 'Trav PM', description: 'shift_TRAVAIL_TARDE_desc', color: 'bg-yellow-500', textColor: 'text-yellow-50' },
+  'ADMIN': { id: 'ADMIN', label: 'Adm AM', description: 'shift_ADMIN_desc', color: 'bg-orange-200', textColor: 'text-orange-800' },
+  'ADM_TARDE': { id: 'ADM_TARDE', label: 'Adm PM', description: 'shift_ADM_TARDE_desc', color: 'bg-orange-400', textColor: 'text-orange-900' },
   'TW': { id: 'TW', label: 'TW', description: 'shift_TW_desc', color: 'bg-purple-300', textColor: 'text-purple-900' },
   'TW_ABROAD': { id: 'TW_ABROAD', label: 'TW abroad', description: 'shift_TW_ABROAD_desc', color: 'bg-purple-500', textColor: 'text-purple-50' },
   'STRASBOURG': { id: 'STRASBOURG', label: 'STR', description: 'shift_STRASBOURG_desc', color: 'bg-rose-300', textColor: 'text-rose-900' },
@@ -19,10 +19,13 @@ export const SHIFTS: Record<string, Shift> = {
   'SICK_LEAVE': { id: 'SICK_LEAVE', label: 'CM', description: 'shift_SICK_LEAVE_desc', color: 'bg-gray-500', textColor: 'text-gray-50' },
   'CA': { id: 'CA', label: 'CA', description: 'shift_CA_desc', color: 'bg-gray-100', textColor: 'text-gray-700' }, // "Blanco" -> Gris muy claro para contraste
   'F': { id: 'F', label: 'F', description: 'shift_F_desc', color: 'bg-red-400', textColor: 'text-red-50' }, // Festivo como STR
-  'VACCIN': { id: 'VACCIN', label: 'Vac', description: 'shift_VACCIN_desc', color: 'bg-teal-300', textColor: 'text-teal-900' },
+  'VACCIN': { id: 'VACCIN', label: 'Vac AM', description: 'shift_VACCIN_desc', color: 'bg-teal-300', textColor: 'text-teal-900' },
   'VACCIN_AM': { id: 'VACCIN_AM', label: 'Vac AM', description: 'shift_VACCIN_AM_desc', color: 'bg-teal-200', textColor: 'text-teal-800' },
   'VACCIN_PM': { id: 'VACCIN_PM', label: 'Vac PM', description: 'shift_VACCIN_PM_desc', color: 'bg-teal-400', textColor: 'text-teal-900' },
   'VACCIN_PM_PLUS': { id: 'VACCIN_PM_PLUS', label: 'Vac PM +', description: 'shift_VACCIN_PM_PLUS_desc', color: 'bg-teal-600', textColor: 'text-teal-50' },
+  'URGENCES_TARDE_PLUS': { id: 'URGENCES_TARDE_PLUS', label: 'Urg PM +', description: 'shift_URGENCES_TARDE_PLUS_desc', color: 'bg-blue-700', textColor: 'text-blue-50' },
+  'TRAVAIL_TARDE_PLUS': { id: 'TRAVAIL_TARDE_PLUS', label: 'Trav PM +', description: 'shift_TRAVAIL_TARDE_PLUS_desc', color: 'bg-yellow-700', textColor: 'text-yellow-50' },
+  'ADM_TARDE_PLUS': { id: 'ADM_TARDE_PLUS', label: 'Adm PM +', description: 'shift_ADM_TARDE_PLUS_desc', color: 'bg-orange-600', textColor: 'text-orange-50' },
   'TRAVAIL_C': { id: 'TRAVAIL_C', label: 'Trav C', description: 'shift_TRAVAIL_desc', color: 'bg-yellow-200', textColor: 'text-yellow-800' },
   'URGENCES_C': { id: 'URGENCES_C', label: 'Urg C', description: 'shift_URGENCES_desc', color: 'bg-blue-200', textColor: 'text-blue-800' },
 };
