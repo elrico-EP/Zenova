@@ -134,7 +134,7 @@ export const UserManagementPage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) =>
     };
 
     return (
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 p-4 h-full flex flex-col">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 p-4 min-h-[500px] flex flex-col">
             <header className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4 flex-shrink-0">
                 <h2 className="text-2xl font-bold text-slate-800">{t.userManagementTitle}</h2>
                 <button onClick={() => handleOpenForm()} className="px-4 py-2 bg-zen-700 text-white font-semibold rounded-md hover:bg-zen-600">+ {t.newUser}</button>
