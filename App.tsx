@@ -733,7 +733,7 @@ const handleAddNurse = useCallback((name: string) => {
   if ((user as User).mustChangePassword || (user as User).passwordResetRequired) { return <ForceChangePasswordScreen />; }
 
   return (
-    <div className="min-h-screen h-screen flex flex-col overflow-hidden">
+    <div className="min-h-screen flex flex-col">
       {showFullscreenToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm transition-opacity duration-300 animate-fade-in-out">
             Press ESC to exit fullscreen mode
@@ -757,8 +757,8 @@ const handleAddNurse = useCallback((name: string) => {
         />
       </div>
 
-      <main className="flex-grow max-w-screen-2xl w-full mx-auto p-4 overflow-hidden flex flex-col">
-        <div className="flex flex-col lg:flex-row gap-8 h-full print-main-content lg:items-stretch overflow-hidden">
+      <main className="flex-grow max-w-screen-2xl w-full mx-auto p-4 flex flex-col">
+        <div className="flex flex-col lg:flex-row gap-8 h-full print-main-content lg:items-stretch">
           {!permissions.isViewingAsViewer && view === 'schedule' && (
              <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print overflow-y-auto pr-2 custom-scrollbar">
               <Sidebar 
