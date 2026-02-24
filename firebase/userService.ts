@@ -72,17 +72,17 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
                 name: 'Admin',
                 email: 'admin',
                 role: 'admin',
-                password: 'admin',
+                password: 'admin123',
                 mustChangePassword: false,
-                nurseId: null // Admin doesn't have a nurseId
+                nurseid: null // Admin doesn't have a nurseId
             },
             {
                 name: 'Viewer',
                 email: 'viewer',
                 role: 'viewer',
-                password: 'Europe123',
+                password: '123456',
                 mustChangePassword: false,
-                nurseId: null // Viewer doesn't have a nurseId
+                nurseid: null // Viewer doesn't have a nurseId
             }
         ];
 
@@ -92,7 +92,7 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
                 name: nurse.name,
                 email: nurse.name.toLowerCase(), // Use lowercase name as email/username
                 role: 'nurse',
-                nurseId: nurse.id,
+                nurseid: nurse.id,
                 password: '123456',
                 mustChangePassword: true
             });
