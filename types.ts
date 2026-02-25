@@ -6,7 +6,7 @@ export interface User {
   password?: string;
   isTestUserMode?: boolean;
   impersonatedNurse?: Nurse | null;
-  nurseId?: string;
+  nurseid?: string;
   mustChangePassword?: boolean;
   passwordResetRequired?: boolean;
 }
