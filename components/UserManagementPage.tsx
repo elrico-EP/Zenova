@@ -27,7 +27,7 @@ const UserForm: React.FC<{
     [users]);
 
     const availableNurses = useMemo(() =>
-        nurses.filter(n => !associatedNurseIds.includes(n.id) || (userToEdit && (userToEdit as User).nurseId === n.id)),
+    nurses.filter(n => !associatedNurseIds.includes(n.id) || (userToEdit && (userToEdit as User).nurseid === n.id)),
     [nurses, associatedNurseIds, userToEdit]);
 
 
