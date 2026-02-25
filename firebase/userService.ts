@@ -16,13 +16,13 @@ export const getCurrentUser = async (): Promise<User | null> => {
 };
 
 export const authenticate = async (username: string, password: string): Promise<User> => {
-    console.log('Authenticating:', username, 'with password check');
+    console.log('Authenticating:', username);
     
     // Buscar solo por email primero
     const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('email', username.toLowerCase())
+        .eq('email', username.toLowerCase())  // email es el username
         .single();
 
     if (error || !data) {
