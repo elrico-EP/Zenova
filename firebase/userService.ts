@@ -16,7 +16,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
 };
 
 export const authenticate = async (username: string, password: string): Promise<User> => {
-    console.log('Authenticating:', username);
+    console.log('Authenticating:', username, 'Password:', password);
     
     const { data, error } = await supabase
         .from('users')
@@ -25,14 +25,22 @@ export const authenticate = async (username: string, password: string): Promise<
         .eq('password', password)
         .single();
 
+    console.log('Supabase response:', { data, error }); // Ver qué devuelve
+
     if (error || !data) {
         console.log('Login failed:', error);
         throw new Error('Usuario o contraseña incorrectos');
     }
     
-    const user: User = data;
-    localStorage.setItem('zenova_user', JSON.stringify(user));
-    return user;
+    console.log('Login success:', data.name);
+    
+    // Verificar si debe cambiar contraseña
+    if (data.mustChangePassword) {
+        console.log('User must change password');
+    }
+    
+    localStorage.setItem('zenova_user', JSON.stringify(data));
+    return data as User;
 };
 
 export const clearCurrentUser = async (): Promise<void> => {
