@@ -22,7 +22,7 @@ export const authenticate = async (username: string, password: string): Promise<
     const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('email', username.toLowerCase())
+        .ilike('email', username)
         .single();
 
     if (error || !data) {
