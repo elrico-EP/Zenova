@@ -31,7 +31,7 @@ const UserForm: React.FC<{
     [nurses, associatedNurseIds, userToEdit]);
 
 
-    const handleSubmit = async (e: React.FormEvent) => {
+       const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !username || (!userToEdit && !password)) {
             setError(t.allFieldsRequired);
@@ -47,21 +47,20 @@ const UserForm: React.FC<{
             if (role === 'nurse') {
                 userData.nurseid = nurseId;
             } else {
-                userData.nurseid = null; // Ensure non-nurses are not associated
+                userData.nurseid = null;
             }
-            // Siempre asignar contraseña para nuevos usuarios
-        if (!userToEdit) {
-        // Nuevo usuario: usar contraseña ingresada o la estándar
-        userData.password = password || '123456';
-        userData.mustChangePassword = true; // Forzar cambio en primer login
-        } else if (password) {
-        // Editando usuario existente y se cambió contraseña
-        userData.password = password;
-        if (currentUser?.role === 'admin' && currentUser.id !== userToEdit.id) {
-        userData.mustChangePassword = true;
-    }
-}
+            
+            // Siempre poner contraseña para nuevos usuarios
+            if (!userToEdit) {
+                userData.password = password || '123456';
+                userData.mustChangePassword = true;
+            } else if (password) {
+                userData.password = password;
+                if (currentUser?.role === 'admin' && currentUser.id !== userToEdit.id) {
+                    userData.mustChangePassword = true;
+                }
             }
+            
             await onSave(userData);
         } catch(e) {
             setError((e as Error).message);
