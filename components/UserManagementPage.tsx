@@ -45,7 +45,7 @@ const UserForm: React.FC<{
         try {
             const userData: any = { id: userToEdit?.id, name, email: username, role };
             if (role === 'nurse') {
-                userData.nurseId = nurseId;
+                userData.nurseid = nurseId;
             } else {
                 userData.nurseId = null; // Ensure non-nurses are not associated
             }
