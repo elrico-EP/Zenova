@@ -18,23 +18,29 @@ export const getCurrentUser = async (): Promise<User | null> => {
 export const authenticate = async (username: string, password: string): Promise<User> => {
     console.log('Authenticating:', username);
     
+    // Buscar solo por email primero
     const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('email', username.toLowerCase())
-        .eq('password', password)
         .single();
 
     if (error || !data) {
-        console.log('Login failed:', error);
+        console.log('User not found:', error);
         throw new Error('Usuario o contraseña incorrectos');
     }
     
+    // Verificar contraseña manualmente
+    if (data.password !== password) {
+        console.log('Password mismatch, expected:', data.password, 'got:', password);
+        throw new Error('Usuario o contraseña incorrectos');
+    }
+    
+    console.log('Login successful for:', data.name);
     const user: User = data;
     localStorage.setItem('zenova_user', JSON.stringify(user));
     return user;
 };
-
 export const clearCurrentUser = async (): Promise<void> => {
     localStorage.removeItem('zenova_user');
 };
