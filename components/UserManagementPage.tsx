@@ -16,7 +16,7 @@ const UserForm: React.FC<{
     const [username, setUsername] = useState(userToEdit?.email || '');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<UserRole>(userToEdit?.role || 'nurse');
-    const [nurseId, setNurseId] = useState((userToEdit as User)?.nurseId || '');
+    const [nurseId, setNurseId] = useState((userToEdit as User)?.nurseid || '');
     const [error, setError] = useState('');
     
     const isEditingSelf = currentUser?.id === userToEdit?.id;
