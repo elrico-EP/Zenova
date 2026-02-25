@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Zenova - Shift Planner</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'admin-red': {
+                '500': '#C0392B',
+                '900': '#7B241C',
+              },
+              'user-blue': {
+                '500': '#3498DB',
+                '900': '#1A5276',
+              },
+              'amber-soft': {
+                '100': '#F5EBE0',
+                '200': '#E3D5CA',
+                '800': '#785A48',
+                '900': '#5E4839',
+              },
+              zen: {
+                '50': '#f0f9ff', '100': '#e0f2fe', '200': '#bae6fd', '300': '#7dd3fc',
+                '400': '#38bdf8', '500': '#0ea5e9', '600': '#0284c7', '700': '#0369a1',
+                '800': '#083344',
+                '900': '#04222e',
+              },
+              nova: {
+                '50': '#fff7ed', '100': '#ffedd5', '200': '#fed7aa', '300': '#fdba74',
+                '400': '#fb923c', '500': '#f97316', '600': '#ea580c', '700': '#c2410c',
+                '800': '#9a3412', '900': '#7c2d12',
+              }
+            },
+            keyframes: {
+              fadeInOut: {
+                '0%': { opacity: '0', transform: 'translateY(-20px)' },
+                '10%': { opacity: '1', transform: 'translateY(0)' },
+                '90%': { opacity: '1', transform: 'translateY(0)' },
+                '100%': { opacity: '0', transform: 'translateY(-20px)' },
+              },
+            },
+            animation: {
+              'fade-in-out': 'fadeInOut 4s ease-in-out',
+            },
+          }
+        }
+      }
+    </script>
+
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- jsPDF and html2canvas for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- XLSX (SheetJS) for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@^18.2.0/",
+    "react/": "https://esm.sh/react@^18.2.0/",
+    "firebase/": "https://esm.sh/firebase@^11.0.0/",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "path": "https://esm.sh/path@^0.12.7",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.95.3"
+  }
+}
+</script>
+<style>
+  :root {
+    --zen-50: #f0f9ff;
+    --zen-800: #083344;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    background-color: var(--zen-50);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  /* Custom scrollbar for better aesthetics */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  @media print {
+    body {
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #root, html {
+      height: auto !important;
+      overflow: visible !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+    .print-grid-container {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+  }
+</style>
+<link rel="stylesheet" href="/index.css">
+</head>
+
+  <body class="bg-zen-50">
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
