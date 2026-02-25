@@ -23,7 +23,7 @@ const UserForm: React.FC<{
     const canEditPassword = !userToEdit || isEditingSelf || (currentUser?.role === 'admin' && userToEdit?.role !== 'admin');
 
     const associatedNurseIds = useMemo(() =>
-        users.map(u => (u as User).nurseId).filter(Boolean),
+    users.map(u => (u as User).nurseid).filter(Boolean),
     [users]);
 
     const availableNurses = useMemo(() =>
