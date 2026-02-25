@@ -49,13 +49,18 @@ const UserForm: React.FC<{
             } else {
                 userData.nurseid = null; // Ensure non-nurses are not associated
             }
-            if (password) {
-                userData.password = password;
-                // If an admin is editing another user and setting a new password, force change on next login
-                if (currentUser?.role === 'admin' && userToEdit && currentUser.id !== userToEdit.id) {
-                    userData.mustChangePassword = true;
-                    userData.passwordResetRequired = false; // Ensure old flag is cleared
-                }
+            // Siempre asignar contraseña para nuevos usuarios
+        if (!userToEdit) {
+        // Nuevo usuario: usar contraseña ingresada o la estándar
+        userData.password = password || '123456';
+        userData.mustChangePassword = true; // Forzar cambio en primer login
+        } else if (password) {
+        // Editando usuario existente y se cambió contraseña
+        userData.password = password;
+        if (currentUser?.role === 'admin' && currentUser.id !== userToEdit.id) {
+        userData.mustChangePassword = true;
+    }
+}
             }
             await onSave(userData);
         } catch(e) {
