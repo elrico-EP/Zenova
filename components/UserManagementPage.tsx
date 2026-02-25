@@ -111,14 +111,19 @@ export const UserManagementPage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) =>
     };
 
     const handleSave = async (userData: any) => {
-        if (userData.id) {
-            await updateUser(userData);
-        } else {
-            await register(userData);
-        }
-        setIsFormOpen(false);
-        setUserToEdit(undefined);
-    };
+    if (userData.id) {
+        await updateUser(userData);
+    } else {
+        // Generar ID para nuevo usuario
+        const newUserData = {
+            ...userData,
+            id: crypto.randomUUID() // Genera un UUID único
+        };
+        await register(newUserData);
+    }
+    setIsFormOpen(false);
+    setUserToEdit(undefined);
+};
     
     const handleDelete = async (userId: string) => {
         if(window.confirm(t.deleteUserConfirm)) {
