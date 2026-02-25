@@ -16,33 +16,31 @@ export const getCurrentUser = async (): Promise<User | null> => {
 };
 
 export const authenticate = async (username: string, password: string): Promise<User> => {
-    console.log('Authenticating:', username, 'Password:', password);
+    console.log('Authenticating:', username, 'with password check');
     
+    // Buscar solo por email primero
     const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('email', username.toLowerCase())
-        .eq('password', password)
         .single();
 
-    console.log('Supabase response:', { data, error }); // Ver qué devuelve
-
     if (error || !data) {
-        console.log('Login failed:', error);
+        console.log('User not found:', error);
         throw new Error('Usuario o contraseña incorrectos');
     }
     
-    console.log('Login success:', data.name);
-    
-    // Verificar si debe cambiar contraseña
-    if (data.mustChangePassword) {
-        console.log('User must change password');
+    // Verificar contraseña manualmente
+    if (data.password !== password) {
+        console.log('Password mismatch, expected:', data.password, 'got:', password);
+        throw new Error('Usuario o contraseña incorrectos');
     }
     
-    localStorage.setItem('zenova_user', JSON.stringify(data));
-    return data as User;
+    console.log('Login successful for:', data.name);
+    const user: User = data;
+    localStorage.setItem('zenova_user', JSON.stringify(user));
+    return user;
 };
-
 export const clearCurrentUser = async (): Promise<void> => {
     localStorage.removeItem('zenova_user');
 };
@@ -82,7 +80,7 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
                 role: 'admin',
                 password: 'admin123',
                 mustChangePassword: false,
-                nurseId: null // Admin doesn't have a nurseId
+                nurseid: null // Admin doesn't have a nurseId
             },
             {
                 name: 'Viewer',
@@ -90,7 +88,7 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
                 role: 'viewer',
                 password: '123456',
                 mustChangePassword: false,
-                nurseId: null // Viewer doesn't have a nurseId
+                nurseid: null // Viewer doesn't have a nurseId
             }
         ];
 
@@ -100,7 +98,7 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
                 name: nurse.name,
                 email: nurse.name.toLowerCase(), // Use lowercase name as email/username
                 role: 'nurse',
-                nurseId: nurse.id,
+                nurseid: nurse.id,
                 password: '123456',
                 mustChangePassword: true
             });
