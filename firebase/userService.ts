@@ -16,7 +16,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
 };
 
 export const authenticate = async (username: string, password: string): Promise<User> => {
-    console.log('Authenticating:', username);
+    console.log('Authenticating:', username, 'with password check');
     
     // Buscar solo por email primero
     const { data, error } = await supabase
