@@ -47,7 +47,7 @@ const UserForm: React.FC<{
             if (role === 'nurse') {
                 userData.nurseid = nurseId;
             } else {
-                userData.nurseId = null; // Ensure non-nurses are not associated
+                userData.nurseid = null; // Ensure non-nurses are not associated
             }
             if (password) {
                 userData.password = password;
