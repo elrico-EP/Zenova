@@ -166,18 +166,18 @@ export const deleteUser = async (userId: string): Promise<void> => {
 };
 
 export const changePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
-    const { error } = await supabase
+    // Primero verificar la contraseña actual
+    const { data: user, error: fetchError } = await supabase
         .from('users')
-        .update({ 
-            password: newPassword, 
-            mustChangePassword: false 
-        })
+        .select('password')
         .eq('id', userId)
-        .eq('password', currentPassword);
-    if (error) throw error;
-};
-
-export const forceSetPassword = async (userId: string, newPassword: string): Promise<void> => {
+        .single();
+    
+    if (fetchError) throw new Error('Error verificando usuario');
+    if (!user) throw new Error('Usuario no encontrado');
+    if (user.password !== currentPassword) throw new Error('Contraseña actual incorrecta');
+    
+    // Luego actualizar
     const { error } = await supabase
         .from('users')
         .update({ 
@@ -185,7 +185,25 @@ export const forceSetPassword = async (userId: string, newPassword: string): Pro
             mustChangePassword: false 
         })
         .eq('id', userId);
+        
     if (error) throw error;
+};
+
+export const forceSetPassword = async (userId: string, newPassword: string): Promise<User> => {
+    const { data, error } = await supabase
+        .from('users')
+        .update({ 
+            password: newPassword, 
+            mustChangePassword: false 
+        })
+        .eq('id', userId)
+        .select()  // Importante: retornar los datos actualizados
+        .single();
+        
+    if (error) throw error;
+    if (!data) throw new Error('No se pudo actualizar la contraseña');
+    
+    return data;
 };
 
 export const requestPasswordReset = async (username: string): Promise<boolean> => {
