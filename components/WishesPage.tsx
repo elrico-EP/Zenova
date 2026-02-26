@@ -174,7 +174,7 @@ interface WishesPageProps {
 export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, wishes, onWishesChange, onWishValidationChange, onDeleteWish, agenda }) => {
     const t = useTranslations();
     const { language } = useLanguage();
-    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+    const [currentMonth, setCurrentMonth] = useState(currentDate.getMonth());
     const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
 
     const dayNames = useMemo(() => {
@@ -198,7 +198,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, wishes, on
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 p-4 h-full flex flex-col">
             <header className="flex flex-col md:flex-row items-center justify-between pb-4 border-b-2 border-zen-100 mb-6 flex-shrink-0 gap-4">
                 <div className="flex flex-col items-center gap-1 order-2 md:order-1">
-                    <span className="text-[10px] font-bold text-zen-600 uppercase tracking-widest mb-1">Mes de Deseos e Incidencias</span>
+                    <span className="text-[10px] font-bold text-zen-600 uppercase tracking-widest mb-1">Month of wishes and events</span>
                     <div className="relative flex items-center gap-4 bg-white border-2 border-zen-200 shadow-sm rounded-xl p-1.5">
                         <button 
                             onClick={handlePrevMonth} 
@@ -262,7 +262,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, wishes, on
                     </thead>
                     <tbody>
                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-                            const date = new Date(year, currentMonth, day);
+                            const date = new Date(year, currentMonth, day, 12, 0, 0);
                             const dateKey = date.toISOString().split('T')[0];
                             const dayOfWeek = date.getDay();
                             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
