@@ -18,7 +18,6 @@ export const getCurrentUser = async (): Promise<User | null> => {
 export const authenticate = async (username: string, password: string): Promise<User> => {
     console.log('Authenticating:', username, 'with password check');
     
-    // Buscar solo por email/username primero (sin comillas, todo minúscula)
     const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -30,7 +29,6 @@ export const authenticate = async (username: string, password: string): Promise<
         throw new Error('Usuario o contraseña incorrectos');
     }
     
-    // Verificar contraseña manualmente
     if (data.password !== password) {
         console.log('Password mismatch, expected:', data.password, 'got:', password);
         throw new Error('Usuario o contraseña incorrectos');
@@ -75,7 +73,6 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
     if (count === 0) {
         console.log("Users table is empty. Seeding default users...");
         
-        // Insertar admin
         const { error: adminError } = await supabase
             .from('users')
             .insert({
@@ -83,8 +80,8 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
                 email: 'admin',
                 role: 'admin',
                 password: 'admin123',
-                mustchangepassword: false,
-                nurseid: null
+                mustChangePassword: false,
+                nurseId: null
             });
         
         if (adminError) {
@@ -92,7 +89,6 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
             return;
         }
 
-        // Insertar viewer
         const { error: viewerError } = await supabase
             .from('users')
             .insert({
@@ -100,8 +96,8 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
                 email: 'viewer',
                 role: 'viewer',
                 password: '123456',
-                mustchangepassword: false,
-                nurseid: null
+                mustChangePassword: false,
+                nurseId: null
             });
         
         if (viewerError) {
@@ -109,7 +105,6 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
             return;
         }
 
-        // Insertar enfermeras
         for (const nurse of INITIAL_NURSES) {
             const { error: nurseError } = await supabase
                 .from('users')
@@ -118,8 +113,8 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
                     email: nurse.name.toLowerCase().replace(/\s+/g, ''),
                     role: 'nurse',
                     password: '123456',
-                    mustchangepassword: true,
-                    nurseid: nurse.id
+                    mustChangePassword: true,
+                    nurseId: nurse.id
                 });
             
             if (nurseError) {
@@ -129,7 +124,7 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
 
         console.log("Default users seeded successfully.");
     } else {
-        console.log(`Users table already contains ${count} users. No seing performed.`);
+        console.log(`Users table already contains ${count} users. No seeding performed.`);
     }
 };
 
@@ -141,8 +136,8 @@ export const addUser = async (userData: Omit<User, 'id'>): Promise<void> => {
             email: userData.email,
             role: userData.role,
             password: userData.password,
-            mustchangepassword: userData.mustChangePassword,
-            nurseid: userData.nurseid
+            mustChangePassword: userData.mustChangePassword,
+            nurseId: userData.nurseId
         });
     if (error) throw error;
 };
@@ -155,8 +150,8 @@ export const updateUser = async (userData: User): Promise<void> => {
             email: userData.email,
             role: userData.role,
             password: userData.password,
-            mustchangepassword: userData.mustChangePassword,
-            nurseid: userData.nurseid
+            mustChangePassword: userData.mustChangePassword,
+            nurseId: userData.nurseId
         })
         .eq('id', userData.id);
     if (error) throw error;
@@ -175,7 +170,7 @@ export const changePassword = async (userId: string, currentPassword: string, ne
         .from('users')
         .update({ 
             password: newPassword, 
-            mustchangepassword: false 
+            mustChangePassword: false 
         })
         .eq('id', userId)
         .eq('password', currentPassword);
@@ -187,7 +182,7 @@ export const forceSetPassword = async (userId: string, newPassword: string): Pro
         .from('users')
         .update({ 
             password: newPassword, 
-            mustchangepassword: false 
+            mustChangePassword: false 
         })
         .eq('id', userId);
     if (error) throw error;
@@ -202,7 +197,7 @@ export const resetPassword = async (username: string, newPassword: string): Prom
         .from('users')
         .update({ 
             password: newPassword, 
-            mustchangepassword: false 
+            mustChangePassword: false 
         })
         .eq('email', username);
     if (error) throw error;
