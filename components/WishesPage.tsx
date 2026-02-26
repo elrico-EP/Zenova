@@ -164,6 +164,7 @@ const DayCell: React.FC<{
 interface WishesPageProps {
     nurses: Nurse[];
     year: number;
+    currentDate: Date;
     wishes: Wishes;
     onWishesChange: (nurseId: string, dateKey: string, text: string, shiftType?: WorkZone) => void;
     onWishValidationChange: (nurseId: string, dateKey: string, isValidated: boolean) => void;
