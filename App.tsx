@@ -681,7 +681,7 @@ const handleAddNurse = useCallback((name: string) => {
 
   const handleOpenMyAgenda = useCallback(() => {
     if (effectiveUser?.role === 'nurse') {
-        const nurseIdToOpen = (effectiveUser as User).nurseid ?? effectiveUser.id;
+        const nurseIdToOpen = (effectiveUser as User).nurseId ?? effectiveUser.id;
         const nurseToOpen = nurses.find(n => n.id === nurseIdToOpen);
         if (nurseToOpen) { setSelectedNurseForAgenda(nurseToOpen); }
     }
