@@ -151,10 +151,16 @@ useEffect(() => {
     setUser(updatedUser);
   }, [user]);
 
-  const forceSetPassword = useCallback(async (newPassword: string) => {
+ const forceSetPassword = useCallback(async (newPassword: string) => {
     if (!user) throw new Error("No user authenticated");
-    await userService.forceSetPassword(user.id, newPassword);
-    const updatedUser = await userService.getCurrentUser();
+    
+    // Llamar al servicio que retorna el usuario actualizado
+    const updatedUser = await userService.forceSetPassword(user.id, newPassword);
+    
+    // ✅ IMPORTANTE: Actualizar localStorage con los nuevos datos
+    localStorage.setItem('zenova_user', JSON.stringify(updatedUser));
+    
+    // Actualizar el estado
     setUser(updatedUser);
   }, [user]);
 
