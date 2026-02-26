@@ -825,7 +825,8 @@ const handleAddNurse = useCallback((name: string) => {
                   <WishesPage 
                     nurses={nurses} 
                     year={year} 
-                    wishes={wishes} 
+                    currentDate={currentDate}
+                    wishes={wishes}   
                     onWishesChange={(nurseId, dateKey, text, shiftType) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], text, shiftType } } } })} 
                     onWishValidationChange={(nurseId, dateKey, isValidated) => {
                       const wish = wishes[nurseId]?.[dateKey];
