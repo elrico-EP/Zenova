@@ -172,7 +172,7 @@ interface WishesPageProps {
     agenda: Agenda;
 }
 
-export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, wishes, onWishesChange, onWishValidationChange, onDeleteWish, agenda }) => {
+export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDate, wishes, onWishesChange, onWishValidationChange, onDeleteWish, agenda }) => {
     const t = useTranslations();
     const { language } = useLanguage();
     const [currentMonth, setCurrentMonth] = useState(currentDate.getMonth());
