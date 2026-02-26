@@ -21,8 +21,8 @@ export const authenticate = async (username: string, password: string): Promise<
     // Buscar solo por email/username primero
     const { data, error } = await supabase
         .from('users')
-        .select('*')
-        .ilike('email', username)
+        .select('"id", "name", "email", "role", "password", "mustChangePassword", "nurseId", "created_at"')
+        .ilike('"email"', username)
         .single();
 
     if (error || !data) {
@@ -41,6 +41,7 @@ export const authenticate = async (username: string, password: string): Promise<
     localStorage.setItem('zenova_user', JSON.stringify(user));
     return user;
 };
+
 export const clearCurrentUser = async (): Promise<void> => {
     localStorage.removeItem('zenova_user');
 };
@@ -49,8 +50,8 @@ export const getUsers = async (): Promise<User[]> => {
     console.log("Fetching all users from Supabase...");
     const { data, error } = await supabase
         .from('users')
-        .select('*')
-        .order('name');
+        .select('"id", "name", "email", "role", "password", "mustChangePassword", "nurseId", "created_at"')
+        .order('"name"');
     
     if (error) {
         console.error("Supabase error fetching users:", error.message);
@@ -64,7 +65,7 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
     console.log("Attempting to seed users if empty...");
     const { count, error } = await supabase
         .from('users')
-        .select('id', { count: 'exact', head: true });
+        .select('"id"', { count: 'exact', head: true });
 
     if (error) {
         console.error("Supabase error checking users count:", error.message);
@@ -73,46 +74,60 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
 
     if (count === 0) {
         console.log("Users table is empty. Seeding default users...");
-        const usersToSeed: Omit<User, 'id'>[] = [
-            {
-                name: 'Admin',
-                email: 'admin',
-                role: 'admin',
-                password: 'admin123',
-                mustChangePassword: false,
-                nurseid: null // Admin doesn't have a nurseId
-            },
-            {
-                name: 'Viewer',
-                email: 'viewer',
-                role: 'viewer',
-                password: '123456',
-                mustChangePassword: false,
-                nurseid: null // Viewer doesn't have a nurseId
-            }
-        ];
-
-        // Add nurses
-        INITIAL_NURSES.forEach(nurse => {
-            usersToSeed.push({
-                name: nurse.name,
-                email: nurse.name.toLowerCase(), // Use lowercase name as email/username
-                role: 'nurse',
-                nurseid: nurse.id,
-                password: '123456',
-                mustChangePassword: true
-            });
-        });
-
-        const { error: seedError } = await supabase
+        
+        // Insertar admin
+        const { error: adminError } = await supabase
             .from('users')
-            .insert(usersToSeed);
-
-        if (seedError) {
-            console.error("Supabase error seeding users:", seedError.message);
-        } else {
-            console.log("Default users seeded successfully.");
+            .insert({
+                "name": 'Admin',
+                "email": 'admin',
+                "role": 'admin',
+                "password": 'admin123',
+                "mustChangePassword": false,
+                "nurseId": null
+            });
+        
+        if (adminError) {
+            console.error("Error inserting admin:", adminError.message);
+            return;
         }
+
+        // Insertar viewer
+        const { error: viewerError } = await supabase
+            .from('users')
+            .insert({
+                "name": 'Viewer',
+                "email": 'viewer',
+                "role": 'viewer',
+                "password": '123456',
+                "mustChangePassword": false,
+                "nurseId": null
+            });
+        
+        if (viewerError) {
+            console.error("Error inserting viewer:", viewerError.message);
+            return;
+        }
+
+        // Insertar enfermeras
+        for (const nurse of INITIAL_NURSES) {
+            const { error: nurseError } = await supabase
+                .from('users')
+                .insert({
+                    "name": nurse.name,
+                    "email": nurse.name.toLowerCase().replace(/\s+/g, ''),
+                    "role": 'nurse',
+                    "password": '123456',
+                    "mustChangePassword": true,
+                    "nurseId": nurse.id
+                });
+            
+            if (nurseError) {
+                console.error("Error inserting nurse:", nurse.name, nurseError.message);
+            }
+        }
+
+        console.log("Default users seeded successfully.");
     } else {
         console.log(`Users table already contains ${count} users. No seeding performed.`);
     }
@@ -121,15 +136,29 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
 export const addUser = async (userData: Omit<User, 'id'>): Promise<void> => {
     const { error } = await supabase
         .from('users')
-        .insert([userData]);
+        .insert({
+            "name": userData.name,
+            "email": userData.email,
+            "role": userData.role,
+            "password": userData.password,
+            "mustChangePassword": userData.mustChangePassword,
+            "nurseId": userData.nurseId
+        });
     if (error) throw error;
 };
 
 export const updateUser = async (userData: User): Promise<void> => {
     const { error } = await supabase
         .from('users')
-        .update(userData)
-        .eq('id', userData.id);
+        .update({
+            "name": userData.name,
+            "email": userData.email,
+            "role": userData.role,
+            "password": userData.password,
+            "mustChangePassword": userData.mustChangePassword,
+            "nurseId": userData.nurseId
+        })
+        .eq('"id"', userData.id);
     if (error) throw error;
 };
 
@@ -137,24 +166,30 @@ export const deleteUser = async (userId: string): Promise<void> => {
     const { error } = await supabase
         .from('users')
         .delete()
-        .eq('id', userId);
+        .eq('"id"', userId);
     if (error) throw error;
 };
 
 export const changePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
     const { error } = await supabase
         .from('users')
-        .update({ password: newPassword, mustChangePassword: false })
-        .eq('id', userId)
-        .eq('password', currentPassword);
+        .update({ 
+            "password": newPassword, 
+            "mustChangePassword": false 
+        })
+        .eq('"id"', userId)
+        .eq('"password"', currentPassword);
     if (error) throw error;
 };
 
 export const forceSetPassword = async (userId: string, newPassword: string): Promise<void> => {
     const { error } = await supabase
         .from('users')
-        .update({ password: newPassword, mustChangePassword: false })
-        .eq('id', userId);
+        .update({ 
+            "password": newPassword, 
+            "mustChangePassword": false 
+        })
+        .eq('"id"', userId);
     if (error) throw error;
 };
 
@@ -165,7 +200,10 @@ export const requestPasswordReset = async (username: string): Promise<boolean> =
 export const resetPassword = async (username: string, newPassword: string): Promise<void> => {
     const { error } = await supabase
         .from('users')
-        .update({ password: newPassword, mustChangePassword: false })
-        .eq('email', username);
+        .update({ 
+            "password": newPassword, 
+            "mustChangePassword": false 
+        })
+        .eq('"email"', username);
     if (error) throw error;
 };
