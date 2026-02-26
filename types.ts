@@ -1,14 +1,11 @@
 export interface User {
-  id: string; 
+  id: string;
   name: string;
   email: string;
-  role: UserRole;
-  password?: string;
-  isTestUserMode?: boolean;
-  impersonatedNurse?: Nurse | null;
-  nurseid?: string;
-  mustChangePassword?: boolean;
-  passwordResetRequired?: boolean;
+  password: string;
+  role: 'admin' | 'viewer' | 'nurse';
+  mustChangePassword?: boolean;  // camelCase en TypeScript
+  nurseId?: string | null;       // camelCase en TypeScript
 }
 
 export type ActivityLevel = 'NORMAL' | 'SESSION' | 'WHITE_GREEN' | 'REDUCED' | 'CLOSED';
