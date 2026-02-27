@@ -52,7 +52,8 @@ export const ShiftCell: React.FC<{
     isShortFriday: boolean;
     onOpenManualHoursModal?: (dateKey: string, nurseId: string) => void;
     dateKey: string;
-}> = ({ shiftCell, hours, hasManualHours, violation, isWeekend, isClosingDay, nurseId, weekId, activityLevel, strasbourgAssignments, dayOfWeek, isShortFriday, onOpenManualHoursModal, dateKey }) => {
+    manualNote?: string;
+}> = ({ shiftCell, hours, hasManualHours, violation, isWeekend, isClosingDay, nurseId, weekId, activityLevel, strasbourgAssignments, dayOfWeek, isShortFriday, onOpenManualHoursModal, dateKey, manualNote }) => {
     const t = useTranslations();
     const permissions = usePermissions();
     const attendees = strasbourgAssignments[weekId] || [];
@@ -217,6 +218,11 @@ export const ShiftCell: React.FC<{
                 <span className={`font-bold ${hasMultipleHourLines ? 'text-sm' : 'text-base'}`}>{displayLabel}</span>
                 {renderHours()}
             </div>
+            {manualNote && (
+                <div className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full hover:w-auto hover:h-auto hover:px-2 hover:py-1 hover:bg-slate-900 hover:text-white hover:text-xs hover:rounded-md hover:shadow-lg transition-all z-20" title={manualNote}>
+                    <span className="hidden hover:inline whitespace-nowrap">{manualNote}</span>
+                </div>
+            )}
         </div>
     );
 };
@@ -476,6 +482,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                                         isShortFriday={isShortFriday} 
                                         onOpenManualHoursModal={onOpenManualHoursModal}
                                         dateKey={dateKey}
+                                        manualNote={dailyHoursData?.note}
                                     />
                                 </td>
                             );
