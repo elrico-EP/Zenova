@@ -44,6 +44,7 @@ export const useSupabaseState = () => {
 
     useEffect(() => {
         let channel: any;
+        let pollingInterval: NodeJS.Timeout | undefined;
 
         const initData = async () => {
             console.log("🔥 Supabase: Cargando datos...");
@@ -118,9 +119,17 @@ export const useSupabaseState = () => {
             }
 
             // Escuchar cambios en tiempo real
-            console.log("👂 Escuchando cambios en tiempo real...");
+            console.log("👂 Configurando listener de cambios en tiempo real...");
+            
+            let isRealtimeWorking = false;
+            
             channel = supabase
-                .channel('app_state_changes')
+                .channel('app_state_changes', {
+                    config: {
+                        broadcast: { self: false },
+                        presence: { key: '' }
+                    }
+                })
                 .on(
                     'postgres_changes',
                     {
@@ -130,7 +139,9 @@ export const useSupabaseState = () => {
                         filter: 'id=eq.1'
                     },
                     (payload) => {
-                        console.log("📡 Cambio detectado desde Supabase:", payload.new?.data ? Object.keys(payload.new.data).join(', ') : 'sin datos');
+                        console.log("📡 [Real-time] Cambio detectado desde Supabase");
+                        isRealtimeWorking = true;
+                        
                         if (payload.new && payload.new.data) {
                             const newData = payload.new.data as AppState;
                             setData(currentData => {
@@ -138,38 +149,78 @@ export const useSupabaseState = () => {
                                 const newStr = JSON.stringify(newData);
                                 
                                 if (currentStr !== newStr) {
-                                    console.log("🔄 Actualizando estado local con cambios de Supabase");
-                                    console.log("   Cambios detectados en:", 
-                                        Object.keys(newData).filter(key => 
-                                            JSON.stringify((currentData as any)?.[key]) !== JSON.stringify((newData as any)?.[key])
-                                        ).join(', ')
+                                    console.log("🔄 [Real-time] Actualizando estado local");
+                                    const changedKeys = Object.keys(newData).filter(key => 
+                                        JSON.stringify((currentData as any)?.[key]) !== JSON.stringify((newData as any)?.[key])
                                     );
+                                    console.log("   Campos actualizados:", changedKeys.join(', '));
                                     return newData;
-                                } else {
-                                    console.log("📝 Sin cambios detectados (datos idénticos)");
                                 }
                                 return currentData;
                             });
                         }
                     }
                 )
-                .subscribe((status) => {
-                    console.log("📡 Estado del listener:", status);
+                .subscribe((status, err) => {
+                    console.log("📡 Estado del canal Real-time:", status);
+                    
                     if (status === 'SUBSCRIBED') {
-                        console.log("✅ Real-time listener suscrito exitosamente");
+                        console.log("✅ Canal Real-time SUSCRITO exitosamente");
+                        isRealtimeWorking = true;
                     } else if (status === 'CLOSED') {
-                        console.warn("⚠️ Real-time listener cerrado");
+                        console.warn("⚠️ Canal Real-time CERRADO");
+                        isRealtimeWorking = false;
                     } else if (status === 'CHANNEL_ERROR') {
-                        console.error("❌ Error en el canal de real-time");
+                        console.error("❌ ERROR en canal Real-time:", err);
+                        isRealtimeWorking = false;
+                    } else if (status === 'TIMED_OUT') {
+                        console.warn("⏱️ Canal Real-time TIMEOUT");
+                        isRealtimeWorking = false;
                     }
+                    
+                    // Fallback: Si Real-time no funciona después de 5 segundos, usar polling
+                    setTimeout(() => {
+                        if (!isRealtimeWorking || status !== 'SUBSCRIBED') {
+                            console.warn("⚠️ Real-time no funciona, activando POLLING cada 3 segundos...");
+                            
+                            pollingInterval = setInterval(async () => {
+                                try {
+                                    const { data: polledData, error } = await supabase
+                                        .from('app_state')
+                                        .select('data')
+                                        .eq('id', 1)
+                                        .single();
+                                    
+                                    if (!error && polledData?.data) {
+                                        setData(currentData => {
+                                            const currentStr = JSON.stringify(currentData);
+                                            const newStr = JSON.stringify(polledData.data);
+                                            
+                                            if (currentStr !== newStr) {
+                                                console.log("🔄 [Polling] Cambios detectados, actualizando...");
+                                                return polledData.data as AppState;
+                                            }
+                                            return currentData;
+                                        });
+                                    }
+                                } catch (e) {
+                                    console.error("❌ Error en polling:", e);
+                                }
+                            }, 3000); // Polling cada 3 segundos
+                        }
+                    }, 5000); // Esperar 5 segundos antes de activar polling
                 });
         };
 
         initData();
 
         return () => {
+            if (pollingInterval) {
+                console.log("🔌 Deteniendo polling...");
+                clearInterval(pollingInterval);
+            }
             if (channel) {
-                console.log("🔌 Desconectando listener...");
+                console.log("🔌 Desconectando canal Real-time...");
                 supabase.removeChannel(channel);
             }
         };
