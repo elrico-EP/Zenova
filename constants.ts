@@ -43,11 +43,11 @@ export const SHIFTS: Record<string, Shift> = {
     textColor: 'text-orange-800' 
   },
   // ❌ ELIMINADO: 'ADM_TARDE' (Adm PM sin +)
-  // ✅ MANTENIDO: Solo 'ADM_TARDE_PLUS'
-  'ADM_TARDE_PLUS': { 
-    id: 'ADM_TARDE_PLUS', 
-    label: 'Adm PM +', 
-    description: 'shift_ADM_TARDE_PLUS_desc', 
+  // ✅ MANTENIDO: Solo 'ADM_PLUS'
+  'ADM_PLUS': { 
+    id: 'ADM_PLUS', 
+    label: 'Adm +', 
+    description: 'shift_ADM_PLUS_desc', 
     color: 'bg-orange-600', 
     textColor: 'text-orange-50' 
   },
@@ -189,5 +189,5 @@ export const INITIAL_NURSES: Nurse[] = [
   { id: 'nurse-8', name: 'Katelijn', email: 'katelijn@example.com', role: 'nurse', order: 7 },
   { id: 'nurse-9', name: 'Joseph', email: 'joseph@example.com', role: 'nurse', order: 8 },
   { id: 'nurse-10', name: 'Tatiana', email: 'tatiana@example.com', role: 'nurse', order: 9 },
-  { id: 'nurse-11', name: 'Becario', email: 'becario@example.com', role: 'nurse', order: 10 },
+  { id: 'nurse-11', name: 'Trainee', email: 'trainee@example.com', role: 'nurse', order: 10 },
 ];
