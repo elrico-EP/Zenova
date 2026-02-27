@@ -287,8 +287,11 @@ const AppContent: React.FC = () => {
   }, [nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
 
   const currentSchedule = useMemo(() => {
-    return applyManualOverrides(autoCurrentSchedule, manualOverrides);
-  }, [autoCurrentSchedule, manualOverrides, applyManualOverrides]);
+  // PASO 1: Aplicar eventos de Estrasburgo (baseOverrides)
+  const withStrasbourg = applyManualOverrides(autoCurrentSchedule, baseOverrides);
+  // PASO 2: Aplicar cambios manuales del usuario (manualOverrides) - estos tienen prioridad
+  return applyManualOverrides(withStrasbourg, manualOverrides);
+}, [autoCurrentSchedule, manualOverrides, baseOverrides, applyManualOverrides]);
 
   // Forzar recálculo cuando cambian los datos de Supabase
 useEffect(() => {
