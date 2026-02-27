@@ -232,22 +232,16 @@ const AppContent: React.FC = () => {
     return merged;
   }, [specialStrasbourgEvents]);
 
-  // Combined overrides WITH manual changes for the "Current Planning"
-  const combinedOverrides = useMemo(() => {
-    const merged: Schedule = JSON.parse(JSON.stringify(manualOverrides));
-    specialStrasbourgEvents.forEach(event => {
-        if (!event.startDate || !event.endDate || !event.nurseIds) return;
-        for (let d = new Date(event.startDate); d <= new Date(event.endDate); d.setDate(d.getDate() + 1)) {
-            const dateKey = d.toISOString().split('T')[0];
-            event.nurseIds.forEach(nurseId => {
-                if (!merged[nurseId]) merged[nurseId] = {};
-                const timeString = event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : undefined;
-                merged[nurseId][dateKey] = { custom: event.name, type: 'STRASBOURG', time: timeString };
-            });
-        }
+  const applyManualOverrides = useCallback((baseSchedule: Schedule, overrides: Schedule): Schedule => {
+    const merged: Schedule = JSON.parse(JSON.stringify(baseSchedule));
+    Object.entries(overrides).forEach(([nurseId, days]) => {
+      if (!merged[nurseId]) merged[nurseId] = {};
+      Object.entries(days).forEach(([dateKey, cell]) => {
+        if (cell) merged[nurseId][dateKey] = cell;
+      });
     });
     return merged;
-  }, [manualOverrides, specialStrasbourgEvents, sharedData]);
+  }, []);
 
   const { fullOriginalSchedule, fullCurrentSchedule } = useMemo(() => {
     const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
@@ -262,8 +256,9 @@ const AppContent: React.FC = () => {
         const isInternActive = month >= 9 || month <= 1;
         const nursesForDate = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
 
-        originalSchedules.push(recalculateScheduleForMonth(nursesForDate, date, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales));
-        currentSchedules.push(recalculateScheduleForMonth(nursesForDate, date, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales));
+        const original = recalculateScheduleForMonth(nursesForDate, date, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
+        originalSchedules.push(original);
+        currentSchedules.push(applyManualOverrides(original, manualOverrides));
     });
     
     const mergeSchedules = (schedules: Schedule[]): Schedule => {
@@ -281,11 +276,15 @@ const AppContent: React.FC = () => {
         fullOriginalSchedule: mergeSchedules(originalSchedules),
         fullCurrentSchedule: mergeSchedules(currentSchedules)
     };
-}, [nurses, currentDate, effectiveAgenda, baseOverrides, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
+}, [nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manualOverrides, applyManualOverrides]);
   
+  const autoCurrentSchedule = useMemo(() => {
+    return recalculateScheduleForMonth(nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
+  }, [nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
+
   const currentSchedule = useMemo(() => {
-    return recalculateScheduleForMonth(nurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
-  }, [nurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
+    return applyManualOverrides(autoCurrentSchedule, manualOverrides);
+  }, [autoCurrentSchedule, manualOverrides, applyManualOverrides]);
 
   // Forzar recálculo cuando cambian los datos de Supabase
 useEffect(() => {
@@ -349,7 +348,8 @@ useEffect(() => {
     if (nurses.length === 0) return [];
     const annualSchedules: { [month: number]: Schedule } = {};
     for (let m = 0; m < 12; m++) {
-      annualSchedules[m] = recalculateScheduleForMonth(nurses, new Date(year, m, 1), effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
+      const baseSchedule = recalculateScheduleForMonth(nurses, new Date(year, m, 1), effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
+      annualSchedules[m] = applyManualOverrides(baseSchedule, manualOverrides);
     }
     return nurses.map(nurse => {
       const emptyCounts = (): ShiftCounts => ({ 
@@ -393,7 +393,7 @@ useEffect(() => {
         monthlyTargetHours: 0, annualTargetHours: 0, monthlyBalance: monthlyWorkedHours, annualBalance: annualWorkedHours, hasConsecutiveAdmTw: false,
       };
     });
-  }, [nurses, currentDate, effectiveAgenda, combinedOverrides, vaccinationPeriod, strasbourgAssignments, year, jornadasLaborales, specialStrasbourgEvents, view, selectedNurseForAgenda]);
+  }, [nurses, currentDate, effectiveAgenda, baseOverrides, manualOverrides, applyManualOverrides, vaccinationPeriod, strasbourgAssignments, year, jornadasLaborales, specialStrasbourgEvents, view, selectedNurseForAgenda]);
   
   const updateDataWithUndo = useCallback(async (updates: Partial<AppState>) => {
       if (sharedData) {
@@ -756,17 +756,17 @@ const handleAddNurse = useCallback((name: string) => {
 
   const handleExportAnnualAgenda = useCallback(async (nurse: Nurse, useOriginal: boolean) => {
     const year = currentDate.getFullYear();
-    const overridesToUse = useOriginal ? baseOverrides : combinedOverrides;
     const allSchedules: Record<number, Schedule[string]> = {};
     for (let month = 0; month < 12; month++) {
         const monthDate = new Date(year, month, 1);
         const isInternActive = month >= 9 || month <= 1;
         const activeNursesForMonth = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
-        const monthSchedule = recalculateScheduleForMonth( activeNursesForMonth, monthDate, effectiveAgenda, overridesToUse, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
+        const baseSchedule = recalculateScheduleForMonth(activeNursesForMonth, monthDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
+        const monthSchedule = useOriginal ? baseSchedule : applyManualOverrides(baseSchedule, manualOverrides);
         allSchedules[month] = monthSchedule[nurse.id] || {};
     }
     await generateAnnualAgendaPdf({ nurse, year, allSchedules, agenda: effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales });
-  }, [nurses, currentDate, effectiveAgenda, baseOverrides, combinedOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents]);
+  }, [nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, manualOverrides, applyManualOverrides]);
 
   const monthsWithOverrides = useMemo(() => {
     const months = new Set<number>();
