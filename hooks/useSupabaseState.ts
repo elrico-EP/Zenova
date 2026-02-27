@@ -130,10 +130,11 @@ export const useSupabaseState = () => {
                         filter: 'id=eq.1'
                     },
                     (payload) => {
-                        console.log("📡 Cambio detectado:", payload);
+                        console.log("📡 Cambio detectado desde Supabase:", payload.new?.data ? Object.keys(payload.new.data).join(', ') : 'sin datos');
                         if (payload.new && payload.new.data) {
                             setData(currentData => {
                                 if (JSON.stringify(currentData) !== JSON.stringify(payload.new.data)) {
+                                    console.log("🔄 Actualizando estado desde Supabase");
                                     return payload.new.data as AppState;
                                 }
                                 return currentData;
@@ -141,7 +142,9 @@ export const useSupabaseState = () => {
                         }
                     }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                    console.log("📡 Estado del listener:", status);
+                });
         };
 
         initData();
@@ -154,16 +157,19 @@ export const useSupabaseState = () => {
         };
     }, []);
 
-    const updateData = useCallback((updates: Partial<AppState>) => {
-        return new Promise<void>((resolve) => {
-            // Use functional update for setData to get the latest state without 'data' in dependency array
+    const updateData = useCallback((updates: Partial<AppState>): Promise<void> => {
+        return new Promise<void>((resolve, reject) => {
             setData(currentData => {
                 const newData = { ...currentData, ...updates };
                 if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
-                    // Perform optimistic update immediately
                     console.log("📝 Guardando cambios en Supabase...", Object.keys(updates));
                     
-                    // Persist to Supabase - use async to wait for result
+                    // Create timeout to detect if save is taking too long
+                    const timeoutId = setTimeout(() => {
+                        console.warn("⏱️ Guardado a Supabase tardando más de 5 segundos...");
+                    }, 5000);
+                    
+                    // Persist to Supabase - wait for result before resolving
                     (async () => {
                         try {
                             const { error } = await supabase
@@ -171,20 +177,26 @@ export const useSupabaseState = () => {
                                 .update({ data: newData })
                                 .eq('id', 1);
                             
+                            clearTimeout(timeoutId);
+                            
                             if (error) {
                                 console.error("❌ Error al guardar en Supabase:", error);
+                                reject(new Error(error.message));
                             } else {
-                                console.log("✅ Guardado exitoso en Supabase");
+                                console.log("✅ Guardado exitoso en Supabase. Datos:", Object.keys(updates));
+                                console.log("   Contenido guardado:", updates);
+                                resolve();
                             }
-                            resolve();
                         } catch (e) {
+                            clearTimeout(timeoutId);
                             console.error("❌ Excepción al guardar:", e);
-                            resolve();
+                            reject(e);
                         }
                     })();
                     
                     return newData;
                 }
+                console.log("📝 Datos sin cambios, no se guarda a Supabase");
                 resolve();
                 return currentData;
             });
