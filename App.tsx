@@ -111,7 +111,9 @@ const AppContent: React.FC = () => {
   const jornadasLaborales = sharedData?.jornadasLaborales ?? [];
   const manualChangeLog = sharedData?.manualChangeLog ?? [];
   
-  const [hours, setHours] = useState<Hours>({});
+  // Hours comes from Supabase now (for manual overrides) and gets merged with calculated hours
+  const [localHours, setLocalHours] = useState<Hours>({});
+  const savedHours = sharedData?.hours ?? {};
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   
   const { language } = useLanguage();
@@ -291,15 +293,16 @@ useEffect(() => {
 
   useEffect(() => {
     const calculatedHoursForMonth = calculateHoursForMonth(nurses, currentDate, effectiveAgenda, schedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
-    setHours(prevHours => {
+    setLocalHours(prevLocalHours => {
         const newHoursState = JSON.parse(JSON.stringify(calculatedHoursForMonth));
-        // Deep comparison to prevent infinite loops from object recreation
-        if (JSON.stringify(prevHours) !== JSON.stringify(newHoursState)) {
+        // Merge with manual hours from Supabase
+        if (JSON.stringify(prevLocalHours) !== JSON.stringify(newHoursState)) {
             for (const nurseId in newHoursState) {
-                if (nurses.some(n => n.id === nurseId) && prevHours[nurseId]) {
+                if (nurses.some(n => n.id === nurseId)) {
                     for (const dateKey in newHoursState[nurseId]) {
-                        if (prevHours[nurseId][dateKey]) {
-                            const manualData = prevHours[nurseId][dateKey];
+                        // Prefer saved manual hours from Supabase
+                        if (savedHours[nurseId]?.[dateKey]) {
+                            const manualData = savedHours[nurseId][dateKey];
                             if (manualData.manual !== undefined) newHoursState[nurseId][dateKey].manual = manualData.manual;
                             if (manualData.segments) newHoursState[nurseId][dateKey].segments = manualData.segments;
                             if (manualData.note) newHoursState[nurseId][dateKey].note = manualData.note;
@@ -309,9 +312,12 @@ useEffect(() => {
             }
             return newHoursState;
         }
-        return prevHours;
+        return prevLocalHours;
     });
-  }, [nurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales]);
+  }, [nurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, savedHours]);
+
+  // Use localHours as the final hours state (already merged with savedHours)
+  const hours = localHours;
 
   const balanceData = useMemo<BalanceData[]>(() => {
     // Optimization: Only calculate balance data if we are in the balance view or a personal agenda is open
@@ -664,16 +670,18 @@ const handleAddNurse = useCallback((name: string) => {
     const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
     addHistoryEntry('Hours Change', `Modified hours for ${nurseName} on ${dateKey}`);
     
-    const newHours = JSON.parse(JSON.stringify(hours));
+    console.log('💾 Guardando horas manuales en Supabase...');
+    const newHours = JSON.parse(JSON.stringify(savedHours));
     if (!newHours[nurseId]) newHours[nurseId] = {};
     newHours[nurseId][dateKey] = {
-        ...newHours[nurseId][dateKey],
         segments,
-        note: reason
+        note: reason,
+        manual: true // Mark as manually edited
     };
     
     await updateData({ hours: newHours });
-  }, [hours, nurses, updateData, addHistoryEntry]);
+    console.log('✅ Horas manuales guardadas en Supabase');
+  }, [savedHours, nurses, updateData, addHistoryEntry]);
 
   const handleOpenSwapPanelFromCell = (dateKey: string, nurseId: string) => {
     setSwapPanelConfig({ isOpen: true, initialDate: dateKey, initialNurseId: nurseId });
