@@ -31,7 +31,7 @@ const getInitialState = (): AppState => ({
     strasbourgAssignments: INITIAL_STRASBOURG_ASSIGNMENTS_2026,
     strasbourgEvents: [],
     specialStrasbourgEvents: [],
-    closedMonths: { '2026-00': true, '2026-01': true }, // January and February 2026
+    closedMonths: { '2026-00': true, '2026-01': true },
     wishes: {},
     jornadasLaborales: INITIAL_JORNADAS,
     manualChangeLog: [],
@@ -46,6 +46,7 @@ export const useSupabaseState = () => {
     const pollingIntervalRef = useRef<NodeJS.Timeout | undefined>();
     const lastRealtimeEventRef = useRef<number>(0);
     const lastLocalSaveRef = useRef<number>(0);
+    const isSavingRef = useRef<boolean>(false);
 
     useEffect(() => {
         let pollingInterval: NodeJS.Timeout | undefined;
@@ -54,7 +55,6 @@ export const useSupabaseState = () => {
             console.log("🔥 Supabase: Cargando datos...");
             
             try {
-                // Leer datos iniciales
                 const { data: existingData, error } = await supabase
                     .from('app_state')
                     .select('data')
@@ -64,7 +64,6 @@ export const useSupabaseState = () => {
                 if (error) {
                     console.error("❌ Error al leer app_state:", error);
                     
-                    // Si el error es que no existe la fila, intentamos crearla
                     if (error.code === 'PGRST116' || error.message?.includes('JSON object requested, but 0 rows were returned')) {
                         console.log("💾 Fila no encontrada, intentando inicializar...");
                         const initialState = getInitialState();
@@ -94,10 +93,9 @@ export const useSupabaseState = () => {
                         setData(initialState);
                     }
                 } else {
-                    console.log("✅ Datos cargados:", existingData.data);
+                    console.log("✅ Datos cargados");
                     let loadedData = existingData.data as AppState;
                     
-                    // RECOVERY LOGIC: Ensure 2026 agenda and closed months are present if they were "lost"
                     let needsPatch = false;
                     if (!loadedData.agenda || Object.keys(loadedData.agenda).length < 10) {
                         console.log("🩹 Patching missing agenda...");
@@ -126,7 +124,6 @@ export const useSupabaseState = () => {
                 setLoading(false);
             }
 
-            // Escuchar cambios en tiempo real usando BROADCAST (más confiable)
             console.log("👂 Configurando listener de cambios en tiempo real...");
             
             let isRealtimeWorking = false;
@@ -138,7 +135,6 @@ export const useSupabaseState = () => {
                         presence: { key: '' }
                     }
                 })
-                // Escuchar postgres_changes como respaldo
                 .on(
                     'postgres_changes',
                     {
@@ -155,23 +151,18 @@ export const useSupabaseState = () => {
                         if (payload.new && payload.new.data) {
                             const newData = payload.new.data as AppState;
                             setData(currentData => {
-                                const currentVersion = currentData?.updatedAt ?? 0;
+                                if (!currentData) return newData;
+                                
+                                const currentVersion = currentData.updatedAt ?? 0;
                                 const newVersion = newData.updatedAt ?? 0;
 
-                                if (newVersion && currentVersion && newVersion < currentVersion) {
+                                if (newVersion < currentVersion) {
                                     console.warn("⏭️ [Real-time] Ignorando actualización antigua");
                                     return currentData;
                                 }
 
-                                const currentStr = JSON.stringify(currentData);
-                                const newStr = JSON.stringify(newData);
-                                
-                                if (currentStr !== newStr) {
+                                if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
                                     console.log("🔄 [Real-time] Actualizando estado local");
-                                    const changedKeys = Object.keys(newData).filter(key => 
-                                        JSON.stringify((currentData as any)?.[key]) !== JSON.stringify((newData as any)?.[key])
-                                    );
-                                    console.log("   Campos actualizados:", changedKeys.join(', '));
                                     return newData;
                                 }
                                 return currentData;
@@ -179,32 +170,26 @@ export const useSupabaseState = () => {
                         }
                     }
                 )
-                // También escuchar broadcast messages de otros clientes
                 .on('broadcast', { event: 'state_update' }, (payload) => {
-                    console.log("📡 [Broadcast] Mensaje recibido de otro cliente");
+                    console.log("📡 [Broadcast] Mensaje recibido");
                     isRealtimeWorking = true;
                     lastRealtimeEventRef.current = Date.now();
                     
                     if (payload.payload && (payload.payload as any).data) {
                         const newData = (payload.payload as any).data as AppState;
                         setData(currentData => {
-                            const currentVersion = currentData?.updatedAt ?? 0;
+                            if (!currentData) return newData;
+                            
+                            const currentVersion = currentData.updatedAt ?? 0;
                             const newVersion = newData.updatedAt ?? 0;
 
-                            if (newVersion && currentVersion && newVersion < currentVersion) {
+                            if (newVersion < currentVersion) {
                                 console.warn("⏭️ [Broadcast] Ignorando actualización antigua");
                                 return currentData;
                             }
 
-                            const currentStr = JSON.stringify(currentData);
-                            const newStr = JSON.stringify(newData);
-                            
-                            if (currentStr !== newStr) {
+                            if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
                                 console.log("🔄 [Broadcast] Actualizando estado local");
-                                const changedKeys = Object.keys(newData).filter(key => 
-                                    JSON.stringify((currentData as any)?.[key]) !== JSON.stringify((newData as any)?.[key])
-                                );
-                                console.log("   Campos actualizados:", changedKeys.join(', '));
                                 return newData;
                             }
                             return currentData;
@@ -215,33 +200,31 @@ export const useSupabaseState = () => {
                     console.log("📡 Estado del canal Real-time:", status);
                     
                     if (status === 'SUBSCRIBED') {
-                        console.log("✅ Canal Real-time SUSCRITO exitosamente");
+                        console.log("✅ Canal Real-time SUSCRITO");
                         isRealtimeWorking = true;
-                    } else if (status === 'CLOSED') {
-                        console.warn("⚠️ Canal Real-time CERRADO");
-                        isRealtimeWorking = false;
                     } else if (status === 'CHANNEL_ERROR') {
                         console.error("❌ ERROR en canal Real-time:", err);
                         isRealtimeWorking = false;
-                    } else if (status === 'TIMED_OUT') {
-                        console.warn("⏱️ Canal Real-time TIMEOUT");
-                        isRealtimeWorking = false;
                     }
                     
-                    // Fallback: activar polling si no llegan eventos reales en 5s
                     setTimeout(() => {
                         const now = Date.now();
                         const lastEvent = lastRealtimeEventRef.current;
                         const noRealtimeEvents = !lastEvent || now - lastEvent > 5000;
 
                         if ((!isRealtimeWorking || status !== 'SUBSCRIBED' || noRealtimeEvents) && !pollingIntervalRef.current) {
-                            console.warn("⚠️ Real-time sin eventos, activando POLLING cada 5 segundos...");
+                            console.warn("⚠️ Activando POLLING cada 5 segundos...");
                             
                             pollingInterval = setInterval(async () => {
                                 try {
+                                    if (isSavingRef.current) {
+                                        console.log("⏸️ [Polling] Guardado en progreso, saltando...");
+                                        return;
+                                    }
+
                                     const timeSinceLastSave = Date.now() - lastLocalSaveRef.current;
                                     if (timeSinceLastSave < 10000) {
-                                        console.log(`⏸️ [Polling] Esperando después de guardado local (${Math.round(timeSinceLastSave/1000)}s)`);
+                                        console.log(`⏸️ [Polling] Esperando después de guardado (${Math.round(timeSinceLastSave/1000)}s)`);
                                         return;
                                     }
 
@@ -251,33 +234,26 @@ export const useSupabaseState = () => {
                                         .eq('id', 1)
                                         .single();
                                     
-                                    if (!error && polledData?.data) {
-                                        setData(currentData => {
-                                            const currentVersion = currentData?.updatedAt ?? 0;
-                                            const newVersion = (polledData.data as AppState).updatedAt ?? 0;
+                                    if (error || !polledData?.data) return;
 
-                                            console.log(`🔍 [Polling] Versiones - Local: ${currentVersion}, Remoto: ${newVersion}`);
-
-                                            if (newVersion && currentVersion && newVersion < currentVersion) {
-                                                console.warn("⏭️ [Polling] Ignorando actualización antigua");
-                                                return currentData;
-                                            }
-                                            
-                                            if (newVersion && currentVersion && newVersion === currentVersion) {
-                                                console.log("✅ [Polling] Versiones iguales, no hay cambios");
-                                                return currentData;
-                                            }
-
-                                            const currentStr = JSON.stringify(currentData);
-                                            const newStr = JSON.stringify(polledData.data);
-                                            
-                                            if (currentStr !== newStr) {
-                                                console.log("🔄 [Polling] Cambios detectados, actualizando...");
-                                                return polledData.data as AppState;
-                                            }
+                                    const remoteData = polledData.data as AppState;
+                                    const remoteVersion = remoteData.updatedAt || 0;
+                                    
+                                    setData(currentData => {
+                                        if (!currentData) return remoteData;
+                                        
+                                        const localVersion = currentData.updatedAt || 0;
+                                        
+                                        if (remoteVersion > localVersion) {
+                                            console.log(`🔄 [Polling] Remoto (${remoteVersion}) > Local (${localVersion})`);
+                                            return remoteData;
+                                        } else if (remoteVersion === localVersion) {
                                             return currentData;
-                                        });
-                                    }
+                                        } else {
+                                            console.log(`⏭️ [Polling] Local más reciente, ignorando`);
+                                            return currentData;
+                                        }
+                                    });
                                 } catch (e) {
                                     console.error("❌ Error en polling:", e);
                                 }
@@ -292,17 +268,9 @@ export const useSupabaseState = () => {
         initData();
 
         return () => {
-            if (pollingInterval) {
-                console.log("🔌 Deteniendo polling...");
-                clearInterval(pollingInterval);
-            }
-            if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-            }
-            if (channelRef.current) {
-                console.log("🔌 Desconectando canal Real-time...");
-                supabase.removeChannel(channelRef.current);
-            }
+            if (pollingInterval) clearInterval(pollingInterval);
+            if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+            if (channelRef.current) supabase.removeChannel(channelRef.current);
         };
     }, []);
 
@@ -310,22 +278,31 @@ export const useSupabaseState = () => {
         return new Promise<void>((resolve, reject) => {
             setData(currentData => {
                 if (!currentData) {
-                    console.warn("⚠️ Estado no disponible todavía, omitiendo guardado");
+                    console.warn("⚠️ Estado no disponible");
                     resolve();
                     return currentData;
                 }
 
-                const newData = { ...currentData, ...updates, updatedAt: Date.now() };
-                if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
-                    console.log("📝 Guardando cambios en Supabase...", Object.keys(updates));
-                    lastLocalSaveRef.current = Date.now();
+                const now = Date.now();
+                const newData = { 
+                    ...currentData, 
+                    ...updates, 
+                    updatedAt: now
+                };
+                
+                const hasChanges = JSON.stringify(currentData) !== JSON.stringify(newData);
+                
+                if (hasChanges) {
+                    console.log("📝 Guardando cambios...", Object.keys(updates));
+                    lastLocalSaveRef.current = now;
+                    isSavingRef.current = true;
                     
-                    // Create timeout to detect if save is taking too long
-                    const timeoutId = setTimeout(() => {
-                        console.warn("⏱️ Guardado a Supabase tardando más de 5 segundos...");
-                    }, 5000);
+                    if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = undefined;
+                        console.log("⏸️ Polling pausado");
+                    }
                     
-                    // Persist to Supabase - wait for result before resolving
                     (async () => {
                         try {
                             const { error } = await supabase
@@ -333,39 +310,38 @@ export const useSupabaseState = () => {
                                 .update({ data: newData })
                                 .eq('id', 1);
                             
-                            clearTimeout(timeoutId);
-                            
                             if (error) {
-                                console.error("❌ Error al guardar en Supabase:", error);
-                                reject(new Error(error.message));
+                                console.error("❌ Error al guardar:", error);
+                                isSavingRef.current = false;
+                                reject(error);
                             } else {
-                                console.log("✅ Guardado exitoso en Supabase. Datos:", Object.keys(updates));
-                                console.log("   Contenido guardado:", updates);
+                                console.log("✅ Guardado exitoso. Timestamp:", now);
                                 
-                                // Enviar broadcast a otros clientes también
-                                console.log("📡 Enviando notificación Broadcast a otros clientes...");
                                 if (channelRef.current) {
                                     await channelRef.current.send({
                                         type: 'broadcast',
                                         event: 'state_update',
-                                        payload: { data: newData }
+                                        payload: { data: newData, timestamp: now }
                                     });
-                                } else {
-                                    console.warn("⚠️ Canal no disponible para broadcast");
                                 }
+                                
+                                setTimeout(() => {
+                                    isSavingRef.current = false;
+                                    console.log("▶️ Guardado completado");
+                                }, 1000);
                                 
                                 resolve();
                             }
                         } catch (e) {
-                            clearTimeout(timeoutId);
-                            console.error("❌ Excepción al guardar:", e);
+                            isSavingRef.current = false;
+                            console.error("❌ Error:", e);
                             reject(e);
                         }
                     })();
                     
                     return newData;
                 }
-                console.log("📝 Datos sin cambios, no se guarda a Supabase");
+                
                 resolve();
                 return currentData;
             });
