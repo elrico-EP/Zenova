@@ -21,7 +21,7 @@ export const authenticate = async (username: string, password: string): Promise<
     const { data, error } = await supabase
         .from('users')
         .select('*')
-        .ilike('email', username)
+        .eq('email', username.toLowerCase())
         .single();
 
     if (error || !data) {
@@ -72,57 +72,46 @@ export const seedUsersIfEmpty = async (): Promise<void> => {
 
     if (count === 0) {
         console.log("Users table is empty. Seeding default users...");
-        
-        const { error: adminError } = await supabase
-            .from('users')
-            .insert({
+        const usersToSeed: Omit<User, 'id'>[] = [
+            {
                 name: 'Admin',
                 email: 'admin',
                 role: 'admin',
                 password: 'admin123',
                 mustChangePassword: false,
                 nurseId: null
-            });
-        
-        if (adminError) {
-            console.error("Error inserting admin:", adminError.message);
-            return;
-        }
-
-        const { error: viewerError } = await supabase
-            .from('users')
-            .insert({
+            },
+            {
                 name: 'Viewer',
                 email: 'viewer',
                 role: 'viewer',
                 password: '123456',
                 mustChangePassword: false,
                 nurseId: null
-            });
-        
-        if (viewerError) {
-            console.error("Error inserting viewer:", viewerError.message);
-            return;
-        }
-
-        for (const nurse of INITIAL_NURSES) {
-            const { error: nurseError } = await supabase
-                .from('users')
-                .insert({
-                    name: nurse.name,
-                    email: nurse.name.toLowerCase().replace(/\s+/g, ''),
-                    role: 'nurse',
-                    password: '123456',
-                    mustChangePassword: true,
-                    nurseId: nurse.id
-                });
-            
-            if (nurseError) {
-                console.error("Error inserting nurse:", nurse.name, nurseError.message);
             }
-        }
+        ];
 
-        console.log("Default users seeded successfully.");
+        // Add nurses
+        INITIAL_NURSES.forEach(nurse => {
+            usersToSeed.push({
+                name: nurse.name,
+                email: nurse.name.toLowerCase().replace(/\s+/g, ''),
+                role: 'nurse',
+                nurseId: nurse.id,
+                password: '123456',
+                mustChangePassword: true
+            });
+        });
+
+        const { error: seedError } = await supabase
+            .from('users')
+            .insert(usersToSeed);
+
+        if (seedError) {
+            console.error("Supabase error seeding users:", seedError.message);
+        } else {
+            console.log("Default users seeded successfully.");
+        }
     } else {
         console.log(`Users table already contains ${count} users. No seeding performed.`);
     }
