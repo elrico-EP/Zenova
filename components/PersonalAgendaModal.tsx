@@ -570,7 +570,19 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                                     <div className="w-full h-full p-1 flex items-center justify-center relative" title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}>
                                                         <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-xs text-center`}><span className="truncate px-1">{specialEvent.name}</span>{specialEvent.startTime && specialEvent.endTime && <span className="text-[10px] opacity-80 mt-1">{calculateEventHours(specialEvent.startTime, specialEvent.endTime).toFixed(1)}h</span>}</div>
                                                     </div>
-                                                ) : <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales)} hasManualHours={!!(dayData.startTime && dayData.endTime)} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false}/></div>}
+                                                ) : (() => {
+                                                    const dailyHoursData = hours[nurse.id]?.[dateKey];
+                                                    const hasManualHours = dailyHoursData?.segments?.some(s => s.startTime || s.endTime);
+                                                    let displayHours: string | { morning: string; afternoon: string } | string[];
+                                                    
+                                                    if (hasManualHours) {
+                                                        displayHours = dailyHoursData!.segments!.filter(s => s.startTime && s.endTime).map(s => `${s.startTime.substring(0, 5)} - ${s.endTime.substring(0, 5)}`);
+                                                    } else {
+                                                        displayHours = getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales);
+                                                    }
+                                                    
+                                                    return <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={displayHours} hasManualHours={!!hasManualHours} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false} manualNote={dailyHoursData?.note}/></div>;
+                                                })()}
                                                 {reductionTooltip && (
                                                     <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm ring-1 ring-white" title={reductionTooltip}>
                                                         R
