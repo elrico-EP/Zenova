@@ -325,10 +325,10 @@ useEffect(() => {
     return nurses.map(nurse => {
       const emptyCounts = (): ShiftCounts => ({ 
         TRAVAIL: 0, TRAVAIL_TARDE: 0, URGENCES: 0, URGENCES_TARDE: 0, 
-        ADMIN: 0, ADM_TARDE: 0, TW: 0, TW_ABROAD: 0, CA: 0, FP: 0, 
+        ADMIN: 0, ADM_PLUS: 0, TW: 0, TW_ABROAD: 0, CA: 0, FP: 0, 
         CS: 0, RECUP: 0, SICK_LEAVE: 0, STRASBOURG: 0, LIBERO: 0, 
         VACCIN: 0, VACCIN_AM: 0, VACCIN_PM: 0, VACCIN_PM_PLUS: 0,
-        URGENCES_TARDE_PLUS: 0, TRAVAIL_TARDE_PLUS: 0, ADM_TARDE_PLUS: 0
+        URGENCES_TARDE_PLUS: 0, TRAVAIL_TARDE_PLUS: 0
       });
       const annualCounts = emptyCounts();
       const monthlyCounts = emptyCounts();
@@ -982,11 +982,9 @@ const handleAddNurse = useCallback((name: string) => {
   );
 };
 const App: React.FC = () => (
-  <UserProvider>
-    <NurseProvider>
-      <AppContent />
-    </NurseProvider>
-  </UserProvider>
+  <NurseProvider>
+    <AppContent />
+  </NurseProvider>
 );
 
 export default App;
