@@ -16,7 +16,7 @@ const headers: { key: keyof ShiftCounts | 'totalWorkDays', shiftId: WorkZone | '
     { key: 'URGENCES', shiftId: 'URGENCES' },
     { key: 'URGENCES_TARDE', shiftId: 'URGENCES_TARDE' },
     { key: 'ADMIN', shiftId: 'ADMIN' },
-    { key: 'ADM_TARDE', shiftId: 'ADM_TARDE' },
+    { key: 'ADM_PLUS', shiftId: 'ADM_PLUS' },
     { key: 'TW', shiftId: 'TW' },
     { key: 'TW_ABROAD', shiftId: 'TW_ABROAD' },
     { key: 'CA', shiftId: 'CA' },
