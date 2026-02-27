@@ -9,8 +9,8 @@ import { getShiftsFromCell } from '../utils/scheduleUtils';
 // Shifts for the quick edit palette
 const quickShifts: WorkZone[] = [
     'URGENCES', 'TRAVAIL', 'URGENCES_TARDE', 'TRAVAIL_TARDE', 
-    'URGENCES_TARDE_PLUS', 'TRAVAIL_TARDE_PLUS', 
-    'ADMIN', 'ADM_TARDE', 'ADM_TARDE_PLUS',
+    // ❌ ELIMINADOS: 'URGENCES_TARDE_PLUS', 'TRAVAIL_TARDE_PLUS'
+    'ADMIN', 'ADM_PLUS',  // ❌ ELIMINADO: 'ADM_TARDE', 'ADM_TARDE_PLUS'
     'TW', 'TW_ABROAD', 'CA', 'SICK_LEAVE', 'FP', 'CS', 'RECUP', 'LIBERO'
 ];
 
