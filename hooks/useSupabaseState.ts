@@ -154,27 +154,39 @@ export const useSupabaseState = () => {
     }, []);
 
     const updateData = useCallback((updates: Partial<AppState>) => {
-        // Use functional update for setData to get the latest state without 'data' in dependency array
-        setData(currentData => {
-            const newData = { ...currentData, ...updates };
-            if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
-                // Perform optimistic update
-                // Then, persist to Supabase
-                supabase
-                    .from('app_state')
-                    .update({ data: newData })
-                    .eq('id', 1)
-                    .then(({ error }) => {
-                        if (error) {
-                            console.error("❌ Error al guardar:", error);
-                            // Revert optimistic update if there's an error, or let real-time listener handle it
-                        } else {
-                            console.log("✅ Guardado exitoso");
+        return new Promise<void>((resolve) => {
+            // Use functional update for setData to get the latest state without 'data' in dependency array
+            setData(currentData => {
+                const newData = { ...currentData, ...updates };
+                if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
+                    // Perform optimistic update immediately
+                    console.log("📝 Guardando cambios en Supabase...", Object.keys(updates));
+                    
+                    // Persist to Supabase - use async to wait for result
+                    (async () => {
+                        try {
+                            const { error } = await supabase
+                                .from('app_state')
+                                .update({ data: newData })
+                                .eq('id', 1);
+                            
+                            if (error) {
+                                console.error("❌ Error al guardar en Supabase:", error);
+                            } else {
+                                console.log("✅ Guardado exitoso en Supabase");
+                            }
+                            resolve();
+                        } catch (e) {
+                            console.error("❌ Excepción al guardar:", e);
+                            resolve();
                         }
-                    });
-                return newData;
-            }
-            return currentData;
+                    })();
+                    
+                    return newData;
+                }
+                resolve();
+                return currentData;
+            });
         });
     }, []);
 
