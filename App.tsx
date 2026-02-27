@@ -237,7 +237,11 @@ const AppContent: React.FC = () => {
     Object.entries(overrides).forEach(([nurseId, days]) => {
       if (!merged[nurseId]) merged[nurseId] = {};
       Object.entries(days).forEach(([dateKey, cell]) => {
-        if (cell) merged[nurseId][dateKey] = cell;
+        // Manual overrides replace auto-assigned shifts completely
+        // No jornada modifications should be applied to manual shifts
+        if (cell) {
+          merged[nurseId][dateKey] = cell;
+        }
       });
     });
     return merged;
