@@ -618,8 +618,13 @@ const handleAddNurse = useCallback((name: string) => {
       });
   }, [updateDataWithUndo, addHistoryEntry, t, specialStrasbourgEvents, specialStrasbourgEventsLog, user]);
 
-  const handleClearStrasbourgLog = useCallback(() => {
-      updateData({ specialStrasbourgEventsLog: [] });
+  const handleClearStrasbourgLog = useCallback(async () => {
+      try {
+        await updateData({ specialStrasbourgEventsLog: [] });
+        console.log('✅ Registro de Estrasburgo limpiado');
+      } catch (error) {
+        console.error('❌ Error al limpiar registro:', error);
+      }
   }, [updateData]);
 
   const handleMassAbsenceApply = useCallback((nurseIds: string[], startDate: string, endDate: string, shift: WorkZone) => {
@@ -633,12 +638,17 @@ const handleAddNurse = useCallback((name: string) => {
     updateData({ manualOverrides: newOverrides });
   }, [manualOverrides, effectiveAgenda, updateData, addHistoryEntry, t]);
 
-  const handleJornadasChange = useCallback((newJornadas: JornadaLaboral[]) => {
+  const handleJornadasChange = useCallback(async (newJornadas: JornadaLaboral[]) => {
     addHistoryEntry(t.history_jornadaChange, t.history_jornadaChange);
-    updateData({ jornadasLaborales: newJornadas });
+    try {
+      await updateData({ jornadasLaborales: newJornadas });
+      console.log('✅ Jornadas laborales actualizadas');
+    } catch (error) {
+      console.error('❌ Error al guardar jornadas:', error);
+    }
   }, [updateData, addHistoryEntry, t]);
 
-  const handleConfirmSwap = useCallback((payload: { date: string; nurse1Id: string; nurse2Id: string }) => {
+  const handleConfirmSwap = useCallback(async (payload: { date: string; nurse1Id: string; nurse2Id: string }) => {
     const { date, nurse1Id, nurse2Id } = payload;
     const nurse1Name = nurses.find(n => n.id === nurse1Id)?.name || 'N/A';
     const nurse2Name = nurses.find(n => n.id === nurse2Id)?.name || 'N/A';
@@ -662,7 +672,12 @@ const handleAddNurse = useCallback((name: string) => {
     newLog.push({ id: `log-${Date.now()}-${nurse1Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse1Id, dateKey: date, originalShift: shift1, newShift: newShift1 || 'DELETE' });
     newLog.push({ id: `log-${Date.now()}-${nurse2Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse2Id, dateKey: date, originalShift: shift2, newShift: newShift2 || 'DELETE' });
     
-    updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
+    try {
+      await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
+      console.log('✅ Intercambio guardado exitosamente');
+    } catch (error) {
+      console.error('❌ Error al guardar intercambio:', error);
+    }
   }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
   
   const handleOpenManualHoursModal = useCallback((dateKey: string, nurseId: string) => {
