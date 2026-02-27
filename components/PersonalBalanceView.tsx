@@ -13,7 +13,7 @@ const balanceHeaders: { key: keyof ShiftCounts; label: string }[] = [
     { key: 'URGENCES', label: SHIFTS['URGENCES'].label },
     { key: 'URGENCES_TARDE', label: SHIFTS['URGENCES_TARDE'].label },
     { key: 'ADMIN', label: SHIFTS['ADMIN'].label },
-    { key: 'ADM_TARDE', label: SHIFTS['ADM_TARDE'].label },
+    { key: 'ADM_PLUS', label: SHIFTS['ADM_PLUS'].label },
     { key: 'TW', label: SHIFTS['TW'].label },
     { key: 'TW_ABROAD', label: SHIFTS['TW_ABROAD'].label },
     { key: 'CA', label: SHIFTS['CA'].label },
