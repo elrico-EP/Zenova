@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../firebase/supabase-config';
 import type { AppState } from '../types';
 import { INITIAL_NURSES } from '../constants';
@@ -41,9 +41,10 @@ const getInitialState = (): AppState => ({
 export const useSupabaseState = () => {
     const [data, setData] = useState<AppState | null>(null);
     const [loading, setLoading] = useState(true);
+    const channelRef = useRef<any>(null);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | undefined>();
 
     useEffect(() => {
-        let channel: any;
         let pollingInterval: NodeJS.Timeout | undefined;
 
         const initData = async () => {
@@ -118,18 +119,19 @@ export const useSupabaseState = () => {
                 setLoading(false);
             }
 
-            // Escuchar cambios en tiempo real
+            // Escuchar cambios en tiempo real usando BROADCAST (más confiable)
             console.log("👂 Configurando listener de cambios en tiempo real...");
             
             let isRealtimeWorking = false;
             
-            channel = supabase
+            channelRef.current = supabase
                 .channel('app_state_changes', {
                     config: {
                         broadcast: { self: false },
                         presence: { key: '' }
                     }
                 })
+                // Escuchar postgres_changes como respaldo
                 .on(
                     'postgres_changes',
                     {
@@ -139,7 +141,7 @@ export const useSupabaseState = () => {
                         filter: 'id=eq.1'
                     },
                     (payload) => {
-                        console.log("📡 [Real-time] Cambio detectado desde Supabase");
+                        console.log("📡 [Real-time PostgreSQL] Cambio detectado");
                         isRealtimeWorking = true;
                         
                         if (payload.new && payload.new.data) {
@@ -161,6 +163,29 @@ export const useSupabaseState = () => {
                         }
                     }
                 )
+                // También escuchar broadcast messages de otros clientes
+                .on('broadcast', { event: 'state_update' }, (payload) => {
+                    console.log("📡 [Broadcast] Mensaje recibido de otro cliente");
+                    isRealtimeWorking = true;
+                    
+                    if (payload.payload && payload.payload.data) {
+                        const newData = payload.payload.data as AppState;
+                        setData(currentData => {
+                            const currentStr = JSON.stringify(currentData);
+                            const newStr = JSON.stringify(newData);
+                            
+                            if (currentStr !== newStr) {
+                                console.log("🔄 [Broadcast] Actualizando estado local");
+                                const changedKeys = Object.keys(newData).filter(key => 
+                                    JSON.stringify((currentData as any)?.[key]) !== JSON.stringify((newData as any)?.[key])
+                                );
+                                console.log("   Campos actualizados:", changedKeys.join(', '));
+                                return newData;
+                            }
+                            return currentData;
+                        });
+                    }
+                })
                 .subscribe((status, err) => {
                     console.log("📡 Estado del canal Real-time:", status);
                     
@@ -178,10 +203,10 @@ export const useSupabaseState = () => {
                         isRealtimeWorking = false;
                     }
                     
-                    // Fallback: Si Real-time no funciona después de 5 segundos, usar polling
+                    // Fallback: Si Real-time no funciona después de 2 segundos, usar polling agresivo
                     setTimeout(() => {
                         if (!isRealtimeWorking || status !== 'SUBSCRIBED') {
-                            console.warn("⚠️ Real-time no funciona, activando POLLING cada 3 segundos...");
+                            console.warn("⚠️ Real-time no funciona, activando POLLING cada 2 segundos...");
                             
                             pollingInterval = setInterval(async () => {
                                 try {
@@ -206,9 +231,11 @@ export const useSupabaseState = () => {
                                 } catch (e) {
                                     console.error("❌ Error en polling:", e);
                                 }
-                            }, 3000); // Polling cada 3 segundos
+                            }, 2000); // Polling cada 2 segundos (más agresivo que antes)
+                            
+                            pollingIntervalRef.current = pollingInterval;
                         }
-                    }, 5000); // Esperar 5 segundos antes de activar polling
+                    }, 2000); // Esperar 2 segundos antes de activar polling
                 });
         };
 
@@ -219,9 +246,12 @@ export const useSupabaseState = () => {
                 console.log("🔌 Deteniendo polling...");
                 clearInterval(pollingInterval);
             }
-            if (channel) {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+            if (channelRef.current) {
                 console.log("🔌 Desconectando canal Real-time...");
-                supabase.removeChannel(channel);
+                supabase.removeChannel(channelRef.current);
             }
         };
     }, []);
@@ -254,6 +284,18 @@ export const useSupabaseState = () => {
                             } else {
                                 console.log("✅ Guardado exitoso en Supabase. Datos:", Object.keys(updates));
                                 console.log("   Contenido guardado:", updates);
+                                
+                                // Enviar broadcast a otros clientes también
+                                console.log("📡 Enviando notificación Broadcast a otros clientes...");
+                                if (channelRef.current) {
+                                    await supabase.channel('app_state_changes').send('broadcast', {
+                                        event: 'state_update',
+                                        data: newData
+                                    });
+                                } else {
+                                    console.warn("⚠️ Canal no disponible para broadcast");
+                                }
+                                
                                 resolve();
                             }
                         } catch (e) {
