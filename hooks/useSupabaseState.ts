@@ -203,39 +203,35 @@ export const useSupabaseState = () => {
                         isRealtimeWorking = false;
                     }
                     
-                    // Fallback: Si Real-time no funciona después de 2 segundos, usar polling agresivo
-                    setTimeout(() => {
-                        if (!isRealtimeWorking || status !== 'SUBSCRIBED') {
-                            console.warn("⚠️ Real-time no funciona, activando POLLING cada 2 segundos...");
+                    // Fallback: Activar POLLING de inmediato como estrategia paralela (Firefox bloquea broadcast)
+                    console.warn("⚠️ Activando POLLING cada 1 segundo como canal alternativo...");
+                    
+                    pollingInterval = setInterval(async () => {
+                        try {
+                            const { data: polledData, error } = await supabase
+                                .from('app_state')
+                                .select('data')
+                                .eq('id', 1)
+                                .single();
                             
-                            pollingInterval = setInterval(async () => {
-                                try {
-                                    const { data: polledData, error } = await supabase
-                                        .from('app_state')
-                                        .select('data')
-                                        .eq('id', 1)
-                                        .single();
+                            if (!error && polledData?.data) {
+                                setData(currentData => {
+                                    const currentStr = JSON.stringify(currentData);
+                                    const newStr = JSON.stringify(polledData.data);
                                     
-                                    if (!error && polledData?.data) {
-                                        setData(currentData => {
-                                            const currentStr = JSON.stringify(currentData);
-                                            const newStr = JSON.stringify(polledData.data);
-                                            
-                                            if (currentStr !== newStr) {
-                                                console.log("🔄 [Polling] Cambios detectados, actualizando...");
-                                                return polledData.data as AppState;
-                                            }
-                                            return currentData;
-                                        });
+                                    if (currentStr !== newStr) {
+                                        console.log("🔄 [Polling] Cambios detectados, actualizando...");
+                                        return polledData.data as AppState;
                                     }
-                                } catch (e) {
-                                    console.error("❌ Error en polling:", e);
-                                }
-                            }, 2000); // Polling cada 2 segundos (más agresivo que antes)
-                            
-                            pollingIntervalRef.current = pollingInterval;
+                                    return currentData;
+                                });
+                            }
+                        } catch (e) {
+                            console.error("❌ Error en polling:", e);
                         }
-                    }, 2000); // Esperar 2 segundos antes de activar polling
+                    }, 1000); // Polling cada 1 segundo
+                    
+                    pollingIntervalRef.current = pollingInterval;
                 });
         };
 
