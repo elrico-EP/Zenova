@@ -219,8 +219,11 @@ export const ShiftCell: React.FC<{
                 {renderHours()}
             </div>
             {manualNote && (
-                <div className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full hover:w-auto hover:h-auto hover:px-2 hover:py-1 hover:bg-slate-900 hover:text-white hover:text-xs hover:rounded-md hover:shadow-lg transition-all z-20" title={manualNote}>
-                    <span className="hidden hover:inline whitespace-nowrap">{manualNote}</span>
+                <div className="absolute bottom-0.5 right-0.5 group/note" title={manualNote}>
+                    <div className="w-2 h-2 bg-red-500 rounded-full cursor-help"></div>
+                    <div className="absolute bottom-full right-0 mb-1 hidden group-hover/note:block bg-slate-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                        {manualNote}
+                    </div>
                 </div>
             )}
         </div>
