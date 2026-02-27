@@ -82,7 +82,35 @@ const MassAbsenceModule: React.FC<{ nurses: Nurse[]; currentDate: Date; onMassAb
         if (selectedNurseIds.length > 0 && startDate && endDate) { onMassAbsenceApply(selectedNurseIds, startDate, endDate, shift); setSelectedNurseIds([]); setStartDate(currentDate.toISOString().split('T')[0]); setEndDate(currentDate.toISOString().split('T')[0]); setShift('CA'); }
     };
 
-    return ( <div className="space-y-4 text-sm"><div className="max-h-32 overflow-y-auto border rounded-lg p-2 space-y-1">{nurses.map(n => <label key={n.id} className="flex items-center p-1 rounded-md hover:bg-slate-100"><input type="checkbox" checked={selectedNurseIds.includes(n.id)} onChange={() => setSelectedNurseIds(p => p.includes(n.id) ? p.filter(id=>id!==n.id) : [...p, n.id])} className="mr-2"/>{n.name}</label>)}</div><select value={shift} onChange={e => setShift(e.target.value as WorkZone)} className="w-full p-2 border rounded-md"><option value="CA">{t.leaveType_CA}</option><option value="SICK_LEAVE">{t.leaveType_SICK_LEAVE}</option><option value="FP">{t.leaveType_FP}</option><option value="CS">{t.leaveType_CS}</option></select><div className="flex gap-2"><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full p-2 border rounded-md"/><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full p-2 border rounded-md"/></div><button onClick={handleApply} className="w-full px-4 py-2 bg-zen-700 text-white font-semibold rounded-md hover:bg-zen-600">{t.applyToWorkdays}</button></div>);
+    return (
+        <div className="space-y-4 text-sm">
+            <div className="max-h-32 overflow-y-auto border rounded-lg p-2 space-y-1">
+                {nurses.map(n => (
+                    <label key={n.id} className="flex items-center p-1 rounded-md hover:bg-slate-100">
+                        <input type="checkbox" checked={selectedNurseIds.includes(n.id)} onChange={() => setSelectedNurseIds(p => p.includes(n.id) ? p.filter(id=>id!==n.id) : [...p, n.id])} className="mr-2"/>
+                        {n.name}
+                    </label>
+                ))}
+            </div>
+            <select value={shift} onChange={e => setShift(e.target.value as WorkZone)} className="w-full p-2 border rounded-md">
+                <option value="CA">{t.leaveType_CA}</option>
+                <option value="SICK_LEAVE">{t.leaveType_SICK_LEAVE}</option>
+                <option value="FP">{t.leaveType_FP}</option>
+                <option value="CS">{t.leaveType_CS}</option>
+            </select>
+            <div className="flex gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
+                    <label className="text-xs text-gray-600 block mb-1">Inicio</label>
+                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full p-2 border rounded-md text-sm"/>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <label className="text-xs text-gray-600 block mb-1">Fin</label>
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full p-2 border rounded-md text-sm"/>
+                </div>
+            </div>
+            <button onClick={handleApply} className="w-full px-4 py-2 bg-zen-700 text-white font-semibold rounded-md hover:bg-zen-600">{t.applyToWorkdays}</button>
+        </div>
+    );
 }
 
 const StrasbourgAnnualPlanner: React.FC<{ 
