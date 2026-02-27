@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from './Modal';
 import { useTranslations } from '../hooks/useTranslations';
-import type { Nurse, ScheduleCell, PersonalHoursChangePayload, Hours } from '../types';
+import type { Nurse, ScheduleCell, PersonalHoursChangePayload, Hours, Agenda, SpecialStrasbourgEvent, JornadaLaboral } from '../types';
 import { SHIFTS } from '../constants';
 import { getScheduleCellHours } from '../utils/scheduleUtils';
+import { getWeekIdentifier } from '../utils/dateUtils';
 
 interface ManualHoursModalProps {
   isOpen: boolean;
@@ -14,9 +15,13 @@ interface ManualHoursModalProps {
   hours: Hours;
   onSave: (payload: PersonalHoursChangePayload) => void;
   isMonthClosed: boolean;
+  agenda: Agenda;
+  strasbourgAssignments: Record<string, string[]>;
+  specialStrasbourgEvents: SpecialStrasbourgEvent[];
+  jornadasLaborales: JornadaLaboral[];
 }
 
-export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onClose, nurse, dateKey, scheduleCell, hours, onSave, isMonthClosed }) => {
+export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onClose, nurse, dateKey, scheduleCell, hours, onSave, isMonthClosed, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales }) => {
   const t = useTranslations();
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -32,9 +37,14 @@ export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onCl
       setStartTime(dailyHoursData.segments[0].startTime || '');
       setEndTime(dailyHoursData.segments[0].endTime || '');
       setReason(dailyHoursData.note || '');
-    } else if (isOpen && scheduleCell) {
-        // If no manual hours, try to get calculated hours
-        const calculated = getScheduleCellHours(scheduleCell, nurse, new Date(dateKey + 'T12:00:00'), 'NORMAL', {}, []);
+    } else if (isOpen && scheduleCell && nurse) {
+        // If no manual hours, calculate hours based on context (Strasbourg week, jornadas, etc.)
+        const date = new Date(dateKey + 'T12:00:00');
+        const weekId = getWeekIdentifier(date);
+        const activityLevel = agenda[weekId] || 'NORMAL';
+        const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
+        
+        const calculated = getScheduleCellHours(scheduleCell, nurse, date, activityLevel, strasbourgAssignments, jornadasLaborales, specialEvent);
         if (typeof calculated === 'string' && calculated.includes(' - ')) {
             const [start, end] = calculated.split(' - ');
             setStartTime(start);
