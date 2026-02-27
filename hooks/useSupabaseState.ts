@@ -223,7 +223,7 @@ export const useSupabaseState = () => {
                                     }
 
                                     const timeSinceLastSave = Date.now() - lastLocalSaveRef.current;
-                                    if (timeSinceLastSave < 10000) {
+                                    if (timeSinceLastSave < 5000) {
                                         console.log(`⏸️ [Polling] Esperando después de guardado (${Math.round(timeSinceLastSave/1000)}s)`);
                                         return;
                                     }
