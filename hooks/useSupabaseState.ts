@@ -26,6 +26,7 @@ const getInitialState = (): AppState => ({
     notes: {
         '2026-01-05': { text: 'No PS no VAs', color: 'bg-yellow-100' },
     },
+    hours: {},
     vaccinationPeriod: { start: '2026-10-15', end: '2026-11-30' },
     strasbourgAssignments: INITIAL_STRASBOURG_ASSIGNMENTS_2026,
     strasbourgEvents: [],
