@@ -34,10 +34,12 @@ export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onCl
 
   useEffect(() => {
     if (isOpen && dailyHoursData?.segments?.[0]) {
+      // Si ya hay horas manuales guardadas, mostrarlas
       setStartTime(dailyHoursData.segments[0].startTime || '');
       setEndTime(dailyHoursData.segments[0].endTime || '');
       setReason(dailyHoursData.note || '');
     } else if (isOpen && nurse) {
+        // Calcular horas por defecto basadas en el contexto
         const date = new Date(dateKey + 'T12:00:00');
         const weekId = getWeekIdentifier(date);
         const activityLevel = agenda[weekId] || 'NORMAL';
@@ -45,9 +47,16 @@ export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onCl
         const isStrasbourgWeek = activityLevel === 'SESSION';
         const isAssignedToStrasbourg = strasbourgAssignments[weekId]?.includes(nurse.id) || false;
         
-        // For Strasbourg weeks (SESSION activity level)
-        if (isStrasbourgWeek && dayOfWeek >= 1 && dayOfWeek <= 4) {
-            if (scheduleCell === 'STRASBOURG' || isAssignedToStrasbourg) {
+        // Check for special Strasbourg events
+        const specialEvent = specialStrasbourgEvents.find(e => 
+            e.nurseIds.includes(nurse.id) && 
+            dateKey >= e.startDate && 
+            dateKey <= e.endDate
+        );
+        
+        // For Strasbourg weeks (SESSION activity level) Mon-Thu
+        if (isStrasbourgWeek && dayOfWeek >= 1 && dayOfWeek <= 4 && !scheduleCell) {
+            if (isAssignedToStrasbourg || specialEvent) {
                 // Strasbourg hours: 09:00 - 17:45
                 setStartTime('09:00');
                 setEndTime('17:45');
@@ -56,9 +65,17 @@ export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onCl
             }
         }
         
+        // For special Strasbourg events with custom times
+        if (specialEvent && specialEvent.startTime && specialEvent.endTime) {
+            setStartTime(specialEvent.startTime);
+            setEndTime(specialEvent.endTime);
+            setReason('');
+            return;
+        }
+        
         // For scheduled shifts, calculate hours based on shift type
-        if (scheduleCell && typeof scheduleCell === 'string') {
-            const calculated = getScheduleCellHours(scheduleCell, nurse, date, activityLevel, []);
+        if (scheduleCell) {
+            const calculated = getScheduleCellHours(scheduleCell, nurse, date, activityLevel, strasbourgAssignments, jornadasLaborales);
             if (typeof calculated === 'string' && calculated.includes(' - ')) {
                 const [start, end] = calculated.split(' - ');
                 setStartTime(start);
@@ -78,7 +95,7 @@ export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onCl
       setReason('');
     }
     setError('');
-  }, [isOpen, dailyHoursData, scheduleCell, nurse, dateKey, agenda, strasbourgAssignments]);
+  }, [isOpen, dailyHoursData, scheduleCell, nurse, dateKey, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales]);
 
   const handleSave = () => {
     if (isMonthClosed) {
