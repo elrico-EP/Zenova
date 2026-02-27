@@ -303,9 +303,16 @@ useEffect(() => {
                         // Prefer saved manual hours from Supabase
                         if (savedHours[nurseId]?.[dateKey]) {
                             const manualData = savedHours[nurseId][dateKey];
-                            if (manualData.manual !== undefined) newHoursState[nurseId][dateKey].manual = manualData.manual;
-                            if (manualData.segments) newHoursState[nurseId][dateKey].segments = manualData.segments;
-                            if (manualData.note) newHoursState[nurseId][dateKey].note = manualData.note;
+                            // If there's a manual value, use it instead of calculated
+                            if (manualData.manual !== undefined) {
+                                newHoursState[nurseId][dateKey].manual = manualData.manual;
+                            }
+                            if (manualData.segments) {
+                                newHoursState[nurseId][dateKey].segments = manualData.segments;
+                            }
+                            if (manualData.note) {
+                                newHoursState[nurseId][dateKey].note = manualData.note;
+                            }
                         }
                     }
                 }
@@ -673,10 +680,26 @@ const handleAddNurse = useCallback((name: string) => {
     console.log('💾 Guardando horas manuales en Supabase...');
     const newHours = JSON.parse(JSON.stringify(savedHours));
     if (!newHours[nurseId]) newHours[nurseId] = {};
+    
+    // Calculate total manual hours from segments
+    let manualTotal = 0;
+    if (segments && segments.length > 0) {
+        for (const seg of segments) {
+            if (seg.startTime && seg.endTime) {
+                const [startH, startM] = seg.startTime.split(':').map(Number);
+                const [endH, endM] = seg.endTime.split(':').map(Number);
+                const startMinutes = startH * 60 + startM;
+                const endMinutes = endH * 60 + endM;
+                manualTotal += (endMinutes - startMinutes) / 60;
+            }
+        }
+    }
+    
     newHours[nurseId][dateKey] = {
+        calculated: 0, // Will be recalculated in the merge
+        manual: manualTotal,
         segments,
-        note: reason,
-        manual: true // Mark as manually edited
+        note: reason
     };
     
     await updateData({ hours: newHours });
@@ -966,6 +989,10 @@ const handleAddNurse = useCallback((name: string) => {
           hours={hours}
           onSave={handlePersonalHoursChange}
           isMonthClosed={isMonthClosed}
+          agenda={effectiveAgenda}
+          strasbourgAssignments={strasbourgAssignments}
+          specialStrasbourgEvents={specialStrasbourgEvents}
+          jornadasLaborales={jornadasLaborales}
       />
       <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
       <HistoryModal 
