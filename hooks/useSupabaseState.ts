@@ -235,11 +235,13 @@ export const useSupabaseState = () => {
                         const noRealtimeEvents = !lastEvent || now - lastEvent > 5000;
 
                         if ((!isRealtimeWorking || status !== 'SUBSCRIBED' || noRealtimeEvents) && !pollingIntervalRef.current) {
-                            console.warn("⚠️ Real-time sin eventos, activando POLLING cada 3 segundos...");
+                            console.warn("⚠️ Real-time sin eventos, activando POLLING cada 5 segundos...");
                             
                             pollingInterval = setInterval(async () => {
                                 try {
-                                    if (Date.now() - lastLocalSaveRef.current < 2000) {
+                                    const timeSinceLastSave = Date.now() - lastLocalSaveRef.current;
+                                    if (timeSinceLastSave < 10000) {
+                                        console.log(`⏸️ [Polling] Esperando después de guardado local (${Math.round(timeSinceLastSave/1000)}s)`);
                                         return;
                                     }
 
@@ -254,8 +256,15 @@ export const useSupabaseState = () => {
                                             const currentVersion = currentData?.updatedAt ?? 0;
                                             const newVersion = (polledData.data as AppState).updatedAt ?? 0;
 
+                                            console.log(`🔍 [Polling] Versiones - Local: ${currentVersion}, Remoto: ${newVersion}`);
+
                                             if (newVersion && currentVersion && newVersion < currentVersion) {
                                                 console.warn("⏭️ [Polling] Ignorando actualización antigua");
+                                                return currentData;
+                                            }
+                                            
+                                            if (newVersion && currentVersion && newVersion === currentVersion) {
+                                                console.log("✅ [Polling] Versiones iguales, no hay cambios");
                                                 return currentData;
                                             }
 
@@ -272,7 +281,7 @@ export const useSupabaseState = () => {
                                 } catch (e) {
                                     console.error("❌ Error en polling:", e);
                                 }
-                            }, 3000);
+                            }, 5000);
                             
                             pollingIntervalRef.current = pollingInterval;
                         }
