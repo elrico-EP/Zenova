@@ -277,6 +277,7 @@ export interface AppState {
     jornadasLaborales: JornadaLaboral[];
     manualChangeLog: ManualChangeLogEntry[];
     specialStrasbourgEventsLog: HistoryEntry[];
+  updatedAt?: number;
 }
 
 export interface HistoryEntry {
