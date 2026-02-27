@@ -37,19 +37,40 @@ export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onCl
       setStartTime(dailyHoursData.segments[0].startTime || '');
       setEndTime(dailyHoursData.segments[0].endTime || '');
       setReason(dailyHoursData.note || '');
-    } else if (isOpen && scheduleCell && nurse) {
-        // If no manual hours, calculate hours based on context (Strasbourg week, jornadas, etc.)
+    } else if (isOpen && nurse) {
         const date = new Date(dateKey + 'T12:00:00');
         const weekId = getWeekIdentifier(date);
         const activityLevel = agenda[weekId] || 'NORMAL';
-        const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
+        const dayOfWeek = date.getDay();
+        const isStrasbourgWeek = activityLevel === 'SESSION';
+        const isAssignedToStrasbourg = strasbourgAssignments[weekId]?.includes(nurse.id) || false;
         
-        const calculated = getScheduleCellHours(scheduleCell, nurse, date, activityLevel, strasbourgAssignments, jornadasLaborales, specialEvent);
-        if (typeof calculated === 'string' && calculated.includes(' - ')) {
-            const [start, end] = calculated.split(' - ');
-            setStartTime(start);
-            setEndTime(end);
+        // For Strasbourg weeks (SESSION activity level)
+        if (isStrasbourgWeek && dayOfWeek >= 1 && dayOfWeek <= 4) {
+            if (scheduleCell === 'STRASBOURG' || isAssignedToStrasbourg) {
+                // Strasbourg hours: 09:00 - 17:45
+                setStartTime('09:00');
+                setEndTime('17:45');
+                setReason('');
+                return;
+            }
         }
+        
+        // For scheduled shifts, calculate hours based on shift type
+        if (scheduleCell && typeof scheduleCell === 'string') {
+            const calculated = getScheduleCellHours(scheduleCell, nurse, date, activityLevel, []);
+            if (typeof calculated === 'string' && calculated.includes(' - ')) {
+                const [start, end] = calculated.split(' - ');
+                setStartTime(start);
+                setEndTime(end);
+                setReason('');
+                return;
+            }
+        }
+        
+        // Default: clear
+        setStartTime('');
+        setEndTime('');
         setReason('');
     } else {
       setStartTime('');
@@ -57,7 +78,7 @@ export const ManualHoursModal: React.FC<ManualHoursModalProps> = ({ isOpen, onCl
       setReason('');
     }
     setError('');
-  }, [isOpen, dailyHoursData, scheduleCell, nurse, dateKey]);
+  }, [isOpen, dailyHoursData, scheduleCell, nurse, dateKey, agenda, strasbourgAssignments]);
 
   const handleSave = () => {
     if (isMonthClosed) {
