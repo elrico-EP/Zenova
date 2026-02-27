@@ -43,6 +43,8 @@ export const useSupabaseState = () => {
     const [loading, setLoading] = useState(true);
     const channelRef = useRef<any>(null);
     const pollingIntervalRef = useRef<NodeJS.Timeout | undefined>();
+    const lastRealtimeEventRef = useRef<number>(0);
+    const lastLocalSaveRef = useRef<number>(0);
 
     useEffect(() => {
         let pollingInterval: NodeJS.Timeout | undefined;
@@ -143,6 +145,7 @@ export const useSupabaseState = () => {
                     (payload) => {
                         console.log("📡 [Real-time PostgreSQL] Cambio detectado");
                         isRealtimeWorking = true;
+                        lastRealtimeEventRef.current = Date.now();
                         
                         if (payload.new && payload.new.data) {
                             const newData = payload.new.data as AppState;
@@ -167,9 +170,10 @@ export const useSupabaseState = () => {
                 .on('broadcast', { event: 'state_update' }, (payload) => {
                     console.log("📡 [Broadcast] Mensaje recibido de otro cliente");
                     isRealtimeWorking = true;
+                    lastRealtimeEventRef.current = Date.now();
                     
-                    if (payload.payload && payload.payload.data) {
-                        const newData = payload.payload.data as AppState;
+                    if (payload.payload && (payload.payload as any).data) {
+                        const newData = (payload.payload as any).data as AppState;
                         setData(currentData => {
                             const currentStr = JSON.stringify(currentData);
                             const newStr = JSON.stringify(newData);
@@ -203,35 +207,47 @@ export const useSupabaseState = () => {
                         isRealtimeWorking = false;
                     }
                     
-                    // Fallback: Activar POLLING de inmediato como estrategia paralela (Firefox bloquea broadcast)
-                    console.warn("⚠️ Activando POLLING cada 1 segundo como canal alternativo...");
-                    
-                    pollingInterval = setInterval(async () => {
-                        try {
-                            const { data: polledData, error } = await supabase
-                                .from('app_state')
-                                .select('data')
-                                .eq('id', 1)
-                                .single();
+                    // Fallback: activar polling si no llegan eventos reales en 5s
+                    setTimeout(() => {
+                        const now = Date.now();
+                        const lastEvent = lastRealtimeEventRef.current;
+                        const noRealtimeEvents = !lastEvent || now - lastEvent > 5000;
+
+                        if ((!isRealtimeWorking || status !== 'SUBSCRIBED' || noRealtimeEvents) && !pollingIntervalRef.current) {
+                            console.warn("⚠️ Real-time sin eventos, activando POLLING cada 3 segundos...");
                             
-                            if (!error && polledData?.data) {
-                                setData(currentData => {
-                                    const currentStr = JSON.stringify(currentData);
-                                    const newStr = JSON.stringify(polledData.data);
-                                    
-                                    if (currentStr !== newStr) {
-                                        console.log("🔄 [Polling] Cambios detectados, actualizando...");
-                                        return polledData.data as AppState;
+                            pollingInterval = setInterval(async () => {
+                                try {
+                                    if (Date.now() - lastLocalSaveRef.current < 2000) {
+                                        return;
                                     }
-                                    return currentData;
-                                });
-                            }
-                        } catch (e) {
-                            console.error("❌ Error en polling:", e);
+
+                                    const { data: polledData, error } = await supabase
+                                        .from('app_state')
+                                        .select('data')
+                                        .eq('id', 1)
+                                        .single();
+                                    
+                                    if (!error && polledData?.data) {
+                                        setData(currentData => {
+                                            const currentStr = JSON.stringify(currentData);
+                                            const newStr = JSON.stringify(polledData.data);
+                                            
+                                            if (currentStr !== newStr) {
+                                                console.log("🔄 [Polling] Cambios detectados, actualizando...");
+                                                return polledData.data as AppState;
+                                            }
+                                            return currentData;
+                                        });
+                                    }
+                                } catch (e) {
+                                    console.error("❌ Error en polling:", e);
+                                }
+                            }, 3000);
+                            
+                            pollingIntervalRef.current = pollingInterval;
                         }
-                    }, 1000); // Polling cada 1 segundo
-                    
-                    pollingIntervalRef.current = pollingInterval;
+                    }, 5000);
                 });
         };
 
@@ -258,6 +274,7 @@ export const useSupabaseState = () => {
                 const newData = { ...currentData, ...updates };
                 if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
                     console.log("📝 Guardando cambios en Supabase...", Object.keys(updates));
+                    lastLocalSaveRef.current = Date.now();
                     
                     // Create timeout to detect if save is taking too long
                     const timeoutId = setTimeout(() => {
@@ -284,9 +301,10 @@ export const useSupabaseState = () => {
                                 // Enviar broadcast a otros clientes también
                                 console.log("📡 Enviando notificación Broadcast a otros clientes...");
                                 if (channelRef.current) {
-                                    await supabase.channel('app_state_changes').send('broadcast', {
+                                    await channelRef.current.send({
+                                        type: 'broadcast',
                                         event: 'state_update',
-                                        data: newData
+                                        payload: { data: newData }
                                     });
                                 } else {
                                     console.warn("⚠️ Canal no disponible para broadcast");
