@@ -9,8 +9,7 @@ import { getShiftsFromCell } from '../utils/scheduleUtils';
 // Shifts for the quick edit palette
 const quickShifts: WorkZone[] = [
     'URGENCES', 'TRAVAIL', 'URGENCES_TARDE', 'TRAVAIL_TARDE', 
-    // ❌ ELIMINADOS: 'URGENCES_TARDE_PLUS', 'TRAVAIL_TARDE_PLUS'
-    'ADMIN', 'ADM_PLUS',  // ❌ ELIMINADO: 'ADM_TARDE', 'ADM_TARDE_PLUS'
+    'ADMIN', 'ADM_PLUS',
     'TW', 'TW_ABROAD', 'CA', 'SICK_LEAVE', 'FP', 'CS', 'RECUP', 'LIBERO'
 ];
 
@@ -220,7 +219,11 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                         <div className="space-y-2">
                            <label className="block text-sm font-semibold text-gray-800">{t.manualSplit_morningShift}</label>
                            <select value={morningShift} onChange={e => { setMorningShift(e.target.value as WorkZone | 'CUSTOM'); if(e.target.value !== 'CUSTOM') setMorningCustom(''); }} className="w-full p-2 border-slate-300 rounded-md bg-white">
-                                {availableQuickShifts.map(sId => <option key={sId} value={sId}>{SHIFTS[sId].label}</option>)}
+                                {availableQuickShifts.map(sId => {
+                                    const shiftInfo = SHIFTS[sId];
+                                    if (!shiftInfo) return null;
+                                    return <option key={sId} value={sId}>{shiftInfo.label}</option>;
+                                })}
                                 <option value="CUSTOM">{t.manualSplit_other}</option>
                            </select>
                            {morningShift === 'CUSTOM' && (
@@ -244,7 +247,11 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                          <div className="space-y-2">
                            <label className="block text-sm font-semibold text-gray-800">{t.manualSplit_afternoonShift}</label>
                            <select value={afternoonShift} onChange={e => { setAfternoonShift(e.target.value as WorkZone | 'CUSTOM'); if(e.target.value !== 'CUSTOM') setAfternoonCustom(''); }} className="w-full p-2 border-slate-300 rounded-md bg-white">
-                                {availableQuickShifts.map(sId => <option key={sId} value={sId}>{SHIFTS[sId].label}</option>)}
+                                {availableQuickShifts.map(sId => {
+                                    const shiftInfo = SHIFTS[sId];
+                                    if (!shiftInfo) return null;
+                                    return <option key={sId} value={sId}>{shiftInfo.label}</option>;
+                                })}
                                 <option value="CUSTOM">{t.manualSplit_other}</option>
                            </select>
                             {afternoonShift === 'CUSTOM' && (
@@ -272,6 +279,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                         <div className="grid grid-cols-3 gap-2">
                             {availableQuickShifts.map(shiftId => {
                                 const shiftInfo = SHIFTS[shiftId];
+                                if (!shiftInfo) return null;
                                 const isSelected = selectedShift === shiftId;
                                 return (
                                     <button
