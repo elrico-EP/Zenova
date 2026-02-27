@@ -16,7 +16,7 @@ export type WorkZone =
   | 'URGENCES_TARDE'
   | 'TRAVAIL_TARDE'
   | 'ADMIN' 
-  | 'ADM_TARDE'
+  | 'ADM_PLUS'
   | 'TW' 
   | 'TW_ABROAD'
   | 'F' 
@@ -33,7 +33,6 @@ export type WorkZone =
   | 'VACCIN_PM_PLUS'
   | 'URGENCES_TARDE_PLUS'
   | 'TRAVAIL_TARDE_PLUS'
-  | 'ADM_TARDE_PLUS'
   | 'TRAVAIL_C'  // Complemento clínico corto
   | 'URGENCES_C'; // Complemento clínico corto
 
@@ -189,7 +188,7 @@ export interface ShiftCounts {
     URGENCES: number;
     URGENCES_TARDE: number;
     ADMIN: number;
-    ADM_TARDE: number;
+    ADM_PLUS: number;
     TW: number;
     TW_ABROAD: number;
     CA: number;
@@ -205,7 +204,6 @@ export interface ShiftCounts {
     VACCIN_PM_PLUS: number;
     URGENCES_TARDE_PLUS: number;
     TRAVAIL_TARDE_PLUS: number;
-    ADM_TARDE_PLUS: number;
 }
 
 export interface BalanceData {
