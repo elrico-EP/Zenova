@@ -507,31 +507,16 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 else { dailyAssignments['nurse-11'] = 'TRAVAIL'; }
             }
 
-            // Apply manual overrides AFTER system assignments
-            availableForDutyNurses.forEach(nurse => {
-                const override = manualOverrides[nurse.id]?.[dateKey];
-                if (override) {
-                    dailyAssignments[nurse.id] = override;
-                }
-            });
-
-            // Apply jornada modifications
+            // Apply jornada modifications (only to auto-assigned, not manual overrides)
             Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
-                const isManual = !!manualOverrides[nurseId]?.[dateKey];
-                if (!isManual) {
-                    const nurse = nurses.find(n => n.id === nurseId)!;
-                    const modifiedCell = applyJornadaModification(cell, nurse, currentDate, jornadasLaborales, agenda);
-                    dailyAssignments[nurseId] = modifiedCell || cell;
-                }
+                const nurse = nurses.find(n => n.id === nurseId)!;
+                const modifiedCell = applyJornadaModification(cell, nurse, currentDate, jornadasLaborales, agenda);
+                dailyAssignments[nurseId] = modifiedCell || cell;
             });
 
             Object.entries(dailyAssignments).forEach(([nurseId, cell]) => { schedule[nurseId][dateKey] = cell; });
-        } else {
-             nurses.forEach(nurse => {
-                const override = manualOverrides[nurse.id]?.[dateKey];
-                if (override) { if (!schedule[nurse.id]) schedule[nurse.id] = {}; schedule[nurse.id][dateKey] = override; }
-            });
         }
+        // No special handling for non-workdays - let App.tsx apply manual overrides there too
         
         nurses.forEach(nurse => {
             const cell = schedule[nurse.id]?.[dateKey];
