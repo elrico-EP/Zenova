@@ -120,7 +120,12 @@ const AppContent: React.FC = () => {
   
   // Hours comes from Supabase now (for manual overrides) and gets merged with calculated hours
   const [localHours, setLocalHours] = useState<Hours>({});
-  const savedHours = sharedData?.hours ?? {};
+  
+  // Stabilize savedHours to prevent infinite loops
+  const savedHours = useMemo(() => {
+    return sharedData?.hours ?? {};
+  }, [sharedData?.hours]);
+  
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   
   const { language } = useLanguage();
@@ -299,7 +304,6 @@ useEffect(() => {
 }, [currentSchedule]);
 
   useEffect(() => {
-    console.log('🔄 Recalculando horas (savedHours cambió):', Object.keys(savedHours).length, 'enfermeros con datos');
     const calculatedHoursForMonth = calculateHoursForMonth(nurses, currentDate, effectiveAgenda, schedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
     const newHoursState = JSON.parse(JSON.stringify(calculatedHoursForMonth));
     
@@ -325,7 +329,14 @@ useEffect(() => {
         }
     }
     
-    setLocalHours(newHoursState);
+    // Only update if actually changed (prevent infinite loops)
+    setLocalHours(prevHours => {
+      if (JSON.stringify(prevHours) !== JSON.stringify(newHoursState)) {
+        console.log('🔄 Recalculando horas (cambios detectados):', Object.keys(savedHours).length, 'enfermeros con datos manuales');
+        return newHoursState;
+      }
+      return prevHours;
+    });
   }, [nurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, savedHours]);
 
   // Use localHours as the final hours state (already merged with savedHours)
