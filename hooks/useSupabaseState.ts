@@ -36,6 +36,7 @@ const getInitialState = (): AppState => ({
     jornadasLaborales: INITIAL_JORNADAS,
     manualChangeLog: [],
     specialStrasbourgEventsLog: [],
+    updatedAt: Date.now(),
 });
 
 export const useSupabaseState = () => {
@@ -108,6 +109,10 @@ export const useSupabaseState = () => {
                         loadedData.closedMonths = { '2026-00': true, '2026-01': true };
                         needsPatch = true;
                     }
+                    if (!loadedData.updatedAt) {
+                        loadedData.updatedAt = Date.now();
+                        needsPatch = true;
+                    }
                     
                     if (needsPatch) {
                         await supabase.from('app_state').update({ data: loadedData }).eq('id', 1);
@@ -150,6 +155,14 @@ export const useSupabaseState = () => {
                         if (payload.new && payload.new.data) {
                             const newData = payload.new.data as AppState;
                             setData(currentData => {
+                                const currentVersion = currentData?.updatedAt ?? 0;
+                                const newVersion = newData.updatedAt ?? 0;
+
+                                if (newVersion && currentVersion && newVersion < currentVersion) {
+                                    console.warn("⏭️ [Real-time] Ignorando actualización antigua");
+                                    return currentData;
+                                }
+
                                 const currentStr = JSON.stringify(currentData);
                                 const newStr = JSON.stringify(newData);
                                 
@@ -175,6 +188,14 @@ export const useSupabaseState = () => {
                     if (payload.payload && (payload.payload as any).data) {
                         const newData = (payload.payload as any).data as AppState;
                         setData(currentData => {
+                            const currentVersion = currentData?.updatedAt ?? 0;
+                            const newVersion = newData.updatedAt ?? 0;
+
+                            if (newVersion && currentVersion && newVersion < currentVersion) {
+                                console.warn("⏭️ [Broadcast] Ignorando actualización antigua");
+                                return currentData;
+                            }
+
                             const currentStr = JSON.stringify(currentData);
                             const newStr = JSON.stringify(newData);
                             
@@ -230,6 +251,14 @@ export const useSupabaseState = () => {
                                     
                                     if (!error && polledData?.data) {
                                         setData(currentData => {
+                                            const currentVersion = currentData?.updatedAt ?? 0;
+                                            const newVersion = (polledData.data as AppState).updatedAt ?? 0;
+
+                                            if (newVersion && currentVersion && newVersion < currentVersion) {
+                                                console.warn("⏭️ [Polling] Ignorando actualización antigua");
+                                                return currentData;
+                                            }
+
                                             const currentStr = JSON.stringify(currentData);
                                             const newStr = JSON.stringify(polledData.data);
                                             
@@ -271,7 +300,13 @@ export const useSupabaseState = () => {
     const updateData = useCallback((updates: Partial<AppState>): Promise<void> => {
         return new Promise<void>((resolve, reject) => {
             setData(currentData => {
-                const newData = { ...currentData, ...updates };
+                if (!currentData) {
+                    console.warn("⚠️ Estado no disponible todavía, omitiendo guardado");
+                    resolve();
+                    return currentData;
+                }
+
+                const newData = { ...currentData, ...updates, updatedAt: Date.now() };
                 if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
                     console.log("📝 Guardando cambios en Supabase...", Object.keys(updates));
                     lastLocalSaveRef.current = Date.now();
