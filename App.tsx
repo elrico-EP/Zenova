@@ -66,6 +66,13 @@ const AppContent: React.FC = () => {
   const permissions = usePermissions();
   const { data: sharedData, loading: isStateLoading, updateData } = useSupabaseState();
   
+  // Debug: Log when sharedData changes
+  useEffect(() => {
+    if (sharedData) {
+      console.log('📦 sharedData actualizado. Hours:', sharedData.hours ? Object.keys(sharedData.hours).length : 0, 'enfermeros');
+    }
+  }, [sharedData]);
+  
   // UI State remains local
   const [view, setView] = useState<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'>('schedule');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -292,35 +299,33 @@ useEffect(() => {
 }, [currentSchedule]);
 
   useEffect(() => {
+    console.log('🔄 Recalculando horas (savedHours cambió):', Object.keys(savedHours).length, 'enfermeros con datos');
     const calculatedHoursForMonth = calculateHoursForMonth(nurses, currentDate, effectiveAgenda, schedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
-    setLocalHours(prevLocalHours => {
-        const newHoursState = JSON.parse(JSON.stringify(calculatedHoursForMonth));
-        // Merge with manual hours from Supabase
-        if (JSON.stringify(prevLocalHours) !== JSON.stringify(newHoursState)) {
-            for (const nurseId in newHoursState) {
-                if (nurses.some(n => n.id === nurseId)) {
-                    for (const dateKey in newHoursState[nurseId]) {
-                        // Prefer saved manual hours from Supabase
-                        if (savedHours[nurseId]?.[dateKey]) {
-                            const manualData = savedHours[nurseId][dateKey];
-                            // If there's a manual value, use it instead of calculated
-                            if (manualData.manual !== undefined) {
-                                newHoursState[nurseId][dateKey].manual = manualData.manual;
-                            }
-                            if (manualData.segments) {
-                                newHoursState[nurseId][dateKey].segments = manualData.segments;
-                            }
-                            if (manualData.note) {
-                                newHoursState[nurseId][dateKey].note = manualData.note;
-                            }
-                        }
+    const newHoursState = JSON.parse(JSON.stringify(calculatedHoursForMonth));
+    
+    // Merge with manual hours from Supabase
+    for (const nurseId in newHoursState) {
+        if (nurses.some(n => n.id === nurseId)) {
+            for (const dateKey in newHoursState[nurseId]) {
+                // Prefer saved manual hours from Supabase
+                if (savedHours[nurseId]?.[dateKey]) {
+                    const manualData = savedHours[nurseId][dateKey];
+                    // If there's a manual value, use it instead of calculated
+                    if (manualData.manual !== undefined) {
+                        newHoursState[nurseId][dateKey].manual = manualData.manual;
+                    }
+                    if (manualData.segments) {
+                        newHoursState[nurseId][dateKey].segments = manualData.segments;
+                    }
+                    if (manualData.note) {
+                        newHoursState[nurseId][dateKey].note = manualData.note;
                     }
                 }
             }
-            return newHoursState;
         }
-        return prevLocalHours;
-    });
+    }
+    
+    setLocalHours(newHoursState);
   }, [nurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, savedHours]);
 
   // Use localHours as the final hours state (already merged with savedHours)
