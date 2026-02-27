@@ -193,14 +193,14 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                 
                 <section>
                     <label className="block text-sm font-semibold text-gray-800 mb-2">{t.step3_dates}</label>
-                    <div className="flex gap-4">
-                        <div className="flex-1">
-                            <label htmlFor="start-date" className="text-xs text-gray-600">{t.startDate}</label>
-                            <input type="date" id="start-date" value={startDate} onChange={e => { setStartDate(e.target.value); if (!endDate) setEndDate(e.target.value); }} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
+                    <div className="flex gap-4 min-w-0">
+                        <div className="flex-1 min-w-0">
+                            <label htmlFor="start-date" className="text-xs text-gray-600 block">{t.startDate}</label>
+                            <input type="date" id="start-date" value={startDate} onChange={e => { setStartDate(e.target.value); setEndDate(e.target.value); }} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 focus:border-zen-500 sm:text-sm"/>
                         </div>
-                        <div className="flex-1">
-                            <label htmlFor="end-date" className="text-xs text-gray-600">{t.endDate}</label>
-                            <input type="date" id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 sm:text-sm"/>
+                        <div className="flex-1 min-w-0">
+                            <label htmlFor="end-date" className="text-xs text-gray-600 block">{t.endDate}</label>
+                            <input type="date" id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-zen-500 focus:border-zen-500 sm:text-sm"/>
                         </div>
                     </div>
                     
