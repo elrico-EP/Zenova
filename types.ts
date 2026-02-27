@@ -267,6 +267,7 @@ export interface AppState {
     agenda: Agenda;
     manualOverrides: Schedule;
     notes: Notes;
+    hours: Hours;
     vaccinationPeriod: { start: string; end: string } | null;
     strasbourgAssignments: Record<string, string[]>;
     strasbourgEvents: StrasbourgEvent[];
