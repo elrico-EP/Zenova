@@ -132,10 +132,21 @@ export const useSupabaseState = () => {
                     (payload) => {
                         console.log("📡 Cambio detectado desde Supabase:", payload.new?.data ? Object.keys(payload.new.data).join(', ') : 'sin datos');
                         if (payload.new && payload.new.data) {
+                            const newData = payload.new.data as AppState;
                             setData(currentData => {
-                                if (JSON.stringify(currentData) !== JSON.stringify(payload.new.data)) {
-                                    console.log("🔄 Actualizando estado desde Supabase");
-                                    return payload.new.data as AppState;
+                                const currentStr = JSON.stringify(currentData);
+                                const newStr = JSON.stringify(newData);
+                                
+                                if (currentStr !== newStr) {
+                                    console.log("🔄 Actualizando estado local con cambios de Supabase");
+                                    console.log("   Cambios detectados en:", 
+                                        Object.keys(newData).filter(key => 
+                                            JSON.stringify((currentData as any)?.[key]) !== JSON.stringify((newData as any)?.[key])
+                                        ).join(', ')
+                                    );
+                                    return newData;
+                                } else {
+                                    console.log("📝 Sin cambios detectados (datos idénticos)");
                                 }
                                 return currentData;
                             });
@@ -144,6 +155,13 @@ export const useSupabaseState = () => {
                 )
                 .subscribe((status) => {
                     console.log("📡 Estado del listener:", status);
+                    if (status === 'SUBSCRIBED') {
+                        console.log("✅ Real-time listener suscrito exitosamente");
+                    } else if (status === 'CLOSED') {
+                        console.warn("⚠️ Real-time listener cerrado");
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error("❌ Error en el canal de real-time");
+                    }
                 });
         };
 
