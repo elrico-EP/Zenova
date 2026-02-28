@@ -91,7 +91,7 @@ const AppContent: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
   const [showFullscreenToast, setShowFullscreenToast] = useState(false);
   const [isRecalcScopeModalOpen, setIsRecalcScopeModalOpen] = useState(false);
-  const [recalcScopeContextLabel, setRecalcScopeContextLabel] = useState<'cambio manual' | 'intercambio'>('cambio manual');
+  const [recalcScopeContext, setRecalcScopeContext] = useState<'manual' | 'swap'>('manual');
   const recalcScopeResolverRef = useRef<((scope: RecalcScope) => void) | null>(null);
 
   // State derived from shared state now
@@ -317,7 +317,7 @@ const AppContent: React.FC = () => {
   const askRecalcScopeForManualChanges = useCallback((context: 'manual' | 'swap'): Promise<RecalcScope> => {
     return new Promise(resolve => {
       recalcScopeResolverRef.current = resolve;
-      setRecalcScopeContextLabel(context === 'manual' ? 'cambio manual' : 'intercambio');
+      setRecalcScopeContext(context);
       setIsRecalcScopeModalOpen(true);
     });
   }, []);
@@ -1289,7 +1289,7 @@ const handleAddNurse = useCallback((name: string) => {
       />
       <RecalcScopeModal
         isOpen={isRecalcScopeModalOpen}
-        contextLabel={recalcScopeContextLabel}
+        context={recalcScopeContext}
         onSelect={resolveRecalcScopeSelection}
         onClose={closeRecalcScopeModal}
       />
