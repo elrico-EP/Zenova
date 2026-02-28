@@ -23,6 +23,8 @@ const getInitialState = (): AppState => ({
     nurses: INITIAL_NURSES,
     agenda: agenda2026Data,
     manualOverrides: JANUARY_2026_SHIFTS,
+    wishOverrides: {},
+    frozenSchedules: {},
     notes: {
         '2026-01-05': { text: 'No PS no VAs', color: 'bg-yellow-100' },
     },
@@ -109,6 +111,14 @@ export const useSupabaseState = () => {
                     }
                     if (!loadedData.updatedAt) {
                         loadedData.updatedAt = Date.now();
+                        needsPatch = true;
+                    }
+                    if (!loadedData.wishOverrides) {
+                        loadedData.wishOverrides = {};
+                        needsPatch = true;
+                    }
+                    if (!loadedData.frozenSchedules) {
+                        loadedData.frozenSchedules = {};
                         needsPatch = true;
                     }
                     
@@ -289,6 +299,8 @@ export const useSupabaseState = () => {
                 ...updates, 
                 updatedAt: now,
                 manualOverrides: updates.manualOverrides ?? currentData.manualOverrides ?? {},
+                wishOverrides: updates.wishOverrides ?? currentData.wishOverrides ?? {},
+                frozenSchedules: updates.frozenSchedules ?? currentData.frozenSchedules ?? {},
                 specialStrasbourgEvents: updates.specialStrasbourgEvents ?? currentData.specialStrasbourgEvents ?? [],
                 specialStrasbourgEventsLog: updates.specialStrasbourgEventsLog ?? currentData.specialStrasbourgEventsLog ?? []
             };
@@ -367,6 +379,6 @@ export const useSupabaseState = () => {
         });
     });
 }, []);
-    return { data, loading, updateData };
+        return { data, loading, updateData };
 };
 
