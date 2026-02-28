@@ -184,7 +184,7 @@ const findBestCandidateWithWeeklyEquity = (
 };
 
 
-const getClinicalNeedsForDay = (date: Date, agenda: Agenda, vaccinationPeriod: { start: string; end: string } | null): Record<string, number> => {
+export const getClinicalNeedsForDay = (date: Date, agenda: Agenda, vaccinationPeriod: { start: string; end: string } | null): Record<string, number> => {
     const dayOfWeek = date.getDay();
     const weekId = getWeekIdentifier(date);
     const activityLevel = agenda[weekId] || 'NORMAL';
@@ -517,29 +517,14 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 else { dailyAssignments['nurse-11'] = 'TRAVAIL'; }
             }
 
-            // Apply jornada modifications (only to auto-assigned, not manual overrides)
-                        // Apply jornada modifications (only to auto-assigned, not manual overrides)
             Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
-                // NO aplicar modificaciones si este turno ya está en manualOverrides
-                if (isManualTurno(nurseId, dateKey, manualOverrides)) {
-                    // Mantener el turno manual existente
-                    dailyAssignments[nurseId] = manualOverrides[nurseId][dateKey];
-                    return;
-                }
-                
                 const nurse = nurses.find(n => n.id === nurseId)!;
                 const modifiedCell = applyJornadaModification(cell, nurse, currentDate, jornadasLaborales, agenda);
                 dailyAssignments[nurseId] = modifiedCell || cell;
             });
 
-            Object.entries(dailyAssignments).forEach(([nurseId, cell]) => { 
-                // Solo asignar si no hay un turno manual para este día
-                if (!isManualTurno(nurseId, dateKey, manualOverrides)) {
-                    schedule[nurseId][dateKey] = cell; 
-                } else {
-                    // Mantener el turno manual
-                    schedule[nurseId][dateKey] = manualOverrides[nurseId][dateKey];
-                }
+            Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
+                schedule[nurseId][dateKey] = cell;
             });
         }
         // No special handling for non-workdays - let App.tsx apply manual overrides there too
