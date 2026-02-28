@@ -15,7 +15,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
-import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
+import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState, RecalcScope } from './types';
 import { UndoIcon } from './components/Icons';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell } from './utils/scheduleUtils';
@@ -34,7 +34,7 @@ import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { ManualHoursModal } from './components/ManualHoursModal';
-import { RecalcScopeModal, type RecalcScope } from './components/RecalcScopeModal';
+import { RecalcScopeModal } from './components/RecalcScopeModal';
 import { MaximizeIcon, RestoreIcon } from './components/Icons';
 import { useSupabaseState } from './hooks/useSupabaseState'
 import { supabase } from './firebase/supabase-config';
@@ -638,7 +638,7 @@ useEffect(() => {
 
   const handleManualChange = useCallback(async (payload: ManualChangePayload) => {
     const { nurseIds, startDate, endDate } = payload;
-    const recalcScope = await askRecalcScopeForManualChanges('manual');
+    const recalcScope = payload.recalcScope || (await askRecalcScopeForManualChanges('manual'));
     let details = `Applied shift to ${nurseIds.length} nurse(s) from ${startDate} to ${endDate}`;
     if (nurseIds.length === 1) {
         const nurseName = nurses.find(n => n.id === nurseIds[0])?.name || 'Unknown';
@@ -1064,7 +1064,7 @@ const handleAddNurse = useCallback((name: string) => {
         />
       </div>
 
-      <main className="flex-grow max-w-screen-2xl w-full mx-auto p-4 flex flex-col">
+      <main className="flex-grow max-w-screen-2xl w-full mx-auto p-4 flex flex-col h-full">
         <div className="flex flex-col lg:flex-row gap-8 h-full print-main-content lg:items-stretch">
           {!permissions.isViewingAsViewer && view === 'schedule' && (
              <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print overflow-y-auto pr-2 custom-scrollbar">
