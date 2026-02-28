@@ -40,6 +40,7 @@ import { useSupabaseState } from './hooks/useSupabaseState'
 import { supabase } from './firebase/supabase-config';
 
 const AppContent: React.FC = () => {
+  const t = useTranslations();
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   const { nurses, setMonth } = useNurses();
@@ -54,7 +55,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (user) {
         localStorage.setItem('zenova_user', JSON.stringify(user));
-        console.log('✅ Usuario guardado');
+        console.log(t.log_userSaved);
     }
   }, [user]);
 
@@ -62,7 +63,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('zenova_user');
     if (usuarioGuardado) {
-        console.log('🔄 Restaurando usuario...');
+        console.log(t.log_restoringUser);
         // No hacemos nada más aquí, solo verificamos que existe
     }
   }, []);
@@ -72,7 +73,7 @@ const AppContent: React.FC = () => {
   // Debug: Log when sharedData changes
   useEffect(() => {
     if (sharedData) {
-      console.log('📦 sharedData actualizado. Hours:', sharedData.hours ? Object.keys(sharedData.hours).length : 0, 'enfermeros');
+      console.log(t.log_sharedDataUpdated);
     }
   }, [sharedData]);
   
@@ -137,7 +138,6 @@ const AppContent: React.FC = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   
   const { language } = useLanguage();
-  const t = useTranslations();
 
   useEffect(() => {
     try {
@@ -474,7 +474,7 @@ const AppContent: React.FC = () => {
   // Forzar recálculo cuando cambian los datos de Supabase
 useEffect(() => {
     if (sharedData?.manualOverrides) {
-        console.log('✅ Datos de Supabase listos (una sola vez)')
+        console.log(t.log_supabaseDataReady)
     }
 }, [sharedData?.manualOverrides]) // <-- Solo esta dependencia, no todo sharedData
   
@@ -516,7 +516,7 @@ useEffect(() => {
     // Only update if actually changed (prevent infinite loops)
     setLocalHours(prevHours => {
       if (JSON.stringify(prevHours) !== JSON.stringify(newHoursState)) {
-        console.log('🔄 Recalculando horas (cambios detectados):', Object.keys(savedHours).length, 'enfermeros con datos manuales');
+        console.log(t.log_recalculatingHours);
         return newHoursState;
       }
       return prevHours;
@@ -692,10 +692,10 @@ useEffect(() => {
                     if (error) {
                         console.error('❌ Error guardando turno manual:', error);
                     } else {
-                        console.log('✅ Turno manual guardado en tabla:', nurseId, dateKey);
+                        console.log(t.log_manualShiftSaved);
                     }
                 } catch (e) {
-                    console.error('❌ Excepción guardando turno manual:', e);
+                    console.error(t.log_errorSavingManualShift, e);
                 }
             })();
         }
@@ -709,7 +709,7 @@ useEffect(() => {
 
     await updateDataWithUndo(updates);
     // Ya no recargamos, los cambios se ven en tiempo real
-    console.log('✅ Cambios guardados, se verán automáticamente')
+    console.log(t.log_changesSaved)
   }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildDateRangeKeys, buildFrozenSchedulesForScope, updateDataWithUndo]);
   
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
@@ -847,7 +847,7 @@ const handleAddNurse = useCallback((name: string) => {
   const handleClearStrasbourgLog = useCallback(async () => {
       try {
         await updateData({ specialStrasbourgEventsLog: [] });
-        console.log('✅ Registro de Estrasburgo limpiado');
+        console.log(t.log_strasbourgRecordCleared);
       } catch (error) {
         console.error('❌ Error al limpiar registro:', error);
       }
@@ -868,7 +868,7 @@ const handleAddNurse = useCallback((name: string) => {
     addHistoryEntry(t.history_jornadaChange, t.history_jornadaChange);
     try {
       await updateData({ jornadasLaborales: newJornadas });
-      console.log('✅ Jornadas laborales actualizadas');
+      console.log(t.log_workloadRulesUpdated);
     } catch (error) {
       console.error('❌ Error al guardar jornadas:', error);
     }
@@ -923,7 +923,7 @@ const handleAddNurse = useCallback((name: string) => {
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'nurse_id,fecha' });
             }
-            console.log('✅ Intercambio guardado en tabla turnos');
+            console.log(t.log_swapSavedToTable);
         } catch (e) {
             console.error('❌ Error guardando intercambio:', e);
         }
@@ -936,7 +936,7 @@ const handleAddNurse = useCallback((name: string) => {
       }
 
       await updateData(updates);
-      console.log('✅ Intercambio guardado exitosamente');
+      console.log(t.log_swapSavedSuccessfully);
     } catch (error) {
       console.error('❌ Error al guardar intercambio:', error);
     }
@@ -954,7 +954,7 @@ const handleAddNurse = useCallback((name: string) => {
     const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
     addHistoryEntry('Hours Change', `Modified hours for ${nurseName} on ${dateKey}`);
     
-    console.log('💾 Guardando horas manuales en Supabase...');
+    console.log(t.log_savingManualHours);
     const newHours = JSON.parse(JSON.stringify(savedHours));
     if (!newHours[nurseId]) newHours[nurseId] = {};
     
@@ -980,7 +980,7 @@ const handleAddNurse = useCallback((name: string) => {
     };
     
     await updateData({ hours: newHours });
-    console.log('✅ Horas manuales guardadas en Supabase');
+    console.log(t.log_manualHoursSaved);
   }, [savedHours, nurses, updateData, addHistoryEntry]);
 
   const handleOpenSwapPanelFromCell = (dateKey: string, nurseId: string) => {
