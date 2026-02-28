@@ -10,6 +10,8 @@ export interface User {
 
 export type ActivityLevel = 'NORMAL' | 'SESSION' | 'WHITE_GREEN' | 'REDUCED' | 'CLOSED';
 
+export type RecalcScope = 'none' | 'day' | 'week' | 'rest-month';
+
 export type WorkZone = 
   | 'URGENCES' 
   | 'TRAVAIL' 
@@ -133,6 +135,7 @@ export type ManualChangePayload = {
     scope: ChangeScope;
     startTime?: string;
     endTime?: string;
+    recalcScope?: RecalcScope;
 };
 
 export interface ManualChangeLogEntry {
