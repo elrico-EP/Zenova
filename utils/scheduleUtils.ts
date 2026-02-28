@@ -4,6 +4,16 @@ import { holidays2026 } from '../data/agenda2026';
 import { getActiveJornada } from './jornadaUtils';
 import { SHIFTS } from '../constants';
 
+// Función para verificar si un turno es manual (desde la tabla 'turnos')
+// Por ahora usamos manualOverrides como fuente de verdad
+export const isManualTurno = (
+  nurseId: string,
+  dateKey: string,
+  manualOverrides: Schedule
+): boolean => {
+  return !!manualOverrides[nurseId]?.[dateKey];
+};
+
 export const getShiftsFromCell = (cell: ScheduleCell | undefined): WorkZone[] => {
     if (!cell) return [];
     if (typeof cell === 'string') return [cell];
@@ -508,13 +518,29 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
             }
 
             // Apply jornada modifications (only to auto-assigned, not manual overrides)
+                        // Apply jornada modifications (only to auto-assigned, not manual overrides)
             Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
+                // NO aplicar modificaciones si este turno ya está en manualOverrides
+                if (isManualTurno(nurseId, dateKey, manualOverrides)) {
+                    // Mantener el turno manual existente
+                    dailyAssignments[nurseId] = manualOverrides[nurseId][dateKey];
+                    return;
+                }
+                
                 const nurse = nurses.find(n => n.id === nurseId)!;
                 const modifiedCell = applyJornadaModification(cell, nurse, currentDate, jornadasLaborales, agenda);
                 dailyAssignments[nurseId] = modifiedCell || cell;
             });
 
-            Object.entries(dailyAssignments).forEach(([nurseId, cell]) => { schedule[nurseId][dateKey] = cell; });
+            Object.entries(dailyAssignments).forEach(([nurseId, cell]) => { 
+                // Solo asignar si no hay un turno manual para este día
+                if (!isManualTurno(nurseId, dateKey, manualOverrides)) {
+                    schedule[nurseId][dateKey] = cell; 
+                } else {
+                    // Mantener el turno manual
+                    schedule[nurseId][dateKey] = manualOverrides[nurseId][dateKey];
+                }
+            });
         }
         // No special handling for non-workdays - let App.tsx apply manual overrides there too
         
@@ -579,8 +605,14 @@ export const generateAndBalanceGaps = (
 
         const dailyAssignments: Record<string, ScheduleCell> = {};
 
-        if (isWorkday) {
+                if (isWorkday) {
             nurses.forEach(nurse => {
+                // Si hay un turno manual, respetarlo y no generar automático
+                if (manualOverrides[nurse.id]?.[dateKey]) {
+                    dailyAssignments[nurse.id] = manualOverrides[nurse.id][dateKey];
+                    return;
+                }
+                
                 if (fullSchedule[nurse.id]?.[dateKey]) {
                     dailyAssignments[nurse.id] = fullSchedule[nurse.id][dateKey];
                 }
