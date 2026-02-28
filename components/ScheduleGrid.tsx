@@ -195,7 +195,7 @@ export const ShiftCell: React.FC<{
 
     let displayLabel = shift.label;
     if (isShortFriday && (shift.id === 'URGENCES' || shift.id === 'TRAVAIL')) {
-      displayLabel = displayLabel.replace(' M', '');
+      displayLabel = displayLabel.replace(' AM', '');
     }
 
     return (
