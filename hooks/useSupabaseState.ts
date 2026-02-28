@@ -287,7 +287,10 @@ export const useSupabaseState = () => {
                 const newData = { 
                     ...currentData, 
                     ...updates, 
-                    updatedAt: now
+                    updatedAt: now,
+                    manualOverrides: updates.manualOverrides ?? currentData.manualOverrides ?? {},
+                    specialStrasbourgEvents: updates.specialStrasbourgEvents ?? currentData.specialStrasbourgEvents ?? [],
+                    specialStrasbourgEventsLog: updates.specialStrasbourgEventsLog ?? currentData.specialStrasbourgEventsLog ?? []
                 };
                 
                 const hasChanges = JSON.stringify(currentData) !== JSON.stringify(newData);
