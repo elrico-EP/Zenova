@@ -266,6 +266,8 @@ export interface AppState {
     nurses: Nurse[];
     agenda: Agenda;
     manualOverrides: Schedule;
+  wishOverrides?: Schedule;
+  frozenSchedules?: Record<string, Schedule>;
     notes: Notes;
     hours: Hours;
     vaccinationPeriod: { start: string; end: string } | null;
