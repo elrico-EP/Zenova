@@ -112,6 +112,22 @@ export const locales = {
     recalcScope_restMonth_desc: 'Recalcula desde la fecha hasta fin de mes',
     recalcScope_cancel_none: 'Cancelar (Nada)',
 
+    // --- Console Logs (Development) ---
+    log_userSaved: '✅ Usuario guardado',
+    log_restoringUser: '🔄 Restaurando usuario...',
+    log_sharedDataUpdated: '📦 Datos compartidos actualizados',
+    log_supabaseDataReady: '✅ Datos de Supabase listos',
+    log_recalculatingHours: '🔄 Recalculando horas',
+    log_manualShiftSaved: '✅ Turno manual guardado en tabla',
+    log_changesSaved: '✅ Cambios guardados, se verán automáticamente',
+    log_strasbourgRecordCleared: '✅ Registro de Estrasburgo limpiado',
+    log_workloadRulesUpdated: '✅ Jornadas laborales actualizadas',
+    log_swapSavedToTable: '✅ Intercambio guardado en tabla turnos',
+    log_swapSavedSuccessfully: '✅ Intercambio guardado exitosamente',
+    log_savingManualHours: '💾 Guardando horas manuales en Supabase',
+    log_manualHoursSaved: '✅ Horas manuales guardadas en Supabase',
+    log_errorSavingManualShift: '❌ Error guardando turno manual',
+
     // --- Login & Password Reset Flow ---
     login_welcome: 'Bienvenido/a a Zenova',
     login_instruction: 'Inicia sesión para acceder al planificador.',
@@ -721,6 +737,22 @@ export const locales = {
     recalcScope_restMonth_title: 'Rest of month',
     recalcScope_restMonth_desc: 'Recalculate from the affected date to end of month',
     recalcScope_cancel_none: 'Cancel (None)',
+    
+    // --- Console Logs (Development) ---
+    log_userSaved: '✅ User saved',
+    log_restoringUser: '🔄 Restoring user...',
+    log_sharedDataUpdated: '📦 Shared data updated',
+    log_supabaseDataReady: '✅ Supabase data ready',
+    log_recalculatingHours: '🔄 Recalculating hours',
+    log_manualShiftSaved: '✅ Manual shift saved to table',
+    log_changesSaved: '✅ Changes saved, will appear automatically',
+    log_strasbourgRecordCleared: '✅ Strasbourg record cleared',
+    log_workloadRulesUpdated: '✅ Workload rules updated',
+    log_swapSavedToTable: '✅ Swap saved to turnos table',
+    log_swapSavedSuccessfully: '✅ Swap saved successfully',
+    log_savingManualHours: '💾 Saving manual hours to Supabase',
+    log_manualHoursSaved: '✅ Manual hours saved to Supabase',
+    log_errorSavingManualShift: '❌ Error saving manual shift',
     
     // --- Login & Password Reset Flow ---
     login_welcome: 'Welcome to Zenova',
@@ -1332,6 +1364,22 @@ export const locales = {
     recalcScope_restMonth_title: 'Reste du mois',
     recalcScope_restMonth_desc: 'Recalculer de la date concernée jusqu’à la fin du mois',
     recalcScope_cancel_none: 'Annuler (Aucun)',
+
+    // --- Console Logs (Development) ---
+    log_userSaved: '✅ Utilisateur enregistré',
+    log_restoringUser: '🔄 Restauration de l\'utilisateur...',
+    log_sharedDataUpdated: '📦 Données partagées mises à jour',
+    log_supabaseDataReady: '✅ Données Supabase prêtes',
+    log_recalculatingHours: '🔄 Recalcul des heures',
+    log_manualShiftSaved: '✅ Quart manuel enregistré dans la table',
+    log_changesSaved: '✅ Modifications enregistrées, s\'afficheront automatiquement',
+    log_strasbourgRecordCleared: '✅ Registre Strasbourg effacé',
+    log_workloadRulesUpdated: '✅ Règles de charge de travail mises à jour',
+    log_swapSavedToTable: '✅ Échange enregistré dans la table turnos',
+    log_swapSavedSuccessfully: '✅ Échange enregistré avec succès',
+    log_savingManualHours: '💾 Enregistrement des heures manuelles dans Supabase',
+    log_manualHoursSaved: '✅ Heures manuelles enregistrées dans Supabase',
+    log_errorSavingManualShift: '❌ Erreur lors de l\'enregistrement du quart manuel',
 
     // --- Login & Password Reset Flow ---
     login_welcome: 'Bienvenue chez Zenova',
