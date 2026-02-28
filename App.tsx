@@ -18,7 +18,8 @@ import { ForceChangePasswordScreen } from './components/ForceChangePasswordScree
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState } from './types';
 import { UndoIcon } from './components/Icons';
 import { SHIFTS, INITIAL_NURSES } from './constants';
-import { recalculateScheduleForMonth, getShiftsFromCell, generateAndBalanceGaps } from './utils/scheduleUtils';
+import { recalculateScheduleForMonth, getShiftsFromCell } from './utils/scheduleUtils';
+import { validateSchedule } from './utils/ruleValidator';
 import { calculateHoursForMonth, calculateHoursForDay, calculateHoursDifference } from './utils/hoursUtils';
 import { getActiveJornada } from './utils/jornadaUtils';
 import { generateAndDownloadPdf, generateAnnualAgendaPdf } from './utils/exportUtils';
@@ -116,6 +117,8 @@ const AppContent: React.FC = () => {
   const specialStrasbourgEventsLog = sharedData?.specialStrasbourgEventsLog ?? [];
   const closedMonths = sharedData?.closedMonths ?? {};
   const wishes = sharedData?.wishes ?? {};
+  const wishOverrides = sharedData?.wishOverrides ?? {};
+  const frozenSchedules = sharedData?.frozenSchedules ?? {};
   const jornadasLaborales = sharedData?.jornadasLaborales ?? [];
   const manualChangeLog = sharedData?.manualChangeLog ?? [];
   
@@ -203,9 +206,41 @@ const AppContent: React.FC = () => {
   const year = useMemo(() => currentDate.getFullYear(), [currentDate]);
   const monthKey = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
   const isMonthClosed = !!closedMonths[monthKey];
+  const FROZEN_START_YEAR = 2026;
+  const FROZEN_START_MONTH_INDEX = 3; // April
+
+  const getMonthKeyFromDate = useCallback((date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+
+  const isFrozenGenerationMonth = useCallback((date: Date) => {
+    if (date.getFullYear() > FROZEN_START_YEAR) return true;
+    return date.getFullYear() === FROZEN_START_YEAR && date.getMonth() >= FROZEN_START_MONTH_INDEX;
+  }, []);
 
   const effectiveAgenda = useMemo(() => (year === 2026 ? agenda2026Data : agenda), [year, agenda]);
   const [schedule, setSchedule] = useState<Schedule>({});
+
+  useEffect(() => {
+    const now = new Date();
+    const updates: Record<string, boolean> = {};
+    let changed = false;
+
+    for (let y = FROZEN_START_YEAR; y <= now.getFullYear(); y++) {
+      const lastPastMonth = y === now.getFullYear() ? now.getMonth() - 1 : 11;
+      for (let m = 0; m <= lastPastMonth; m++) {
+        const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+        if (!closedMonths[key]) {
+          updates[key] = true;
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      updateData({ closedMonths: { ...closedMonths, ...updates } });
+    }
+  }, [closedMonths, updateData]);
   
   useEffect(() => {
     const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
@@ -248,6 +283,33 @@ const AppContent: React.FC = () => {
     return merged;
   }, []);
 
+  const getNursesForDate = useCallback((date: Date) => {
+    const month = date.getMonth();
+    const isInternActive = month >= 9 || month <= 1;
+    return isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
+  }, [nurses]);
+
+  const getAutoBaseScheduleForMonth = useCallback((date: Date): Schedule => {
+    const nursesForDate = getNursesForDate(date);
+    return recalculateScheduleForMonth(
+      nursesForDate,
+      date,
+      effectiveAgenda,
+      {},
+      vaccinationPeriod,
+      strasbourgAssignments,
+      jornadasLaborales
+    );
+  }, [getNursesForDate, effectiveAgenda, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
+
+  const getFrozenOrAutoBaseScheduleForMonth = useCallback((date: Date): Schedule => {
+    const key = getMonthKeyFromDate(date);
+    if (isFrozenGenerationMonth(date) && frozenSchedules[key]) {
+      return frozenSchedules[key];
+    }
+    return getAutoBaseScheduleForMonth(date);
+  }, [getMonthKeyFromDate, isFrozenGenerationMonth, frozenSchedules, getAutoBaseScheduleForMonth]);
+
   const { fullOriginalSchedule, fullCurrentSchedule } = useMemo(() => {
     const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     const nextMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
@@ -257,13 +319,11 @@ const AppContent: React.FC = () => {
     const currentSchedules: Schedule[] = [];
 
     dates.forEach(date => {
-        const month = date.getMonth();
-        const isInternActive = month >= 9 || month <= 1;
-        const nursesForDate = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
-
-        const original = recalculateScheduleForMonth(nursesForDate, date, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
-        originalSchedules.push(original);
-        currentSchedules.push(applyManualOverrides(original, manualOverrides));
+      const originalBase = getFrozenOrAutoBaseScheduleForMonth(date);
+      const original = applyManualOverrides(originalBase, baseOverrides);
+      originalSchedules.push(original);
+      const withWishes = applyManualOverrides(original, wishOverrides);
+      currentSchedules.push(applyManualOverrides(withWishes, manualOverrides));
     });
     
     const mergeSchedules = (schedules: Schedule[]): Schedule => {
@@ -281,18 +341,21 @@ const AppContent: React.FC = () => {
         fullOriginalSchedule: mergeSchedules(originalSchedules),
         fullCurrentSchedule: mergeSchedules(currentSchedules)
     };
-}, [nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, manualOverrides, applyManualOverrides]);
+}, [currentDate, baseOverrides, manualOverrides, wishOverrides, applyManualOverrides, getFrozenOrAutoBaseScheduleForMonth]);
   
   const autoCurrentSchedule = useMemo(() => {
-    return recalculateScheduleForMonth(nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
-  }, [nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
+    return getFrozenOrAutoBaseScheduleForMonth(currentDate);
+  }, [currentDate, getFrozenOrAutoBaseScheduleForMonth]);
 
   const currentSchedule = useMemo(() => {
-  // PASO 1: Aplicar eventos de Estrasburgo (baseOverrides)
   const withStrasbourg = applyManualOverrides(autoCurrentSchedule, baseOverrides);
-  // PASO 2: Aplicar cambios manuales del usuario (manualOverrides) - estos tienen prioridad
-  return applyManualOverrides(withStrasbourg, manualOverrides);
-}, [autoCurrentSchedule, manualOverrides, baseOverrides, applyManualOverrides]);
+  const withWishes = applyManualOverrides(withStrasbourg, wishOverrides);
+  return applyManualOverrides(withWishes, manualOverrides);
+}, [autoCurrentSchedule, manualOverrides, wishOverrides, baseOverrides, applyManualOverrides]);
+
+  const violations = useMemo<RuleViolation[]>(() => {
+    return validateSchedule(currentSchedule, nurses, currentDate, effectiveAgenda, t);
+  }, [currentSchedule, nurses, currentDate, effectiveAgenda, t]);
 
   // Forzar recálculo cuando cambian los datos de Supabase
 useEffect(() => {
@@ -356,8 +419,10 @@ useEffect(() => {
     if (nurses.length === 0) return [];
     const annualSchedules: { [month: number]: Schedule } = {};
     for (let m = 0; m < 12; m++) {
-      const baseSchedule = recalculateScheduleForMonth(nurses, new Date(year, m, 1), effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
-      annualSchedules[m] = applyManualOverrides(baseSchedule, manualOverrides);
+      const monthDate = new Date(year, m, 1);
+      const baseSchedule = applyManualOverrides(getFrozenOrAutoBaseScheduleForMonth(monthDate), baseOverrides);
+      const withWishes = applyManualOverrides(baseSchedule, wishOverrides);
+      annualSchedules[m] = applyManualOverrides(withWishes, manualOverrides);
     }
     return nurses.map(nurse => {
       const emptyCounts = (): ShiftCounts => ({ 
@@ -401,7 +466,7 @@ useEffect(() => {
         monthlyTargetHours: 0, annualTargetHours: 0, monthlyBalance: monthlyWorkedHours, annualBalance: annualWorkedHours, hasConsecutiveAdmTw: false,
       };
     });
-  }, [nurses, currentDate, effectiveAgenda, baseOverrides, manualOverrides, applyManualOverrides, vaccinationPeriod, strasbourgAssignments, year, jornadasLaborales, specialStrasbourgEvents, view, selectedNurseForAgenda]);
+  }, [nurses, currentDate, effectiveAgenda, baseOverrides, manualOverrides, wishOverrides, applyManualOverrides, year, specialStrasbourgEvents, view, selectedNurseForAgenda, getFrozenOrAutoBaseScheduleForMonth]);
   
   const updateDataWithUndo = useCallback(async (updates: Partial<AppState>) => {
       if (sharedData) {
@@ -543,25 +608,15 @@ useEffect(() => {
 
     addHistoryEntry(t.history_generate_rest_year, t.history_generate_rest_year_details);
 
-    const generatedForGaps = generateAndBalanceGaps(
-        nurses,
-        year,
-        effectiveAgenda,
-        manualOverrides,
-        vaccinationPeriod,
-        strasbourgAssignments,
-        jornadasLaborales,
-        specialStrasbourgEvents
-    );
-    const newOverrides = JSON.parse(JSON.stringify(manualOverrides));
-    for (const nurseId in generatedForGaps) {
-        if (!newOverrides[nurseId]) {
-            newOverrides[nurseId] = {};
-        }
-        Object.assign(newOverrides[nurseId], generatedForGaps[nurseId]);
+    const nextFrozenSchedules: Record<string, Schedule> = { ...frozenSchedules };
+    for (let m = FROZEN_START_MONTH_INDEX; m < 12; m++) {
+      const monthDate = new Date(year, m, 1);
+      const monthKey = getMonthKeyFromDate(monthDate);
+      nextFrozenSchedules[monthKey] = getAutoBaseScheduleForMonth(monthDate);
     }
-    await updateData({ manualOverrides: newOverrides });
-  }, [nurses, year, effectiveAgenda, manualOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, updateData, addHistoryEntry, t]);
+
+    await updateData({ frozenSchedules: nextFrozenSchedules });
+  }, [t, addHistoryEntry, frozenSchedules, year, getMonthKeyFromDate, getAutoBaseScheduleForMonth, updateData]);
 
   const handleDeleteManualOverride = useCallback(async (payload: { nurseId: string, dateKey: string }) => {
       const { nurseId, dateKey } = payload;
@@ -823,14 +878,13 @@ const handleAddNurse = useCallback((name: string) => {
     const allSchedules: Record<number, Schedule[string]> = {};
     for (let month = 0; month < 12; month++) {
         const monthDate = new Date(year, month, 1);
-        const isInternActive = month >= 9 || month <= 1;
-        const activeNursesForMonth = isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
-        const baseSchedule = recalculateScheduleForMonth(activeNursesForMonth, monthDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales);
-        const monthSchedule = useOriginal ? baseSchedule : applyManualOverrides(baseSchedule, manualOverrides);
+        const baseSchedule = applyManualOverrides(getFrozenOrAutoBaseScheduleForMonth(monthDate), baseOverrides);
+        const withWishes = applyManualOverrides(baseSchedule, wishOverrides);
+        const monthSchedule = useOriginal ? baseSchedule : applyManualOverrides(withWishes, manualOverrides);
         allSchedules[month] = monthSchedule[nurse.id] || {};
     }
     await generateAnnualAgendaPdf({ nurse, year, allSchedules, agenda: effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales });
-  }, [nurses, currentDate, effectiveAgenda, baseOverrides, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, manualOverrides, applyManualOverrides]);
+  }, [currentDate, effectiveAgenda, baseOverrides, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, manualOverrides, wishOverrides, applyManualOverrides, getFrozenOrAutoBaseScheduleForMonth]);
 
   const monthsWithOverrides = useMemo(() => {
     const months = new Set<number>();
@@ -939,7 +993,7 @@ const handleAddNurse = useCallback((name: string) => {
                             />
                         </div>
                     )}
-                    <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={[]} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} />
                   </div>
                 </div>
               ) : view === 'balance' ? ( 
@@ -967,22 +1021,33 @@ const handleAddNurse = useCallback((name: string) => {
                       };
                       
                       if (wish?.shiftType) {
-                        const newNurseOverrides = { ...(manualOverrides[nurseId] || {}) };
-                        
+                        const newNurseWishOverrides = { ...(wishOverrides[nurseId] || {}) };
+
                         if (isValidated) {
-                          // Apply ONLY to that specific day
-                          newNurseOverrides[dateKey] = wish.shiftType;
+                          newNurseWishOverrides[dateKey] = wish.shiftType;
                         } else {
-                          // Remove from schedule if it matches the wish shift
-                          if (newNurseOverrides[dateKey] === wish.shiftType) {
-                            delete newNurseOverrides[dateKey];
-                          }
+                          delete newNurseWishOverrides[dateKey];
                         }
-                        
-                        updates.manualOverrides = {
-                          ...manualOverrides,
-                          [nurseId]: newNurseOverrides
+
+                        const nextWishOverrides = {
+                          ...wishOverrides,
+                          [nurseId]: newNurseWishOverrides
                         };
+
+                        if (Object.keys(newNurseWishOverrides).length === 0) {
+                          delete nextWishOverrides[nurseId];
+                        }
+
+                        updates.wishOverrides = nextWishOverrides;
+
+                        const wishDate = new Date(`${dateKey}T12:00:00Z`);
+                        if (isValidated && isFrozenGenerationMonth(wishDate)) {
+                          const targetMonthKey = getMonthKeyFromDate(wishDate);
+                          updates.frozenSchedules = {
+                            ...frozenSchedules,
+                            [targetMonthKey]: getAutoBaseScheduleForMonth(new Date(wishDate.getUTCFullYear(), wishDate.getUTCMonth(), 1))
+                          };
+                        }
                       }
                       
                       updateData(updates);
@@ -999,14 +1064,20 @@ const handleAddNurse = useCallback((name: string) => {
                         }
                       };
 
-                      // Also remove the override if it was validated and matches
-                      if (wish?.validated && wish?.shiftType && manualOverrides[nurseId]?.[dateKey] === wish.shiftType) {
-                        const newNurseOverrides = { ...(manualOverrides[nurseId] || {}) };
-                        delete newNurseOverrides[dateKey];
-                        updates.manualOverrides = {
-                          ...manualOverrides,
-                          [nurseId]: newNurseOverrides
+                      if (wish?.validated && wish?.shiftType) {
+                        const newNurseWishOverrides = { ...(wishOverrides[nurseId] || {}) };
+                        delete newNurseWishOverrides[dateKey];
+
+                        const nextWishOverrides = {
+                          ...wishOverrides,
+                          [nurseId]: newNurseWishOverrides
                         };
+
+                        if (Object.keys(newNurseWishOverrides).length === 0) {
+                          delete nextWishOverrides[nurseId];
+                        }
+
+                        updates.wishOverrides = nextWishOverrides;
                       }
 
                       updateData(updates);
