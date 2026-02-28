@@ -96,7 +96,7 @@ export const getScheduleCellHours = (
             const isPreSessionFriday = date.getUTCDay() === 5 && agenda[getWeekIdentifier(nextMonday)] === 'SESSION';
 
             if (isPreSessionFriday) {
-                if (isAfternoonShift) baseHours = '12:00 - 18:00';
+                if (isAfternoonShift) baseHours = '12:00 - 17:45';
                 else if (shiftType === 'LIBERO') baseHours = '10:00 - 16:00';
                 else baseHours = '08:00 - 14:00';
             } else if (date.getUTCDay() === 5) {
