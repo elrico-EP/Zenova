@@ -353,3 +353,4 @@ export const useSupabaseState = () => {
 
     return { data, loading, updateData };
 };
+
