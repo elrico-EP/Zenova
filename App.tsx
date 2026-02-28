@@ -35,6 +35,7 @@ import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { ManualHoursModal } from './components/ManualHoursModal';
 import { MaximizeIcon, RestoreIcon } from './components/Icons';
 import { useSupabaseState } from './hooks/useSupabaseState'
+import { supabase } from './firebase/supabase-config';
 
 const AppContent: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
@@ -482,7 +483,7 @@ useEffect(() => {
                 newOverrides[nurseId][dateKey] = payload.shift;
             }
             
-            newLog.push({
+                        newLog.push({
                 id: `log-${Date.now()}-${nurseId}-${dateKey}`,
                 timestamp: new Date().toISOString(),
                 user: user?.name || 'System',
@@ -491,10 +492,36 @@ useEffect(() => {
                 originalShift: originalCellForLog,
                 newShift: payload.shift,
             });
+            
+                      // Guardar en tabla 'turnos' como manual
+            (async () => {
+                try {
+                    const { error } = await supabase
+                        .from('turnos')
+                        .upsert({
+                            nurse_id: nurseId,
+                            fecha: dateKey,
+                            turno: typeof payload.shift === 'object' ? JSON.stringify(payload.shift) : payload.shift,
+                            es_manual: true,
+                            actualizado_por: user?.name || 'admin',
+                            updated_at: new Date().toISOString()
+                        }, {
+                            onConflict: 'nurse_id,fecha'
+                        });
+                    
+                    if (error) {
+                        console.error('❌ Error guardando turno manual:', error);
+                    } else {
+                        console.log('✅ Turno manual guardado en tabla:', nurseId, dateKey);
+                    }
+                } catch (e) {
+                    console.error('❌ Excepción guardando turno manual:', e);
+                }
+            })();
         }
     }
     
-       await updateDataWithUndo({ manualOverrides: newOverrides, manualChangeLog: newLog });
+    await updateDataWithUndo({ manualOverrides: newOverrides, manualChangeLog: newLog });
     // Ya no recargamos, los cambios se ven en tiempo real
     console.log('✅ Cambios guardados, se verán automáticamente')
   }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
@@ -692,8 +719,38 @@ const handleAddNurse = useCallback((name: string) => {
     if (newShift1) { newOverrides[nurse1Id][date] = newShift1; } else { delete newOverrides[nurse1Id][date]; }
     if (newShift2) { newOverrides[nurse2Id][date] = newShift2; } else { delete newOverrides[nurse2Id][date]; }
 
-    newLog.push({ id: `log-${Date.now()}-${nurse1Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse1Id, dateKey: date, originalShift: shift1, newShift: newShift1 || 'DELETE' });
+        newLog.push({ id: `log-${Date.now()}-${nurse1Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse1Id, dateKey: date, originalShift: shift1, newShift: newShift1 || 'DELETE' });
     newLog.push({ id: `log-${Date.now()}-${nurse2Id}-${date}`, timestamp: new Date().toISOString(), user: user?.name || 'System', nurseId: nurse2Id, dateKey: date, originalShift: shift2, newShift: newShift2 || 'DELETE' });
+    
+    // Guardar intercambio como manual en tabla 'turnos'
+        // Guardar intercambio como manual en tabla 'turnos'
+    (async () => {
+        try {
+            if (newShift1) {
+                await supabase.from('turnos').upsert({
+                    nurse_id: nurse1Id,
+                    fecha: date,
+                    turno: typeof newShift1 === 'object' ? JSON.stringify(newShift1) : newShift1,
+                    es_manual: true,
+                    actualizado_por: user?.name || 'admin',
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'nurse_id,fecha' });
+            }
+            if (newShift2) {
+                await supabase.from('turnos').upsert({
+                    nurse_id: nurse2Id,
+                    fecha: date,
+                    turno: typeof newShift2 === 'object' ? JSON.stringify(newShift2) : newShift2,
+                    es_manual: true,
+                    actualizado_por: user?.name || 'admin',
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'nurse_id,fecha' });
+            }
+            console.log('✅ Intercambio guardado en tabla turnos');
+        } catch (e) {
+            console.error('❌ Error guardando intercambio:', e);
+        }
+    })();
     
     try {
       await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
