@@ -34,6 +34,7 @@ import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { ManualHoursModal } from './components/ManualHoursModal';
+import { RecalcScopeModal, type RecalcScope } from './components/RecalcScopeModal';
 import { MaximizeIcon, RestoreIcon } from './components/Icons';
 import { useSupabaseState } from './hooks/useSupabaseState'
 import { supabase } from './firebase/supabase-config';
@@ -89,6 +90,9 @@ const AppContent: React.FC = () => {
   const [isAnnualPlannerOpen, setIsAnnualPlannerOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
   const [showFullscreenToast, setShowFullscreenToast] = useState(false);
+  const [isRecalcScopeModalOpen, setIsRecalcScopeModalOpen] = useState(false);
+  const [recalcScopeContextLabel, setRecalcScopeContextLabel] = useState<'cambio manual' | 'intercambio'>('cambio manual');
+  const recalcScopeResolverRef = useRef<((scope: RecalcScope) => void) | null>(null);
 
   // State derived from shared state now
   // Mantener nurses localmente si hay cambios pendientes, sino usar Supabase
@@ -310,6 +314,116 @@ const AppContent: React.FC = () => {
     return getAutoBaseScheduleForMonth(date);
   }, [getMonthKeyFromDate, isFrozenGenerationMonth, frozenSchedules, getAutoBaseScheduleForMonth]);
 
+  const askRecalcScopeForManualChanges = useCallback((context: 'manual' | 'swap'): Promise<RecalcScope> => {
+    return new Promise(resolve => {
+      recalcScopeResolverRef.current = resolve;
+      setRecalcScopeContextLabel(context === 'manual' ? 'cambio manual' : 'intercambio');
+      setIsRecalcScopeModalOpen(true);
+    });
+  }, []);
+
+  const resolveRecalcScopeSelection = useCallback((scope: RecalcScope) => {
+    setIsRecalcScopeModalOpen(false);
+    if (recalcScopeResolverRef.current) {
+      recalcScopeResolverRef.current(scope);
+      recalcScopeResolverRef.current = null;
+    }
+  }, []);
+
+  const closeRecalcScopeModal = useCallback(() => {
+    resolveRecalcScopeSelection('none');
+  }, []);
+
+  const buildDateRangeKeys = useCallback((startDate: string, endDate: string): string[] => {
+    const keys: string[] = [];
+    for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
+      keys.push(d.toISOString().split('T')[0]);
+    }
+    return keys;
+  }, []);
+
+  const mergeFrozenScheduleByScope = useCallback((
+    currentFrozen: Schedule,
+    recalculatedMonth: Schedule,
+    monthDate: Date,
+    affectedDateKeys: string[],
+    scope: RecalcScope
+  ): Schedule => {
+    const merged: Schedule = JSON.parse(JSON.stringify(currentFrozen || {}));
+    const monthKey = getMonthKeyFromDate(monthDate);
+    const [year, month] = monthKey.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    const monthAffectedDates = affectedDateKeys.filter(dateKey => dateKey.startsWith(`${monthKey}-`));
+    if (monthAffectedDates.length === 0) return merged;
+
+    const replaceDateKeys = new Set<string>();
+    if (scope === 'day') {
+      monthAffectedDates.forEach(d => replaceDateKeys.add(d));
+    } else if (scope === 'week') {
+      const targetWeeks = new Set(monthAffectedDates.map(d => getWeekIdentifier(new Date(`${d}T12:00:00Z`))));
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const weekId = getWeekIdentifier(new Date(`${dateKey}T12:00:00Z`));
+        if (targetWeeks.has(weekId)) {
+          replaceDateKeys.add(dateKey);
+        }
+      }
+    } else if (scope === 'rest-month') {
+      const firstAffected = monthAffectedDates.sort()[0];
+      const startDay = Number(firstAffected.split('-')[2]);
+      for (let day = startDay; day <= daysInMonth; day++) {
+        const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        replaceDateKeys.add(dateKey);
+      }
+    }
+
+    const nurseIds = new Set<string>([
+      ...Object.keys(merged),
+      ...Object.keys(recalculatedMonth)
+    ]);
+
+    nurseIds.forEach(nurseId => {
+      if (!merged[nurseId]) merged[nurseId] = {};
+      replaceDateKeys.forEach(dateKey => {
+        const recalculatedCell = recalculatedMonth[nurseId]?.[dateKey];
+        if (recalculatedCell) {
+          merged[nurseId][dateKey] = recalculatedCell;
+        } else {
+          delete merged[nurseId][dateKey];
+        }
+      });
+      if (Object.keys(merged[nurseId]).length === 0) {
+        delete merged[nurseId];
+      }
+    });
+
+    return merged;
+  }, [getMonthKeyFromDate]);
+
+  const buildFrozenSchedulesForScope = useCallback((affectedDateKeys: string[], scope: RecalcScope) => {
+    if (scope === 'none') return frozenSchedules;
+
+    const nextFrozenSchedules: Record<string, Schedule> = { ...frozenSchedules };
+    const affectedMonths = new Set<string>();
+    affectedDateKeys.forEach(dateKey => {
+      const date = new Date(`${dateKey}T12:00:00Z`);
+      if (isFrozenGenerationMonth(date)) {
+        affectedMonths.add(getMonthKeyFromDate(date));
+      }
+    });
+
+    affectedMonths.forEach(key => {
+      const [y, m] = key.split('-').map(Number);
+      const monthDate = new Date(y, m - 1, 1);
+      const currentFrozen = nextFrozenSchedules[key] || getAutoBaseScheduleForMonth(monthDate);
+      const recalculatedMonth = getAutoBaseScheduleForMonth(monthDate);
+      nextFrozenSchedules[key] = mergeFrozenScheduleByScope(currentFrozen, recalculatedMonth, monthDate, affectedDateKeys, scope);
+    });
+
+    return nextFrozenSchedules;
+  }, [frozenSchedules, getMonthKeyFromDate, isFrozenGenerationMonth, getAutoBaseScheduleForMonth, mergeFrozenScheduleByScope]);
+
   const { fullOriginalSchedule, fullCurrentSchedule } = useMemo(() => {
     const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     const nextMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
@@ -524,6 +638,7 @@ useEffect(() => {
 
   const handleManualChange = useCallback(async (payload: ManualChangePayload) => {
     const { nurseIds, startDate, endDate } = payload;
+    const recalcScope = await askRecalcScopeForManualChanges('manual');
     let details = `Applied shift to ${nurseIds.length} nurse(s) from ${startDate} to ${endDate}`;
     if (nurseIds.length === 1) {
         const nurseName = nurses.find(n => n.id === nurseIds[0])?.name || 'Unknown';
@@ -585,11 +700,17 @@ useEffect(() => {
             })();
         }
     }
-    
-    await updateDataWithUndo({ manualOverrides: newOverrides, manualChangeLog: newLog });
+
+    const affectedDateKeys = buildDateRangeKeys(startDate, endDate);
+    const updates: Partial<AppState> = { manualOverrides: newOverrides, manualChangeLog: newLog };
+    if (recalcScope !== 'none') {
+      updates.frozenSchedules = buildFrozenSchedulesForScope(affectedDateKeys, recalcScope);
+    }
+
+    await updateDataWithUndo(updates);
     // Ya no recargamos, los cambios se ven en tiempo real
     console.log('✅ Cambios guardados, se verán automáticamente')
-  }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
+  }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildDateRangeKeys, buildFrozenSchedulesForScope, updateDataWithUndo]);
   
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
     addHistoryEntry(t.history_bulk_edit, t.history_bulk_edit_details);
@@ -755,6 +876,7 @@ const handleAddNurse = useCallback((name: string) => {
 
   const handleConfirmSwap = useCallback(async (payload: { date: string; nurse1Id: string; nurse2Id: string }) => {
     const { date, nurse1Id, nurse2Id } = payload;
+    const recalcScope = await askRecalcScopeForManualChanges('swap');
     const nurse1Name = nurses.find(n => n.id === nurse1Id)?.name || 'N/A';
     const nurse2Name = nurses.find(n => n.id === nurse2Id)?.name || 'N/A';
     addHistoryEntry(t.history_swapShifts, `${nurse1Name} ↔ ${nurse2Name} on ${date}`);
@@ -808,12 +930,17 @@ const handleAddNurse = useCallback((name: string) => {
     })();
     
     try {
-      await updateData({ manualOverrides: newOverrides, manualChangeLog: newLog });
+      const updates: Partial<AppState> = { manualOverrides: newOverrides, manualChangeLog: newLog };
+      if (recalcScope !== 'none') {
+        updates.frozenSchedules = buildFrozenSchedulesForScope([date], recalcScope);
+      }
+
+      await updateData(updates);
       console.log('✅ Intercambio guardado exitosamente');
     } catch (error) {
       console.error('❌ Error al guardar intercambio:', error);
     }
-  }, [manualOverrides, manualChangeLog, currentSchedule, user, updateData, addHistoryEntry, t, nurses]);
+  }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildFrozenSchedulesForScope, updateData]);
   
   const handleOpenManualHoursModal = useCallback((dateKey: string, nurseId: string) => {
     const nurse = nurses.find(n => n.id === nurseId);
@@ -1159,6 +1286,12 @@ const handleAddNurse = useCallback((name: string) => {
           strasbourgAssignments={strasbourgAssignments}
           specialStrasbourgEvents={specialStrasbourgEvents}
           jornadasLaborales={jornadasLaborales}
+      />
+      <RecalcScopeModal
+        isOpen={isRecalcScopeModalOpen}
+        contextLabel={recalcScopeContextLabel}
+        onSelect={resolveRecalcScopeSelection}
+        onClose={closeRecalcScopeModal}
       />
       <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
       <HistoryModal 
