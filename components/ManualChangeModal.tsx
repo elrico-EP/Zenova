@@ -308,11 +308,11 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                 <section className="border-t pt-4 mt-4">
                     <label className="block text-sm font-semibold text-gray-800 mb-2">{t.recalcScope_title}</label>
                     <p className="text-xs text-gray-600 mb-3">{t.recalcScope_description?.replace('{context}', t.recalcScope_context_manual) || 'Choose recalculation scope'}</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-4 gap-1">
                         <button
                             type="button"
                             onClick={() => setSelectedRecalcScope('none')}
-                            className={`p-2 rounded-md text-center text-xs transition-all ${selectedRecalcScope === 'none' ? 'ring-2 ring-offset-1 ring-zen-500 bg-gray-200' : 'bg-gray-100 hover:bg-gray-150'}`}
+                            className={`p-1 rounded-md text-center text-xs transition-all ${selectedRecalcScope === 'none' ? 'ring-2 ring-offset-1 ring-zen-500 bg-gray-200' : 'bg-gray-100 hover:bg-gray-150'}`}
                         >
                             <div className="font-bold text-xs">{t.recalcScope_none_title}</div>
                             <div className="text-xs text-gray-600">{t.recalcScope_none_desc}</div>
@@ -320,7 +320,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                         <button
                             type="button"
                             onClick={() => setSelectedRecalcScope('day')}
-                            className={`p-2 rounded-md text-center text-xs transition-all ${selectedRecalcScope === 'day' ? 'ring-2 ring-offset-1 ring-blue-500 bg-blue-100' : 'bg-blue-50 hover:bg-blue-100'}`}
+                            className={`p-1 rounded-md text-center text-xs transition-all ${selectedRecalcScope === 'day' ? 'ring-2 ring-offset-1 ring-blue-500 bg-blue-100' : 'bg-blue-50 hover:bg-blue-100'}`}
                         >
                             <div className="font-bold text-xs text-blue-900">{t.recalcScope_day_title}</div>
                             <div className="text-xs text-blue-700">{t.recalcScope_day_desc}</div>
@@ -328,7 +328,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                         <button
                             type="button"
                             onClick={() => setSelectedRecalcScope('week')}
-                            className={`p-2 rounded-md text-center text-xs transition-all ${selectedRecalcScope === 'week' ? 'ring-2 ring-offset-1 ring-blue-600 bg-blue-200' : 'bg-blue-50 hover:bg-blue-100'}`}
+                            className={`p-1 rounded-md text-center text-xs transition-all ${selectedRecalcScope === 'week' ? 'ring-2 ring-offset-1 ring-blue-600 bg-blue-200' : 'bg-blue-50 hover:bg-blue-100'}`}
                         >
                             <div className="font-bold text-xs text-blue-900">{t.recalcScope_week_title}</div>
                             <div className="text-xs text-blue-700">{t.recalcScope_week_desc}</div>
@@ -336,7 +336,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                         <button
                             type="button"
                             onClick={() => setSelectedRecalcScope('rest-month')}
-                            className={`p-2 rounded-md text-center text-xs transition-all ${selectedRecalcScope === 'rest-month' ? 'ring-2 ring-offset-1 ring-amber-500 bg-amber-200' : 'bg-amber-50 hover:bg-amber-100'}`}
+                            className={`p-1 rounded-md text-center text-xs transition-all ${selectedRecalcScope === 'rest-month' ? 'ring-2 ring-offset-1 ring-amber-500 bg-amber-200' : 'bg-amber-50 hover:bg-amber-100'}`}
                         >
                             <div className="font-bold text-xs text-amber-900">{t.recalcScope_restMonth_title}</div>
                             <div className="text-xs text-amber-700">{t.recalcScope_restMonth_desc}</div>
