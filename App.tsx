@@ -1040,7 +1040,7 @@ const handleAddNurse = useCallback((name: string) => {
   if ((user as any).mustChangePassword || (user as any).passwordResetRequired) { return <ForceChangePasswordScreen />; }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       {showFullscreenToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm transition-opacity duration-300 animate-fade-in-out">
             Press ESC to exit fullscreen mode
