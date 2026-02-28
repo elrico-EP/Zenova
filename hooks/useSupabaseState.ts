@@ -275,82 +275,98 @@ export const useSupabaseState = () => {
     }, []);
 
     const updateData = useCallback((updates: Partial<AppState>): Promise<void> => {
-        return new Promise<void>((resolve, reject) => {
-            setData(currentData => {
-                if (!currentData) {
-                    console.warn("⚠️ Estado no disponible");
-                    resolve();
-                    return currentData;
-                }
-
-                const now = Date.now();
-                const newData = { 
-                    ...currentData, 
-                    ...updates, 
-                    updatedAt: now,
-                    manualOverrides: updates.manualOverrides ?? currentData.manualOverrides ?? {},
-                    specialStrasbourgEvents: updates.specialStrasbourgEvents ?? currentData.specialStrasbourgEvents ?? [],
-                    specialStrasbourgEventsLog: updates.specialStrasbourgEventsLog ?? currentData.specialStrasbourgEventsLog ?? []
-                };
-                
-                const hasChanges = JSON.stringify(currentData) !== JSON.stringify(newData);
-                
-                if (hasChanges) {
-                    console.log("📝 Guardando cambios...", Object.keys(updates));
-                    lastLocalSaveRef.current = now;
-                    isSavingRef.current = true;
-                    
-                    if (pollingIntervalRef.current) {
-                        clearInterval(pollingIntervalRef.current);
-                        pollingIntervalRef.current = undefined;
-                        console.log("⏸️ Polling pausado");
-                    }
-                    
-                    (async () => {
-                        try {
-                            const { error } = await supabase
-                                .from('app_state')
-                                .update({ data: newData })
-                                .eq('id', 1);
-                            
-                            if (error) {
-                                console.error("❌ Error al guardar:", error);
-                                isSavingRef.current = false;
-                                reject(error);
-                            } else {
-                                console.log("✅ Guardado exitoso. Timestamp:", now);
-                                
-                                if (channelRef.current) {
-                                    await channelRef.current.send({
-                                        type: 'broadcast',
-                                        event: 'state_update',
-                                        payload: { data: newData, timestamp: now }
-                                    });
-                                }
-                                
-                                setTimeout(() => {
-                                    isSavingRef.current = false;
-                                    console.log("▶️ Guardado completado");
-                                }, 1000);
-                                
-                                resolve();
-                            }
-                        } catch (e) {
-                            isSavingRef.current = false;
-                            console.error("❌ Error:", e);
-                            reject(e);
-                        }
-                    })();
-                    
-                    return newData;
-                }
-                
+    return new Promise<void>((resolve, reject) => {
+        setData(currentData => {
+            if (!currentData) {
+                console.warn("⚠️ Estado no disponible");
                 resolve();
                 return currentData;
-            });
-        });
-    }, []);
+            }
 
+            const now = Date.now();
+            const newData = { 
+                ...currentData, 
+                ...updates, 
+                updatedAt: now,
+                manualOverrides: updates.manualOverrides ?? currentData.manualOverrides ?? {},
+                specialStrasbourgEvents: updates.specialStrasbourgEvents ?? currentData.specialStrasbourgEvents ?? [],
+                specialStrasbourgEventsLog: updates.specialStrasbourgEventsLog ?? currentData.specialStrasbourgEventsLog ?? []
+            };
+            
+            const hasChanges = JSON.stringify(currentData) !== JSON.stringify(newData);
+            
+            if (hasChanges) {
+                console.log("📝 Guardando cambios en Supabase...", Object.keys(updates));
+                console.log("   Timestamp:", now);
+                lastLocalSaveRef.current = now;
+                isSavingRef.current = true;
+                
+                if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                    pollingIntervalRef.current = undefined;
+                    console.log("⏸️ Polling pausado");
+                }
+                
+                (async () => {
+                    try {
+                        // INTento de guardado
+                        console.log("   Enviando a Supabase...");
+                        const { data: responseData, error } = await supabase
+                            .from('app_state')
+                            .update({ data: newData })
+                            .eq('id', 1)
+                            .select(); // <-- Añadido .select() para verificar
+                        
+                        if (error) {
+                            console.error("❌ Error de Supabase:", error);
+                            console.error("   Código:", error.code);
+                            console.error("   Mensaje:", error.message);
+                            isSavingRef.current = false;
+                            reject(error);
+                            return;
+                        }
+                        
+                        // VERIFICACIÓN: ¿Realmente se guardó?
+                        if (!responseData || responseData.length === 0) {
+                            console.error("❌ Supabase no devolvió datos. ¿RLS bloqueando?");
+                            isSavingRef.current = false;
+                            reject(new Error("No se confirmó el guardado"));
+                            return;
+                        }
+                        
+                        console.log("✅ Guardado confirmado en Supabase");
+                        console.log("   Timestamp guardado:", responseData[0].data?.updatedAt);
+                        
+                        // Notificar a otros clientes
+                        if (channelRef.current) {
+                            await channelRef.current.send({
+                                type: 'broadcast',
+                                event: 'state_update',
+                                payload: { data: newData, timestamp: now }
+                            });
+                        }
+                        
+                        setTimeout(() => {
+                            isSavingRef.current = false;
+                            console.log("▶️ Guardado completado");
+                        }, 1000);
+                        
+                        resolve();
+                    } catch (e) {
+                        console.error("❌ Excepción al guardar:", e);
+                        isSavingRef.current = false;
+                        reject(e);
+                    }
+                })();
+                
+                return newData;
+            }
+            
+            resolve();
+            return currentData;
+        });
+    });
+}, []);
     return { data, loading, updateData };
 };
 
