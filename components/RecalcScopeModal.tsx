@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslations } from '../hooks/useTranslations';
-
-export type RecalcScope = 'none' | 'day' | 'week' | 'rest-month';
+import type { RecalcScope } from '../types';
 
 interface RecalcScopeModalProps {
   isOpen: boolean;
