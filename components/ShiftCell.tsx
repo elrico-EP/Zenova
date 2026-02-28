@@ -173,7 +173,7 @@ export const ShiftCell: React.FC<ShiftCellProps> = (props) => {
 
     let displayLabel = shift.label;
     if (isShortFriday && (shift.id === 'URGENCES' || shift.id === 'TRAVAIL')) {
-      displayLabel = displayLabel.replace(' M', '');
+      displayLabel = displayLabel.replace(' AM', '');
     }
 
     return (
