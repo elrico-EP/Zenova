@@ -281,11 +281,7 @@ export const copyPersonalAgendaToClipboard = async (props: {
     
     let html = '<table border="1" style="border-collapse: collapse; font-family: sans-serif; font-size: 11pt; border-color: #CBD5E1;">';
     
-    // Header
-    const monthName = currentDate.toLocaleString(lang, { month: 'long', year: 'numeric' });
     html += `<thead><tr><th colspan="8" style="padding: 12px; font-weight: bold; font-size: 14pt; background-color: #1E293B; color: #FFFFFF; text-align: center;">${nurse.name} - ${monthName}</th></tr>`;
-    
-    // Day headers
     html += '<tr>';
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     dayNames.forEach(day => {
@@ -293,14 +289,13 @@ export const copyPersonalAgendaToClipboard = async (props: {
     });
     html += '</tr></thead><tbody>';
     
-    // Calendar grid
     const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
     const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
+    const weeksInMonth = Math.ceil((daysInMonth + startDayOfWeek) / 7);
     
     let dayCount = 1;
-    for (let week = 0; week < 6; week++) {
+    for (let week = 0; week < weeksInMonth; week++) {
         if (dayCount > daysInMonth) break;
-        
         html += '<tr>';
         for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
             const dayPosition = week * 7 + dayOfWeek;
@@ -338,7 +333,6 @@ export const copyPersonalAgendaToClipboard = async (props: {
                     }
                     cellContent += `<div style="font-weight: bold;">${shiftText}</div>`;
                 }
-                
                 html += `<td style="padding: 8px; height: 60px; background-color: ${bgColor}; border-color: #CBD5E1; vertical-align: top;">${cellContent}</td>`;
                 dayCount++;
             }
