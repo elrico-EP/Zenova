@@ -1,16 +1,19 @@
-# Zenova — Guía Funcional y Técnica (ES/EN)
+# Zenova — Guía Funcional y Técnica Completa (ES/EN) — 2026
 
-## ES — Guía completa
+## ESPAÑOL — Guía Completa Actualizada
 
-### 1) Objetivo de la aplicación
-Zenova es una aplicación de planificación de turnos de enfermería con:
-- Generación automática de turnos por reglas.
-- Edición manual de turnos.
-- Gestión de horas y balance.
-- Gestión de deseos (wishes).
-- Gestión de jornadas laborales (80/90/100%).
-- Exportación PDF y vistas personalizadas.
-- Sincronización multiusuario con Supabase.
+### 1. Objetivo de la Aplicación
+Zenova es una **aplicación profesional de planificación de turnos de enfermería** con:
+- ✅ Generación automática inteligente de turnos basada en reglas complejas de equidad
+- ✅ Edición manual completa con historial de cambios auditable
+- ✅ Cálculo automático de horas (con descansos, turnos partidos, horarios custom)
+- ✅ Balance mensual y anual por tipo de turno
+- ✅ Sistema flexible de deseos (solicitudes de turnos) con validación admin
+- ✅ Gestión de jornadas laborales con reducción de horas (80%/90%/100%)
+- ✅ **Exportación a Excel (XLSX)** de agendas mensuales y anuales
+- ✅ Sincronización multiusuario en tiempo real con Supabase
+- ✅ Control de acceso por roles (admin/nurse/viewer)
+- ✅ Impersonación de usuarios para diagnóstico y soporte
 
 ---
 
