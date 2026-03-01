@@ -338,7 +338,7 @@ interface ScheduleGridProps {
 const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG']);
 
 export const BASE_CELL_WIDTH = 140;
-export const DAY_COL_WIDTH = 100;
+export const DAY_COL_WIDTH = 70;  // Reduced from 100 for more space to shifts
 export const PRESENT_COL_WIDTH = 56;
 export const NOTES_COL_WIDTH = 96;
 
@@ -375,13 +375,13 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
             <table className="min-w-full border-collapse table-auto">
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>
-                        <th className="sticky top-0 left-0 z-30 bg-slate-50 border-b-2 border-slate-200 p-0" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}>
+                        <th className="sticky top-0 left-0 z-30 bg-slate-50 border-b-2 border-slate-200 p-px" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}>
                             <div className="flex flex-col items-center justify-center h-full w-full bg-gradient-to-br from-zen-50 to-white border-r border-slate-200">
-                                <span className="text-[11px] font-black text-zen-800 uppercase tracking-[0.2em] leading-none mb-1">
+                                <span className="text-[10px] font-black text-zen-800 uppercase tracking-[0.1em] leading-none mb-0.5">
                                     {currentDate.toLocaleString(language, { month: 'short' })}
                                 </span>
-                                <div className="h-[1px] w-4 bg-nova-400 mb-1"></div>
-                                <span className="text-[9px] font-bold text-slate-400 tracking-wider">
+                                <div className="h-[0.5px] w-3 bg-nova-400 mb-0.5"></div>
+                                <span className="text-[8px] font-bold text-slate-400 tracking-wider">
                                     {year}
                                 </span>
                             </div>
