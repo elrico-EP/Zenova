@@ -181,6 +181,12 @@ export interface SpecialStrasbourgEvent {
   startTime?: string;
   endTime?: string;
   type?: SpecialStrasbourgEventType;
+  // For split shifts (e.g., wednesday_permanence_return - morning + afternoon)
+  isSplit?: boolean;
+  morningStartTime?: string;
+  morningEndTime?: string;
+  afternoonStartTime?: string;
+  afternoonEndTime?: string;
 }
 
 export interface ShiftCounts {
