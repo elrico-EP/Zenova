@@ -6,28 +6,32 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
 import { StackedBar } from './StackedBar';
 
-const ALL_SHIFT_COLUMNS: (keyof ShiftCounts)[] = [
-    'TRAVAIL',
-    'TRAVAIL_TARDE',
-    'URGENCES',
-    'URGENCES_TARDE',
-    'ADMIN',
-    'ADM_PLUS',
-    'TW',
-    'TW_ABROAD',
-    'LIBERO',
-    'CS',
-    'STRASBOURG',
-    'RECUP',
-    'CA',
-    'FP',
-    'SICK_LEAVE',
-    'VACCIN',
-    'VACCIN_AM',
-    'VACCIN_PM',
-    'VACCIN_PM_PLUS',
-    'URGENCES_TARDE_PLUS',
-    'TRAVAIL_TARDE_PLUS'
+// Grouped columns for combined display
+type BalanceColumn = {
+    key: string;
+    shifts: (keyof ShiftCounts)[];
+    label: string;
+};
+
+const ALL_SHIFT_COLUMNS: BalanceColumn[] = [
+    { key: 'TRAVAIL_COMBINED', shifts: ['TRAVAIL', 'TRAVAIL_TARDE'], label: 'Travail' },
+    { key: 'URGENCES_COMBINED', shifts: ['URGENCES', 'URGENCES_TARDE'], label: 'Urgences' },
+    { key: 'ADMIN_COMBINED', shifts: ['ADMIN', 'ADM_PLUS'], label: 'Admin' },
+    { key: 'TW', shifts: ['TW'], label: 'TW' },
+    { key: 'TW_ABROAD', shifts: ['TW_ABROAD'], label: 'TW Abroad' },
+    { key: 'LIBERO', shifts: ['LIBERO'], label: 'Libero' },
+    { key: 'CS', shifts: ['CS'], label: 'CS' },
+    { key: 'STRASBOURG', shifts: ['STRASBOURG'], label: 'Strasbourg' },
+    { key: 'RECUP', shifts: ['RECUP'], label: 'Recup' },
+    { key: 'CA', shifts: ['CA'], label: 'CA' },
+    { key: 'FP', shifts: ['FP'], label: 'FP' },
+    { key: 'SICK_LEAVE', shifts: ['SICK_LEAVE'], label: 'Sick' },
+    { key: 'VACCIN', shifts: ['VACCIN'], label: 'Vaccin' },
+    { key: 'VACCIN_AM', shifts: ['VACCIN_AM'], label: 'Vacc AM' },
+    { key: 'VACCIN_PM', shifts: ['VACCIN_PM'], label: 'Vacc PM' },
+    { key: 'VACCIN_PM_PLUS', shifts: ['VACCIN_PM_PLUS'], label: 'Vacc PM+' },
+    { key: 'URGENCES_TARDE_PLUS', shifts: ['URGENCES_TARDE_PLUS'], label: 'Urg T+' },
+    { key: 'TRAVAIL_TARDE_PLUS', shifts: ['TRAVAIL_TARDE_PLUS'], label: 'Trav T+' }
 ];
 
 interface BalancePageProps {
@@ -42,7 +46,7 @@ const BalanceTableRow: React.FC<{
     nurse: Nurse;
     data: BalanceData;
     isActive: boolean;
-    shiftColumns: (keyof ShiftCounts)[];
+    shiftColumns: BalanceColumn[];
     onOpenAgenda: (nurse: Nurse) => void;
 }> = ({ nurse, data, isActive, shiftColumns, onOpenAgenda }) => {
     const inactiveClasses = !isActive ? 'opacity-50 bg-slate-50' : 'hover:bg-blue-50/50';
@@ -55,16 +59,19 @@ const BalanceTableRow: React.FC<{
             <td className={`p-2 border-b border-slate-200 font-medium text-slate-800 sticky left-0 z-10 w-40 ${!isActive ? 'bg-slate-100' : 'bg-white group-hover:bg-blue-50/50'}`}>
                 {nurse.name}
             </td>
-            {shiftColumns.map(shiftKey => {
-                const shiftInfo = SHIFTS[shiftKey];
-                const count = isActive ? (data.monthlyCounts[shiftKey] || 0) : 0;
+            {shiftColumns.map(column => {
+                const counts = column.shifts.map(shiftKey => ({
+                    shiftKey,
+                    count: isActive ? (data.monthlyCounts[shiftKey] || 0) : 0,
+                    color: SHIFTS[shiftKey]?.color || 'bg-slate-400'
+                }));
+                const total = counts.reduce((sum, c) => sum + c.count, 0);
+                const values = counts.filter(c => c.count > 0).map(c => ({ value: c.count, color: c.color }));
+                
                 return (
-                    <td key={`${nurse.id}-${shiftKey}`} className="p-2 border-b border-slate-200 text-center">
-                        {count > 0 ? (
-                            <StackedBar
-                                values={[{ value: count, color: shiftInfo?.color || 'bg-slate-400' }]}
-                                total={count}
-                            />
+                    <td key={`${nurse.id}-${column.key}`} className="p-2 border-b border-slate-200 text-center">
+                        {total > 0 ? (
+                            <StackedBar values={values} total={total} />
                         ) : (
                             <span className="text-slate-400">-</span>
                         )}
@@ -99,10 +106,12 @@ export const BalancePage: React.FC<BalancePageProps> = ({ nurses, balanceData, o
         }).filter((d): d is Exclude<typeof d, null> => d !== null);
     }, [balanceData, nurses, currentDate]);
 
-    const visibleShiftColumns = useMemo<(keyof ShiftCounts)[]>(() => {
+    const visibleShiftColumns = useMemo<BalanceColumn[]>(() => {
         if (showAllShifts) return ALL_SHIFT_COLUMNS;
-        return ALL_SHIFT_COLUMNS.filter(shiftKey =>
-            enrichedData.some(data => (data.monthlyCounts[shiftKey] || 0) > 0)
+        return ALL_SHIFT_COLUMNS.filter(column =>
+            enrichedData.some(data => 
+                column.shifts.some(shiftKey => (data.monthlyCounts[shiftKey] || 0) > 0)
+            )
         );
     }, [showAllShifts, enrichedData]);
 
@@ -149,12 +158,12 @@ export const BalancePage: React.FC<BalancePageProps> = ({ nurses, balanceData, o
                     <thead className="sticky top-0 bg-slate-100 z-10">
                         <tr>
                             <th className="p-2 border-b-2 border-slate-200 text-left font-semibold text-slate-600 sticky left-0 bg-slate-100 w-40">{t.nurse}</th>
-                            {visibleShiftColumns.map(shiftKey => {
-                                const shiftInfo = SHIFTS[shiftKey];
+                            {visibleShiftColumns.map(column => {
+                                const primaryShift = SHIFTS[column.shifts[0]];
                                 return (
-                                    <th key={shiftKey} className="p-2 border-b-2 border-slate-200 text-center font-semibold text-slate-600 whitespace-nowrap">
-                                        <div className={`w-16 h-6 mx-auto rounded flex items-center justify-center font-bold text-xs ${shiftInfo?.color || 'bg-slate-400'} ${shiftInfo?.textColor || 'text-white'}`}>
-                                            {shiftInfo?.label?.replace(' M', '').replace(' T', '') || shiftKey}
+                                    <th key={column.key} className="p-2 border-b-2 border-slate-200 text-center font-semibold text-slate-600 whitespace-nowrap">
+                                        <div className={`w-16 h-6 mx-auto rounded flex items-center justify-center font-bold text-xs ${primaryShift?.color || 'bg-slate-400'} ${primaryShift?.textColor || 'text-white'}`}>
+                                            {column.label}
                                         </div>
                                     </th>
                                 );
