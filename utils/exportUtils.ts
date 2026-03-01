@@ -321,18 +321,21 @@ export const generateAnnualAgendaPdf = async (props: {
                     )
                 )
              );
-            setTimeout(resolve, 1200); // Initial render buffer
+            setTimeout(resolve, 2000); // Initial render buffer increased
         });
 
         const waitForRenderedMonths = async (): Promise<NodeListOf<Element>> => {
-            const maxAttempts = 20;
+            const maxAttempts = 30;
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 const elements = tempContainer.querySelectorAll('.month-pdf-container');
                 if (elements.length >= 12) {
+                    console.log(`Found ${elements.length} month containers after ${attempt} attempts`);
                     return elements;
                 }
-                await new Promise(resolve => setTimeout(resolve, 250));
+                console.log(`Attempt ${attempt + 1}: Found ${elements.length} month containers, waiting...`);
+                await new Promise(resolve => setTimeout(resolve, 300));
             }
+            console.warn('Timeout waiting for month containers, proceeding with what we have');
             return tempContainer.querySelectorAll('.month-pdf-container');
         };
 
