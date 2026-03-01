@@ -39,6 +39,7 @@ export const PersonalAgendaPdfView: React.FC<PersonalAgendaPdfViewProps> = ({
   const { language } = useLanguage();
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+    const effectiveAgenda = year === 2026 ? agenda2026Data : agenda;
 
   const calendarGrid = useMemo(() => {
     const grid = [];
@@ -57,7 +58,7 @@ export const PersonalAgendaPdfView: React.FC<PersonalAgendaPdfViewProps> = ({
   }, [language]);
 
   return (
-    <div className="bg-white p-4" style={{ width: '1200px' }}>
+    <div className="personal-agenda-pdf-root bg-white p-4" style={{ width: '1400px' }}>
         <h2 className="text-2xl font-bold text-gray-800 text-center mb-2">{nurse.name}</h2>
         <h3 className="text-xl font-semibold text-gray-700 text-center capitalize mb-4">
             {`${currentDate.toLocaleString(language, { month: 'long' })} ${currentDate.getFullYear()}`}
@@ -72,7 +73,7 @@ export const PersonalAgendaPdfView: React.FC<PersonalAgendaPdfViewProps> = ({
                 const dayOfWeek = date.getUTCDay();
                 const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                 const weekId = getWeekIdentifier(date);
-                const activityLevel = agenda2026Data[weekId] || 'NORMAL';
+                const activityLevel = effectiveAgenda[weekId] || 'NORMAL';
                 const isHoliday = holidays2026.has(dateKey);
                 const shiftCell = schedule?.[dateKey];
                 const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
@@ -92,7 +93,7 @@ export const PersonalAgendaPdfView: React.FC<PersonalAgendaPdfViewProps> = ({
                                 <ShiftCell 
                                   shiftCell={shiftCell} 
                                   // FIX: Pass jornadasLaborales to getScheduleCellHours
-                                  hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda2026Data, jornadasLaborales)} 
+                                  hours={getScheduleCellHours(shiftCell, nurse, date, activityLevel, effectiveAgenda, jornadasLaborales)} 
                                   hasManualHours={false}
                                   isWeekend={isWeekend} 
                                   isClosingDay={isHoliday || activityLevel === 'CLOSED'} 
