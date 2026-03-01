@@ -22,7 +22,7 @@ import { recalculateScheduleForMonth, getShiftsFromCell } from './utils/schedule
 import { validateSchedule } from './utils/ruleValidator';
 import { calculateHoursForMonth, calculateHoursForDay, calculateHoursDifference } from './utils/hoursUtils';
 import { getActiveJornada } from './utils/jornadaUtils';
-import { generateAndDownloadPdf, generateAnnualAgendaPdf } from './utils/exportUtils';
+import { generateAndDownloadPdf, generateAnnualAgendaExcel } from './utils/exportUtils';
 import { getWeekIdentifier } from './utils/dateUtils';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026, holidays2026 } from './data/agenda2026';
 import { useLanguage } from './contexts/LanguageContext';
@@ -1013,7 +1013,7 @@ const handleAddNurse = useCallback((name: string) => {
         const monthSchedule = useOriginal ? baseSchedule : applyManualOverrides(withWishes, manualOverrides);
         allSchedules[month] = monthSchedule[nurse.id] || {};
     }
-    await generateAnnualAgendaPdf({ nurse, year, allSchedules, agenda: effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales });
+    await generateAnnualAgendaExcel({ nurse, year, allSchedules, agenda: effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales });
   }, [currentDate, effectiveAgenda, baseOverrides, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, manualOverrides, wishOverrides, applyManualOverrides, getFrozenOrAutoBaseScheduleForMonth]);
 
   const monthsWithOverrides = useMemo(() => {
