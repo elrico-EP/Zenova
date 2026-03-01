@@ -270,6 +270,7 @@ export const copyPersonalAgendaToClipboard = async (props: {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthName = currentDate.toLocaleString(lang, { month: 'long', year: 'numeric' });
     
     // Color styles
     const shiftColorMap: Record<string, string> = {};
@@ -475,81 +476,77 @@ export const generatePersonalAgendaPdf = async (props: {
   specialStrasbourgEvents: SpecialStrasbourgEvent[];
   jornadasLaborales: JornadaLaboral[];
 }): Promise<void> => {
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.left = '-9999px';
-    tempContainer.style.top = '0px';
-    document.body.appendChild(tempContainer);
-    const root = ReactDOM.createRoot(tempContainer);
-
+    const lang = (localStorage.getItem('zenova-lang') || 'en') as Language;
+    const { nurse, currentDate, schedule, specialStrasbourgEvents } = props;
+    
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthName = currentDate.toLocaleString(lang, { month: 'long', year: 'numeric' });
+    
+    const shiftColorMap: Record<string, string> = {};
+    Object.entries(SHIFTS).forEach(([key, value]) => {
+        if (tailwindToHexMap[value.color]) {
+            shiftColorMap[key] = tailwindToHexMap[value.color].bg;
+        }
+    });
+    
+    let html = '<html><head><meta charset="utf-8"%></head><body style="font-family: sans-serif; padding: 20px;">';
+    html += `<h1 style="text-align: center;">${nurse.name}</h1><h2 style="text-align: center;">${monthName}</h2>`;
+    html += '<table border="1" style="border-collapse: collapse; width: 100%; font-size: 10pt;">';
+    html += '<thead><tr style="background-color: #1E293B;">';
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    dayNames.forEach(day => html += `<th style="color: white; padding: 8px;">${day}</th>`);
+    html += '</tr></thead><tbody>';
+    
+    const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+    const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
+    let dayCount = 1;
+    for (let week = 0; week < 6; week++) {
+        html += '<tr style="height: 70px;">';
+        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+            if ((week * 7 + dayOfWeek) < startDayOfWeek || dayCount > daysInMonth) {
+                html += '<td style="background-color: #f8f8f8;"></td>';
+            } else {
+                const dateForCell = new Date(Date.UTC(year, month, dayCount));
+                const dateKey = dateForCell.toISOString().split('T')[0];
+                const shiftCell = schedule?.[dateKey];
+                let cellText = `<strong>${dayCount}</strong>`;
+                let bgColor = '#ffffff';
+                if (shiftCell && typeof shiftCell === 'string') {
+                    bgColor = shiftColorMap[shiftCell] || '#e0e7ff';
+                    cellText += `<br/><small>${SHIFTS[shiftCell as WorkZone]?.label || shiftCell}</small>`;
+                }
+                html += `<td style="padding: 6px; background-color: ${bgColor}; vertical-align: top;">${cellText}</td>`;
+                dayCount++;
+            }
+        }
+        html += '</tr>';
+        if (dayCount > daysInMonth) break;
+    }
+    html += '</tbody></table></body></html>';
+    
     try {
-        await new Promise<void>((resolve) => {
-             root.render(
-                React.createElement(
-                    React.StrictMode,
-                    null,
-                    React.createElement(
-                        LanguageProvider,
-                        null,
-                        React.createElement(PersonalAgendaPdfView, props)
-                    )
-                )
-             );
-            setTimeout(resolve, 1400);
-        });
-
-        const pdfRoot = tempContainer.querySelector('.personal-agenda-pdf-root') as HTMLElement | null;
-        if (!pdfRoot) {
-            console.error('PDF root not found. Container:', tempContainer.innerHTML.substring(0, 300));
-            throw new Error('Personal agenda PDF root not found');
-        }
-
-        console.log('Rendering PDF, element size:', pdfRoot.scrollWidth, 'x', pdfRoot.scrollHeight);
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        div.style.position = 'absolute';
+        div.style.left = '-9999px';
+        div.style.width = '1200px';
+        document.body.appendChild(div);
         
-        const canvas = await html2canvas(pdfRoot, {
-            scale: 1.7,
-            useCORS: true,
-            allowTaint: true,
-            windowWidth: Math.max(pdfRoot.scrollWidth, 1400),
-            windowHeight: Math.max(pdfRoot.scrollHeight, 900),
-            width: pdfRoot.scrollWidth,
-            height: pdfRoot.scrollHeight,
-            scrollX: 0,
-            scrollY: 0
-        });
-        const imgData = canvas.toDataURL('image/png');
+        const canvas = await html2canvas(div, { scale: 1.5, useCORS: true, windowWidth: 1200 });
         const { jsPDF } = jspdf;
-
         const pdf = new jsPDF('l', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-        const contentWidth = pdfWidth - margin * 2;
-        const contentHeight = pdfHeight - margin * 2;
-
+        const imgData = canvas.toDataURL('image/png');
         const imgProps = pdf.getImageProperties(imgData);
-        const widthRatio = contentWidth / imgProps.width;
-        const heightRatio = contentHeight / imgProps.height;
-        const scale = Math.min(widthRatio, heightRatio);
-        const finalWidth = imgProps.width * scale;
-        const finalHeight = imgProps.height * scale;
-        const x = margin + (contentWidth - finalWidth) / 2;
-        const y = margin + (contentHeight - finalHeight) / 2;
-
-        pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-
-        const year = props.currentDate.getFullYear();
-        const month = String(props.currentDate.getMonth() + 1).padStart(2, '0');
-        pdf.save(`Agenda_${nurse.name.replace(/\s/g, '_')}_${year}-${month}.pdf`);
-
+        const ratio = (pdf.internal.pageSize.getWidth() - 20) / imgProps.width;
+        pdf.addImage(imgData, 'PNG', 10, 10, imgProps.width * ratio, imgProps.height * ratio);
+        pdf.save(`Agenda_${nurse.name.replace(/\s/g, '_')}_${year}-${String(month + 1).padStart(2, '0')}.pdf`);
+        document.body.removeChild(div);
+        console.log('✓ PDF saved');
     } catch (error) {
-        console.error("Personal Agenda PDF generation failed:", error);
-        throw error; // Re-throw to be caught in the component
-    } finally {
-        root.unmount();
-        if (document.body.contains(tempContainer)) {
-            document.body.removeChild(tempContainer);
-        }
+        console.error('PDF generation failed:', error);
+        throw error;
     }
 };
 
