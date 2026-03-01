@@ -4,6 +4,7 @@ import { SHIFTS } from '../constants';
 import { useTranslations } from '../hooks/useTranslations';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
+import { StackedBar } from './StackedBar';
 
 const ALL_SHIFT_COLUMNS: (keyof ShiftCounts)[] = [
     'TRAVAIL',
@@ -54,17 +55,22 @@ const BalanceTableRow: React.FC<{
             <td className={`p-2 border-b border-slate-200 font-medium text-slate-800 sticky left-0 z-10 w-40 ${!isActive ? 'bg-slate-100' : 'bg-white group-hover:bg-blue-50/50'}`}>
                 {nurse.name}
             </td>
-            {shiftColumns.map(shiftKey => (
-                <td key={`${nurse.id}-${shiftKey}`} className="p-2 border-b border-slate-200 text-center">
-                    {isActive ? (data.monthlyCounts[shiftKey] || '-') : '-'}
-                </td>
-            ))}
-            <td className={`p-2 border-b border-slate-200 text-center font-bold ${!isActive ? 'text-slate-500' : 'text-slate-700'}`}>
-                {isActive ? data.monthlyBalance.toFixed(1) : '-'}
-            </td>
-            <td className="p-2 border-b border-slate-200 text-center font-bold text-slate-700">
-                {data.annualBalance.toFixed(1)}
-            </td>
+            {shiftColumns.map(shiftKey => {
+                const shiftInfo = SHIFTS[shiftKey];
+                const count = isActive ? (data.monthlyCounts[shiftKey] || 0) : 0;
+                return (
+                    <td key={`${nurse.id}-${shiftKey}`} className="p-2 border-b border-slate-200 text-center">
+                        {count > 0 ? (
+                            <StackedBar
+                                values={[{ value: count, color: shiftInfo?.color || 'bg-slate-400' }]}
+                                total={count}
+                            />
+                        ) : (
+                            <span className="text-slate-400">-</span>
+                        )}
+                    </td>
+                );
+            })}
         </tr>
     );
 };
@@ -143,13 +149,16 @@ export const BalancePage: React.FC<BalancePageProps> = ({ nurses, balanceData, o
                     <thead className="sticky top-0 bg-slate-100 z-10">
                         <tr>
                             <th className="p-2 border-b-2 border-slate-200 text-left font-semibold text-slate-600 sticky left-0 bg-slate-100 w-40">{t.nurse}</th>
-                            {visibleShiftColumns.map(shiftKey => (
-                                <th key={shiftKey} className="p-2 border-b-2 border-slate-200 text-center font-semibold text-slate-600 whitespace-nowrap">
-                                    {SHIFTS[shiftKey]?.label || shiftKey}
-                                </th>
-                            ))}
-                            <th className="p-2 border-b-2 border-slate-200 text-center font-semibold text-slate-600">{t.hoursMonthHeader}</th>
-                            <th className="p-2 border-b-2 border-slate-200 text-center font-semibold text-slate-600">{t.hoursYearHeader}</th>
+                            {visibleShiftColumns.map(shiftKey => {
+                                const shiftInfo = SHIFTS[shiftKey];
+                                return (
+                                    <th key={shiftKey} className="p-2 border-b-2 border-slate-200 text-center font-semibold text-slate-600 whitespace-nowrap">
+                                        <div className={`w-16 h-6 mx-auto rounded flex items-center justify-center font-bold text-xs ${shiftInfo?.color || 'bg-slate-400'} ${shiftInfo?.textColor || 'text-white'}`}>
+                                            {shiftInfo?.label?.replace(' M', '').replace(' T', '') || shiftKey}
+                                        </div>
+                                    </th>
+                                );
+                            })}
                         </tr>
                     </thead>
                     <tbody className="bg-white">
