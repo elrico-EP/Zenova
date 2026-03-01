@@ -13,7 +13,7 @@ import { getWeekIdentifier, getDateOfWeek } from '../utils/dateUtils';
 import { getScheduleCellHours, recalculateScheduleForMonth, getShiftsFromCell } from '../utils/scheduleUtils';
 import { calculateHoursForDay, calculateHoursDifference } from '../utils/hoursUtils';
 import { SHIFTS } from '../constants';
-import { generatePersonalAgendaPdf } from '../utils/exportUtils';
+import { generatePersonalAgendaExcel, generateAnnualAgendaExcel } from '../utils/exportUtils';
 import { getActiveJornada } from '../utils/jornadaUtils';
 import { Locale } from '../translations/locales';
 
@@ -470,7 +470,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   const handleExportMonthPdf = async () => {
     setIsExportingMonth(true);
     try {
-      await generatePersonalAgendaPdf({
+      await generatePersonalAgendaExcel({
         nurse,
                 currentDate,
                 schedule: displayedSchedule,
@@ -481,7 +481,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                 jornadasLaborales
       });
     } catch (e) {
-      console.error("Monthly PDF export failed", e);
+      console.error("Monthly Excel export failed", e);
     } finally {
       setIsExportingMonth(false);
     }
@@ -492,7 +492,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     try {
       await onExportAnnual(nurse, activeTab === 'original');
     } catch (e) {
-      console.error("Yearly PDF export failed", e);
+      console.error("Yearly Excel export failed", e);
     } finally {
       setIsExportingYear(false);
     }
