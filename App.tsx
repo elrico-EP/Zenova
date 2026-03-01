@@ -247,11 +247,15 @@ const AppContent: React.FC = () => {
   }, [closedMonths, updateData]);
   
   useEffect(() => {
-    const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'> = permissions.isViewingAsViewer ? ['schedule'] : ['schedule', 'wishes', 'profile', 'balance', 'userManagement'];
+    const allowedViews: Array<'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile'> = permissions.isViewingAsViewer
+      ? ['schedule']
+      : permissions.isViewingAsAdmin
+        ? ['schedule', 'wishes', 'profile', 'balance', 'userManagement']
+        : ['schedule', 'wishes', 'profile'];
     if (!allowedViews.includes(view)) {
       setView('schedule');
     }
-  }, [effectiveUser, view, permissions.isViewingAsViewer]);
+  }, [effectiveUser, view, permissions.isViewingAsViewer, permissions.isViewingAsAdmin]);
 
 
 
@@ -1257,6 +1261,7 @@ const handleAddNurse = useCallback((name: string) => {
               nurses={nurses} 
               history={history} 
               onExportAnnual={handleExportAnnualAgenda} 
+                onSavePersonalHours={handlePersonalHoursChange}
               jornadasLaborales={jornadasLaborales}
           /> 
       )}
