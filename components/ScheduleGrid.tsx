@@ -339,8 +339,8 @@ const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAV
 
 export const BASE_CELL_WIDTH = 140;
 export const DAY_COL_WIDTH = 100;
-export const PRESENT_COL_WIDTH = 70;
-export const NOTES_COL_WIDTH = 140;
+export const PRESENT_COL_WIDTH = 56;
+export const NOTES_COL_WIDTH = 96;
 
 export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, onCellDoubleClick, onOpenManualHoursModal }, ref) => {
     const { language } = useLanguage();
@@ -372,7 +372,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     
     return (
         <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
-            <table className="min-w-full border-collapse table-fixed">
+            <table className="min-w-full border-collapse table-auto">
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>
                         <th className="sticky top-0 left-0 z-30 bg-slate-50 border-b-2 border-slate-200 p-0" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px` }}>
@@ -393,8 +393,8 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                                 </th>
                             );
                         })}
-                        <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${PRESENT_COL_WIDTH * zoomLevel}px`}}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.present}</span></th>
-                        <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider">{t.notes}</span></th>
+                        <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: '1%', minWidth: `${PRESENT_COL_WIDTH * zoomLevel}px` }}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider whitespace-nowrap">{t.present}</span></th>
+                        <th className="h-16 text-center border-b-2 border-slate-200 no-print" style={{ width: '1%', minWidth: `${NOTES_COL_WIDTH * zoomLevel}px` }}><span className="font-semibold text-slate-500 text-[10px] uppercase tracking-wider whitespace-nowrap">{t.notes}</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -417,10 +417,10 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                         });
 
                         const dayHeader = <td className="sticky left-0 z-10 border-r border-b border-gray-200/80" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px`}}><DayHeaderCell day={day} dayOfWeek={dayOfWeekStr} isWeekend={isWeekend} activityLevel={activityLevel} isNewWeek={isNewWeek} weekId={weekId} weekLabel={t.week} /></td>;
-                        const presentCell = <td className={`h-16 border-b border-r border-gray-200/80 text-center ${isWeekend ? 'bg-slate-100/80' : 'bg-white/80'} no-print`} style={{ width: `${PRESENT_COL_WIDTH * zoomLevel}px`}}>{presentCount > 0 && <div className={`inline-flex items-center justify-center w-9 h-9 rounded-full font-bold text-sm shadow-inner ${presentCount < 6 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>{presentCount}</div>}</td>;
+                        const presentCell = <td className={`h-16 border-b border-r border-gray-200/80 text-center ${isWeekend ? 'bg-slate-100/80' : 'bg-white/80'} no-print`} style={{ width: '1%', minWidth: `${PRESENT_COL_WIDTH * zoomLevel}px` }}>{presentCount > 0 && <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs shadow-inner ${presentCount < 6 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>{presentCount}</div>}</td>;
                         
                         const notesCell = (
-                          <td className={`h-16 border-b border-r border-gray-200/80 p-0 no-print`} style={{ width: `${NOTES_COL_WIDTH * zoomLevel}px` }}>
+                          <td className={`h-16 border-b border-r border-gray-200/80 p-0 no-print`} style={{ width: '1%', minWidth: `${NOTES_COL_WIDTH * zoomLevel}px` }}>
                             <EditableNoteCell
                               note={notes[dateKey]}
                               dateKey={dateKey}
