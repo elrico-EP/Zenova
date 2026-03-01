@@ -9,12 +9,12 @@ interface AgendaPlannerProps {
   agenda: Agenda;
   onAgendaChange: (newAgenda: Agenda) => void;
   onWeekSelect: (date: Date) => void;
-  children?: React.ReactNode;
+  vertical?: boolean;
 }
 
 const allActivityLevels: ActivityLevel[] = ['NORMAL', 'SESSION', 'WHITE_GREEN', 'REDUCED'];
 
-export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agenda, onAgendaChange, onWeekSelect, children }) => {
+export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agenda, onAgendaChange, onWeekSelect, vertical = false }) => {
   const t = useTranslations();
   const year = currentDate.getFullYear();
   const weeks = getWeeksOfYear(year);
@@ -35,6 +35,44 @@ export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agend
   
   const effectiveAgenda = is2026 ? agenda2026Data : agenda;
 
+  if (vertical) {
+    return (
+      <div className="bg-white p-2 rounded-lg shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-xs text-slate-700 flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-zen-500"></span>
+            {t.agendaPlanner}
+          </h3>
+          {is2026 && <span className="text-[9px] text-slate-400 font-medium italic">{t.agenda2026Warning}</span>}
+        </div>
+
+        <div className="overflow-y-auto max-h-[calc(100vh-400px)] pr-1 custom-scrollbar">
+          <div className="flex flex-col space-y-1.5">
+            {weeks.map(week => {
+              const level = effectiveAgenda[week.id] || 'NORMAL';
+              const config = activityConfig[level];
+              return (
+                <button
+                  key={week.id}
+                  onClick={() => handleWeekSelect(week.id)}
+                  className={`p-1.5 rounded-md text-center transition-all duration-200 ${config.color} ${config.textColor} cursor-pointer hover:shadow-md hover:-translate-x-0.5 flex flex-col justify-between h-14 border border-black/5`}
+                >
+                  <div className="text-left">
+                    <div className="font-bold text-[9px] opacity-80">{t.week} {week.id.split('-W')[1]}</div>
+                    <div className="text-[8px] font-medium truncate">{week.label}</div>
+                  </div>
+                  <div className="text-[9px] font-bold bg-white/30 rounded px-1 py-0.5 self-center truncate w-full">
+                    {config.label}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100 relative">
       <div className="flex items-center justify-between mb-2">
@@ -43,10 +81,6 @@ export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agend
           {t.agendaPlanner}
         </h3>
         {is2026 && <span className="text-[10px] text-slate-400 font-medium italic">{t.agenda2026Warning}</span>}
-      </div>
-      
-      <div className="absolute top-2 right-2 z-10">
-        {children}
       </div>
 
       <div className="overflow-x-auto pb-2 -mb-2 custom-scrollbar">
