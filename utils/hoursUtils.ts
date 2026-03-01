@@ -18,6 +18,7 @@ export const calculateHoursDifference = (start: string, end: string): number => 
         return 0;
     }
 };
+// Simplified version that does not apply break deductions, used for special events and pre-calculated custom shifts.
 
 const calculateSimpleHoursDifference = (start: string, end: string): number => {
     if (!start || !end) return 0;
