@@ -101,10 +101,10 @@ export const getWeeksForMonth = (year: number, month: number): Date[] => {
     const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
     const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0));
 
-    // Start at the first Monday within the month
+    // Start at the Monday of the week containing the first day of the month
     const startDate = new Date(firstDayOfMonth);
     while (startDate.getUTCDay() !== 1) {
-        startDate.setUTCDate(startDate.getUTCDate() + 1);
+        startDate.setUTCDate(startDate.getUTCDate() - 1); // Go backwards to find Monday
     }
 
     // End at the Sunday of the week containing the month's last day
