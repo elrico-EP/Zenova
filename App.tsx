@@ -1104,16 +1104,21 @@ const handleAddNurse = useCallback((name: string) => {
               {view === 'schedule' ? (
                 <div className="flex h-full gap-2">
                   <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
+                    <div className="flex items-center justify-between mb-2">
+                      <div></div>
+                      <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
+                    </div>
                     <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} />
                   </div>
                   
-                  <div className="flex-shrink-0 w-80 no-print flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="flex-shrink-0 w-56 no-print flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
                     {permissions.isViewingAsAdmin && (
                       <div className="flex-shrink-0">
                         <WorkConditionsBar 
                           nurses={nurses}
                           jornadas={jornadasLaborales}
                           currentDate={currentDate}
+                          compact={true}
                         />
                       </div>
                     )}
@@ -1124,9 +1129,8 @@ const handleAddNurse = useCallback((name: string) => {
                         agenda={agenda}
                         onAgendaChange={handleAgendaChange}
                         onWeekSelect={setCurrentDate}
-                      >
-                        <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
-                      </AgendaPlanner>
+                        vertical={true}
+                      />
                     </div>
                   </div>
                 </div>
