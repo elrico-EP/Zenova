@@ -37,14 +37,14 @@ export const WorkConditionsBar: React.FC<WorkConditionsBarProps> = ({ nurses, jo
 
     return (
         <div className={`p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 ${compact ? 'text-xs' : 'text-sm mb-4'}`}>
-            <h4 className={`font-semibold mb-2 ${compact ? 'text-xs' : ''}`}>{t.activeWorkConditions}</h4>
+            <h4 title={t.activeWorkConditions} className={`font-semibold mb-2 ${compact ? 'text-[10px] leading-tight truncate' : ''}`}>{compact ? 'Active work' : t.activeWorkConditions}</h4>
             <ul className={`${compact ? 'space-y-1' : 'flex flex-wrap gap-x-6 gap-y-1'} list-none`}>
                 {activeReductions.map(item => (
                     <li key={item.name} className={compact ? '' : 'list-disc list-inside'}>
                         {compact ? (
                             <div>
-                                <div className="font-bold text-[10px]">{item.name}</div>
-                                <div className="text-[9px]">{t.reduction} {item.porcentaje}%</div>
+                                <div className="font-bold text-[10px] truncate" title={item.name}>{item.name}</div>
+                                <div className="text-[9px]">{item.porcentaje}%</div>
                             </div>
                         ) : (
                             <><strong>{item.name}</strong> &rarr; {t.reduction} {item.porcentaje}%</>
