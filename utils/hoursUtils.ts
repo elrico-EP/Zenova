@@ -43,6 +43,8 @@ export const calculateHoursForDay = (
     jornadasLaborales: JornadaLaboral[]
 ): number => {
     // ---- Early returns for special cases that are exempt from jornada reductions ----
+    
+    // Handle split shift special events (Wednesday Permanence + Return)
     if (
         specialEvent?.isSplit &&
         specialEvent.morningStartTime &&
@@ -54,6 +56,20 @@ export const calculateHoursForDay = (
         const afternoonHours = calculateSimpleHoursDifference(specialEvent.afternoonStartTime, specialEvent.afternoonEndTime);
         return morningHours + afternoonHours;
     }
+    
+    // Auto-detect Wednesday Permanence + Return events without split fields set
+    // If it's Wednesday and event name contains "Permanence" or "Return", assume standard times
+    if (
+        specialEvent && 
+        date.getUTCDay() === 3 && // Wednesday
+        (specialEvent.type === 'wednesday_permanence_return' || 
+         (specialEvent.name && (specialEvent.name.includes('Permanence') || specialEvent.name.includes('Return'))))
+    ) {
+        // Standard times: Permanence 09:30-14:30 (5h) + Return 16:00-21:30 (5.5h) = 10.5h
+        return 10.5;
+    }
+    
+    // Handle other special events with explicit times
     if (specialEvent && specialEvent.startTime && specialEvent.endTime) {
         return calculateSimpleHoursDifference(specialEvent.startTime, specialEvent.endTime);
     }
