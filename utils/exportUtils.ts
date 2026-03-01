@@ -349,9 +349,11 @@ export const copyPersonalAgendaToClipboard = async (props: {
     html += '</tbody></table>';
     
     try {
+        console.log('Clipboard copy: HTML size', html.length, 'bytes, weeks in output:', (html.match(/<tr>/g) || []).length, 'rows');
         const blob = new Blob([html], { type: 'text/html' });
         const clipboardItem = new ClipboardItem({ 'text/html': blob });
         await navigator.clipboard.write([clipboardItem]);
+        console.log('✓ Personal agenda copied to clipboard');
     } catch (err) {
         console.error('Failed to copy personal agenda to clipboard:', err);
         throw err;
@@ -454,9 +456,11 @@ export const copyAnnualAgendaToClipboard = async (props: {
     html += '</tbody></table>';
     
     try {
+        console.log('Annual clipboard: HTML size', html.length, 'bytes, 12 months data');
         const blob = new Blob([html], { type: 'text/html' });
         const clipboardItem = new ClipboardItem({ 'text/html': blob });
         await navigator.clipboard.write([clipboardItem]);
+        console.log('✓ Annual agenda copied to clipboard');
     } catch (err) {
         console.error('Failed to copy annual agenda to clipboard:', err);
         throw err;
@@ -501,11 +505,17 @@ export const generatePersonalAgendaPdf = async (props: {
         });
 
         const pdfRoot = tempContainer.querySelector('.personal-agenda-pdf-root') as HTMLElement | null;
-        if (!pdfRoot) throw new Error('Personal agenda PDF root not found');
+        if (!pdfRoot) {
+            console.error('PDF root not found. Container:', tempContainer.innerHTML.substring(0, 300));
+            throw new Error('Personal agenda PDF root not found');
+        }
 
+        console.log('Rendering PDF, element size:', pdfRoot.scrollWidth, 'x', pdfRoot.scrollHeight);
+        
         const canvas = await html2canvas(pdfRoot, {
             scale: 1.7,
             useCORS: true,
+            allowTaint: true,
             windowWidth: Math.max(pdfRoot.scrollWidth, 1400),
             windowHeight: Math.max(pdfRoot.scrollHeight, 900),
             width: pdfRoot.scrollWidth,
@@ -566,6 +576,7 @@ export const generateAnnualAgendaPdf = async (props: {
     const root = ReactDOM.createRoot(tempContainer);
 
     try {
+        console.log('Generating annual PDF for', props.nurse.name, 'year', props.year);
         await new Promise<void>((resolve) => {
              root.render(
                 React.createElement(
@@ -584,10 +595,10 @@ export const generateAnnualAgendaPdf = async (props: {
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 const elements = tempContainer.querySelectorAll('.month-pdf-container');
                 if (elements.length >= 12) {
-                    console.log(`Found ${elements.length} month containers after ${attempt} attempts`);
+                    console.log(`✓ Found all ${elements.length} months after ${attempt} attempts`);
                     return elements;
                 }
-                console.log(`Attempt ${attempt + 1}: Found ${elements.length} month containers, waiting...`);
+                if (attempt % 10 === 0) console.log(`Waiting for months... (${elements.length}/12)`);
                 await new Promise(resolve => setTimeout(resolve, 400));
             }
             console.warn('Timeout waiting for month containers, proceeding with what we have');
