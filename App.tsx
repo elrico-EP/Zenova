@@ -1110,7 +1110,7 @@ const handleAddNurse = useCallback((name: string) => {
                     <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} />
                   </div>
                   
-                  <div className="flex-shrink-0 w-40 no-print flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="flex-shrink-0 w-36 no-print flex flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
                     {permissions.isViewingAsAdmin && (
                       <div className="flex-shrink-0">
                         <WorkConditionsBar 
