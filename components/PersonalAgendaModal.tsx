@@ -13,7 +13,7 @@ import { getWeekIdentifier, getDateOfWeek } from '../utils/dateUtils';
 import { getScheduleCellHours, recalculateScheduleForMonth, getShiftsFromCell } from '../utils/scheduleUtils';
 import { calculateHoursForDay, calculateHoursDifference } from '../utils/hoursUtils';
 import { SHIFTS } from '../constants';
-import { generatePersonalAgendaPdf, copyPersonalAgendaToClipboard, copyAnnualAgendaToClipboard } from '../utils/exportUtils';
+import { copyPersonalAgendaToClipboard, copyAnnualAgendaToClipboard } from '../utils/exportUtils';
 import { getActiveJornada } from '../utils/jornadaUtils';
 import { Locale } from '../translations/locales';
 
@@ -470,16 +470,26 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   const handleExportMonthPdf = async () => {
     setIsExportingMonth(true);
     try {
-      await generatePersonalAgendaPdf({
+      // Store data for print view
+      const printData = {
+        type: 'personal-agenda',
+        isAnnual: false,
         nurse,
-        currentDate,
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth(),
         schedule: displayedSchedule,
-        hours,
-        agenda,
-        strasbourgAssignments,
         specialStrasbourgEvents,
-        jornadasLaborales
-      });
+        timestamp: Date.now()
+      };
+      
+      localStorage.setItem('zenova-print-data', JSON.stringify(printData));
+      
+      // Open new window for printing
+      const printWindow = window.open(window.location.origin, '_blank', 'width=1200,height=800');
+      
+      if (!printWindow) {
+        alert('Please allow popups for this site to print PDF');
+      }
     } catch (e) {
       console.error("Monthly PDF export failed", e);
     } finally {
