@@ -95,15 +95,25 @@ export const getWeeksOfYear = (year: number): WeekInfo[] => {
     return weeks.sort((a,b) => a.id.localeCompare(b.id));
 }
 
-// Get all dates for a month organized by weeks (no cross-month bleeding)
-// Returns ONLY days within the month, but preserves week row structure for UI display
+// Calculate dates for complete weeks (first Monday through last Sunday) for a given month
 export const getWeeksForMonth = (year: number, month: number): Date[] => {
     const grid: Date[] = [];
     const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
     const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0));
 
-    // Start from the first day of the month (no retroceding)
-    for (let d = new Date(firstDayOfMonth); d <= lastDayOfMonth; d.setUTCDate(d.getUTCDate() + 1)) {
+    // Start at the Monday of the week containing the first day of the month
+    const startDate = new Date(firstDayOfMonth);
+    while (startDate.getUTCDay() !== 1) {
+        startDate.setUTCDate(startDate.getUTCDate() - 1); // Go backwards to find Monday
+    }
+
+    // End at the Sunday of the week containing the month's last day
+    const endDate = new Date(lastDayOfMonth);
+    while (endDate.getUTCDay() !== 0) {
+        endDate.setUTCDate(endDate.getUTCDate() + 1);
+    }
+
+    for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
         grid.push(new Date(d));
     }
 
