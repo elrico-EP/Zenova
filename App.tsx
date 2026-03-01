@@ -547,8 +547,7 @@ useEffect(() => {
         TRAVAIL: 0, TRAVAIL_TARDE: 0, URGENCES: 0, URGENCES_TARDE: 0, 
         ADMIN: 0, ADM_PLUS: 0, TW: 0, TW_ABROAD: 0, CA: 0, FP: 0, 
         CS: 0, RECUP: 0, SICK_LEAVE: 0, STRASBOURG: 0, LIBERO: 0, 
-        VACCIN: 0, VACCIN_AM: 0, VACCIN_PM: 0, VACCIN_PM_PLUS: 0,
-        URGENCES_TARDE_PLUS: 0, TRAVAIL_TARDE_PLUS: 0
+        VACCIN: 0, VACCIN_AM: 0, VACCIN_PM: 0, VACCIN_PM_PLUS: 0
       });
       const annualCounts = emptyCounts();
       const monthlyCounts = emptyCounts();
@@ -1111,7 +1110,7 @@ const handleAddNurse = useCallback((name: string) => {
                     <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} />
                   </div>
                   
-                  <div className="flex-shrink-0 w-56 no-print flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="flex-shrink-0 w-40 no-print flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
                     {permissions.isViewingAsAdmin && (
                       <div className="flex-shrink-0">
                         <WorkConditionsBar 
