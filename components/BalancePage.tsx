@@ -17,21 +17,17 @@ const ALL_SHIFT_COLUMNS: BalanceColumn[] = [
     { key: 'TRAVAIL_COMBINED', shifts: ['TRAVAIL', 'TRAVAIL_TARDE'], label: 'Travail' },
     { key: 'URGENCES_COMBINED', shifts: ['URGENCES', 'URGENCES_TARDE'], label: 'Urgences' },
     { key: 'ADMIN_COMBINED', shifts: ['ADMIN', 'ADM_PLUS'], label: 'Admin' },
-    { key: 'TW', shifts: ['TW'], label: 'TW' },
-    { key: 'TW_ABROAD', shifts: ['TW_ABROAD'], label: 'TW Abroad' },
+    { key: 'TW_COMBINED', shifts: ['TW', 'TW_ABROAD'], label: 'TW' },
     { key: 'LIBERO', shifts: ['LIBERO'], label: 'Libero' },
-    { key: 'CS', shifts: ['CS'], label: 'CS' },
+    { key: 'CM_CS_COMBINED', shifts: ['SICK_LEAVE', 'CS'], label: 'CM/CS' },
     { key: 'STRASBOURG', shifts: ['STRASBOURG'], label: 'Strasbourg' },
     { key: 'RECUP', shifts: ['RECUP'], label: 'Recup' },
     { key: 'CA', shifts: ['CA'], label: 'CA' },
     { key: 'FP', shifts: ['FP'], label: 'FP' },
-    { key: 'SICK_LEAVE', shifts: ['SICK_LEAVE'], label: 'Sick' },
     { key: 'VACCIN', shifts: ['VACCIN'], label: 'Vaccin' },
     { key: 'VACCIN_AM', shifts: ['VACCIN_AM'], label: 'Vacc AM' },
     { key: 'VACCIN_PM', shifts: ['VACCIN_PM'], label: 'Vacc PM' },
-    { key: 'VACCIN_PM_PLUS', shifts: ['VACCIN_PM_PLUS'], label: 'Vacc PM+' },
-    { key: 'URGENCES_TARDE_PLUS', shifts: ['URGENCES_TARDE_PLUS'], label: 'Urg T+' },
-    { key: 'TRAVAIL_TARDE_PLUS', shifts: ['TRAVAIL_TARDE_PLUS'], label: 'Trav T+' }
+    { key: 'VACCIN_PM_PLUS', shifts: ['VACCIN_PM_PLUS'], label: 'Vacc PM+' }
 ];
 
 interface BalancePageProps {
