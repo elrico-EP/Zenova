@@ -470,15 +470,15 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   const handleExportMonthPdf = async () => {
     setIsExportingMonth(true);
     try {
-      const calendarElement = modalContentRef.current?.querySelector('.personal-agenda-modal-main-content');
-      if (!calendarElement) {
-        console.error('Calendar element not found');
-        return;
-      }
       await generatePersonalAgendaPdf({
-        element: calendarElement as HTMLElement,
         nurse,
-        currentDate
+                currentDate,
+                schedule: displayedSchedule,
+                hours,
+                agenda,
+                strasbourgAssignments,
+                specialStrasbourgEvents,
+                jornadasLaborales
       });
     } catch (e) {
       console.error("Monthly PDF export failed", e);
