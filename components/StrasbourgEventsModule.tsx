@@ -43,12 +43,17 @@ const EventForm: React.FC<{
     const [endDate, setEndDate] = useState(event?.endDate || '');
     const [startTime, setStartTime] = useState(event?.startTime || '');
     const [endTime, setEndTime] = useState(event?.endTime || '');
+    const [morningStartTime, setMorningStartTime] = useState(event?.morningStartTime || '09:30');
+    const [morningEndTime, setMorningEndTime] = useState(event?.morningEndTime || '14:30');
+    const [afternoonStartTime, setAfternoonStartTime] = useState(event?.afternoonStartTime || '16:00');
+    const [afternoonEndTime, setAfternoonEndTime] = useState(event?.afternoonEndTime || '21:30');
     const [nurseIds, setNurseIds] = useState(event?.nurseIds || []);
     const [notes, setNotes] = useState(event?.notes || '');
     const [error, setError] = useState('');
 
     const type = event?.type || 'other';
     const isFixedType = type !== 'other';
+    const isSplit = type === 'wednesday_permanence_return';
 
     useEffect(() => {
         setName(event?.name || '');
@@ -56,6 +61,10 @@ const EventForm: React.FC<{
         setEndDate(event?.endDate || '');
         setStartTime(event?.startTime || '');
         setEndTime(event?.endTime || '');
+        setMorningStartTime(event?.morningStartTime || '09:30');
+        setMorningEndTime(event?.morningEndTime || '14:30');
+        setAfternoonStartTime(event?.afternoonStartTime || '16:00');
+        setAfternoonEndTime(event?.afternoonEndTime || '21:30');
         setNurseIds(event?.nurseIds || []);
         setNotes(event?.notes || '');
     }, [event]);
@@ -73,15 +82,19 @@ const EventForm: React.FC<{
             setError(t.validation_only_wednesdays);
             return;
         }
+        if (type === 'wednesday_permanence_return' && !checkDaysOfWeek(startDate, endDate, 3)) {
+            setError(t.validation_only_wednesdays);
+            return;
+        }
 
-        const dataToSave: Omit<SpecialStrasbourgEvent, 'id'> & { id?: string } = { id: event?.id, name, startDate, endDate, startTime, endTime, nurseIds, notes, type };
+        const dataToSave: Omit<SpecialStrasbourgEvent, 'id'> & { id?: string } = { id: event?.id, name, startDate, endDate, startTime, endTime, morningStartTime, morningEndTime, afternoonStartTime, afternoonEndTime, nurseIds, notes, type, isSplit };
         
         // Ensure fixed data is correct on save
-        if(type === 'euroscola') { dataToSave.name = t.event_type_euroscola; dataToSave.startTime = '08:00'; dataToSave.endTime = '17:00'; }
-        if(type === 'tuesday_permanence') { dataToSave.name = t.event_type_tuesday_permanence; dataToSave.startTime = '13:30'; dataToSave.endTime = '18:30'; }
-        if(type === 'wednesday_permanence') { dataToSave.name = t.event_type_wednesday_permanence; dataToSave.startTime = '09:30'; dataToSave.endTime = '14:30'; }
-        if(type === 'wednesday_permanence_return') { dataToSave.name = 'Miércoles Estrasburgo (Permanencia + Retorno)'; dataToSave.startTime = '09:30'; dataToSave.endTime = '17:30'; }
-        if(type === 'mini_sesion_bruselas') { dataToSave.name = 'Mini Sesión Bruselas'; dataToSave.startTime = '16:00'; dataToSave.endTime = '22:00'; }
+        if(type === 'euroscola') { dataToSave.name = 'Euroscola'; dataToSave.startTime = '08:00'; dataToSave.endTime = '17:00'; }
+        if(type === 'tuesday_permanence') { dataToSave.name = 'Tuesday Permanence'; dataToSave.startTime = '13:30'; dataToSave.endTime = '18:30'; }
+        if(type === 'wednesday_permanence') { dataToSave.name = 'Wednesday Permanence'; dataToSave.startTime = '09:30'; dataToSave.endTime = '14:30'; }
+        if(type === 'wednesday_permanence_return') { dataToSave.name = 'Wednesday Permanence + Return'; dataToSave.isSplit = true; dataToSave.morningStartTime = morningStartTime; dataToSave.morningEndTime = morningEndTime; dataToSave.afternoonStartTime = afternoonStartTime; dataToSave.afternoonEndTime = afternoonEndTime; }
+        if(type === 'mini_sesion_bruselas') { dataToSave.name = 'Mini Session Brussels'; dataToSave.startTime = '16:00'; dataToSave.endTime = '22:00'; }
 
         onSave(dataToSave);
     };
@@ -115,14 +128,45 @@ const EventForm: React.FC<{
                     </div>
                      <div className="flex flex-wrap gap-4 mt-3">
                         <div className="flex-1 min-w-36">
-                            <label className="block font-medium text-slate-600">{isFixedType ? t.fixed_schedule : `${t.startTime} (${t.optional})`}</label>
-                            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} readOnly={isFixedType} className="mt-1 w-full p-2 border border-slate-300 rounded-md read-only:bg-slate-100 read-only:text-slate-500" />
+                            <label className="block font-medium text-slate-600">{isFixedType && !isSplit ? t.fixed_schedule : `${t.startTime} (${t.optional})`}</label>
+                            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} readOnly={isFixedType && !isSplit} className="mt-1 w-full p-2 border border-slate-300 rounded-md read-only:bg-slate-100 read-only:text-slate-500" />
                         </div>
                         <div className="flex-1 min-w-36">
-                            <label className="block font-medium text-slate-600">{isFixedType ? ' ' : `${t.endTime} (${t.optional})`}</label>
-                            <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} readOnly={isFixedType} className="mt-1 w-full p-2 border border-slate-300 rounded-md read-only:bg-slate-100 read-only:text-slate-500" />
+                            <label className="block font-medium text-slate-600">{isFixedType && !isSplit ? ' ' : `${t.endTime} (${t.optional})`}</label>
+                            <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} readOnly={isFixedType && !isSplit} className="mt-1 w-full p-2 border border-slate-300 rounded-md read-only:bg-slate-100 read-only:text-slate-500" />
                         </div>
                     </div>
+                    
+                    {isSplit && (
+                        <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+                            <h5 className="font-semibold text-blue-800 mb-3 text-sm">Split Shift Times</h5>
+                            <div className="space-y-3">
+                                <div className="font-medium text-blue-700 text-sm">Morning - Permanence</div>
+                                <div className="flex flex-wrap gap-4">
+                                    <div className="flex-1 min-w-32">
+                                        <label className="block font-medium text-slate-600 text-xs">Start</label>
+                                        <input type="time" value={morningStartTime} onChange={e => setMorningStartTime(e.target.value)} className="mt-1 w-full p-2 border border-slate-300 rounded-md" />
+                                    </div>
+                                    <div className="flex-1 min-w-32">
+                                        <label className="block font-medium text-slate-600 text-xs">End</label>
+                                        <input type="time" value={morningEndTime} onChange={e => setMorningEndTime(e.target.value)} className="mt-1 w-full p-2 border border-slate-300 rounded-md" />
+                                    </div>
+                                </div>
+                                
+                                <div className="font-medium text-blue-700 text-sm mt-3">Afternoon - Return</div>
+                                <div className="flex flex-wrap gap-4">
+                                    <div className="flex-1 min-w-32">
+                                        <label className="block font-medium text-slate-600 text-xs">Start</label>
+                                        <input type="time" value={afternoonStartTime} onChange={e => setAfternoonStartTime(e.target.value)} className="mt-1 w-full p-2 border border-slate-300 rounded-md" />
+                                    </div>
+                                    <div className="flex-1 min-w-32">
+                                        <label className="block font-medium text-slate-600 text-xs">End</label>
+                                        <input type="time" value={afternoonEndTime} onChange={e => setAfternoonEndTime(e.target.value)} className="mt-1 w-full p-2 border border-slate-300 rounded-md" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
                  <div className="bg-white p-4 rounded-lg border border-slate-200">
                      <h4 className="font-semibold text-slate-700 mb-2">{t.assignment}</h4>
@@ -151,12 +195,12 @@ const EventTypeSelector: React.FC<{
     const t = useTranslations();
 
     const eventTypes: { type: SpecialStrasbourgEventType; label: string; description: string; }[] = [
-        { type: 'euroscola', label: t.event_type_euroscola, description: 'Horario fijo 08:00-17:00' },
-        { type: 'tuesday_permanence', label: t.event_type_tuesday_permanence, description: 'Horario fijo 13:30-18:30. Solo martes.' },
-        { type: 'wednesday_permanence', label: t.event_type_wednesday_permanence, description: 'Horario fijo 09:30-14:30. Solo miércoles.' },
-        { type: 'wednesday_permanence_return', label: 'Wed. Permanencia + Retorno', description: 'Miércoles: permanencia 09:30-14:30 + viaje retorno 17:30.' },
-        { type: 'mini_sesion_bruselas', label: 'Mini Sesión Bruselas', description: 'Horario fijo 16:00-22:00. Asignación manual de un enfermero.' },
-        { type: 'other', label: t.event_type_other, description: 'Nombre y horario personalizables.' },
+        { type: 'euroscola', label: 'Euroscola', description: 'Fixed schedule 08:00-17:00' },
+        { type: 'tuesday_permanence', label: 'Tuesday Permanence', description: 'Fixed schedule 13:30-18:30. Tuesdays only.' },
+        { type: 'wednesday_permanence', label: 'Wednesday Permanence', description: 'Fixed schedule 09:30-14:30. Wednesdays only.' },
+        { type: 'wednesday_permanence_return', label: 'Wednesday Permanence + Return', description: 'Wednesday split shift: Permanence 09:30-14:30 + Return travel 16:00-21:30 (times editable)' },
+        { type: 'mini_sesion_bruselas', label: 'Mini Session Brussels', description: 'Fixed schedule 16:00-22:00. Manual nurse assignment.' },
+        { type: 'other', label: 'Other', description: 'Custom name and time.' },
     ];
 
     return (
@@ -198,11 +242,11 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
     const handleTypeSelected = (type: SpecialStrasbourgEventType) => {
         const newEvent: Partial<SpecialStrasbourgEvent> = { type };
         switch(type) {
-            case 'euroscola': newEvent.name = t.event_type_euroscola; newEvent.startTime = '08:00'; newEvent.endTime = '17:00'; break;
-            case 'tuesday_permanence': newEvent.name = t.event_type_tuesday_permanence; newEvent.startTime = '13:30'; newEvent.endTime = '18:30'; break;
-            case 'wednesday_permanence': newEvent.name = t.event_type_wednesday_permanence; newEvent.startTime = '09:30'; newEvent.endTime = '14:30'; break;
-            case 'wednesday_permanence_return': newEvent.name = 'Miércoles Estrasburgo (Permanencia + Retorno)'; newEvent.startTime = '09:30'; newEvent.endTime = '17:30'; break;
-            case 'mini_sesion_bruselas': newEvent.name = 'Mini Sesión Bruselas'; newEvent.startTime = '16:00'; newEvent.endTime = '22:00'; break;
+            case 'euroscola': newEvent.name = 'Euroscola'; newEvent.startTime = '08:00'; newEvent.endTime = '17:00'; break;
+            case 'tuesday_permanence': newEvent.name = 'Tuesday Permanence'; newEvent.startTime = '13:30'; newEvent.endTime = '18:30'; break;
+            case 'wednesday_permanence': newEvent.name = 'Wednesday Permanence'; newEvent.startTime = '09:30'; newEvent.endTime = '14:30'; break;
+            case 'wednesday_permanence_return': newEvent.name = 'Wednesday Permanence + Return'; newEvent.isSplit = true; newEvent.morningStartTime = '09:30'; newEvent.morningEndTime = '14:30'; newEvent.afternoonStartTime = '16:00'; newEvent.afternoonEndTime = '21:30'; break;
+            case 'mini_sesion_bruselas': newEvent.name = 'Mini Session Brussels'; newEvent.startTime = '16:00'; newEvent.endTime = '22:00'; break;
             default: break;
         }
         setEditingEvent(newEvent);
