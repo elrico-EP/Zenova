@@ -260,29 +260,24 @@ export const generatePersonalAgendaPdf = async (props: {
         const canvas = await html2canvas(element, { scale: 2, useCORS: true });
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = jspdf;
-        
-        const pdf = new jsPDF('p', 'mm', 'a4');
+
+        const pdf = new jsPDF('l', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
         const margin = 10;
         const contentWidth = pdfWidth - margin * 2;
         const contentHeight = pdfHeight - margin * 2;
-        
+
         const imgProps = pdf.getImageProperties(imgData);
-        const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
-        
-        let heightLeft = imgHeight;
-        let position = 0;
+        const widthRatio = contentWidth / imgProps.width;
+        const heightRatio = contentHeight / imgProps.height;
+        const scale = Math.min(widthRatio, heightRatio);
+        const finalWidth = imgProps.width * scale;
+        const finalHeight = imgProps.height * scale;
+        const x = margin + (contentWidth - finalWidth) / 2;
+        const y = margin + (contentHeight - finalHeight) / 2;
 
-        pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, imgHeight);
-        heightLeft -= contentHeight;
-
-        while (heightLeft > 0) {
-            position -= contentHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', margin, position + margin, contentWidth, imgHeight);
-            heightLeft -= contentHeight;
-        }
+        pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
 
         const year = currentDate.getFullYear();
         const month = String(currentDate.getMonth() + 1).padStart(2, '0');
@@ -339,8 +334,14 @@ export const generateAnnualAgendaPdf = async (props: {
             return tempContainer.querySelectorAll('.month-pdf-container');
         };
 
-        const monthElements = await waitForRenderedMonths();
-        if (monthElements.length === 0) throw new Error("No month containers found");
+        let monthElements = await waitForRenderedMonths();
+        if (monthElements.length < 12) {
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            monthElements = await waitForRenderedMonths();
+        }
+        if (monthElements.length < 12) {
+            throw new Error(`Expected 12 month containers but found ${monthElements.length}`);
+        }
         
         const { jsPDF } = jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
