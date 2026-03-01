@@ -15,6 +15,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
+import { PersonalAgendaPrintView } from './components/PersonalAgendaPrintView';
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState, RecalcScope } from './types';
 import { UndoIcon } from './components/Icons';
 import { SHIFTS, INITIAL_NURSES } from './constants';
@@ -22,7 +23,7 @@ import { recalculateScheduleForMonth, getShiftsFromCell } from './utils/schedule
 import { validateSchedule } from './utils/ruleValidator';
 import { calculateHoursForMonth, calculateHoursForDay, calculateHoursDifference } from './utils/hoursUtils';
 import { getActiveJornada } from './utils/jornadaUtils';
-import { generateAndDownloadPdf, generateAnnualAgendaPdf } from './utils/exportUtils';
+import { generateAndDownloadPdf } from './utils/exportUtils';
 import { getWeekIdentifier } from './utils/dateUtils';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026, holidays2026 } from './data/agenda2026';
 import { useLanguage } from './contexts/LanguageContext';
@@ -44,6 +45,44 @@ const AppContent: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   const { nurses, setMonth } = useNurses();
+
+  // Check for print mode data
+  const [printData, setPrintData] = useState<any>(null);
+  
+  useEffect(() => {
+    const storedData = localStorage.getItem('zenova-print-data');
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        // Only use data if it's fresh (within 10 seconds)
+        if (Date.now() - parsed.timestamp < 10000) {
+          setPrintData(parsed);
+          // Clear after loading to prevent reuse
+          localStorage.removeItem('zenova-print-data');
+        } else {
+          localStorage.removeItem('zenova-print-data');
+        }
+      } catch (e) {
+        console.error('Failed to parse print data', e);
+        localStorage.removeItem('zenova-print-data');
+      }
+    }
+  }, []);
+
+  // If in print mode, render only the print view
+  if (printData && printData.type === 'personal-agenda') {
+    return (
+      <PersonalAgendaPrintView
+        nurse={printData.nurse}
+        year={printData.year}
+        month={printData.month || 0}
+        schedule={printData.schedule || {}}
+        specialStrasbourgEvents={printData.specialStrasbourgEvents || []}
+        isAnnual={printData.isAnnual || false}
+        allSchedules={printData.allSchedules}
+      />
+    );
+  }
 
   const [localNurses, setLocalNurses] = useState<Nurse[]>([]);
   const [isEditingNurses, setIsEditingNurses] = useState(false);
@@ -1013,7 +1052,26 @@ const handleAddNurse = useCallback((name: string) => {
         const monthSchedule = useOriginal ? baseSchedule : applyManualOverrides(withWishes, manualOverrides);
         allSchedules[month] = monthSchedule[nurse.id] || {};
     }
-    await generateAnnualAgendaPdf({ nurse, year, allSchedules, agenda: effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales });
+    
+    // Store data for print view
+    const printData = {
+      type: 'personal-agenda',
+      isAnnual: true,
+      nurse,
+      year,
+      allSchedules,
+      specialStrasbourgEvents,
+      timestamp: Date.now()
+    };
+    
+    localStorage.setItem('zenova-print-data', JSON.stringify(printData));
+    
+    // Open new window for printing
+    const printWindow = window.open(window.location.origin, '_blank', 'width=1200,height=800');
+    
+    if (!printWindow) {
+      alert('Please allow popups for this site to print PDF');
+    }
   }, [currentDate, effectiveAgenda, baseOverrides, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, manualOverrides, wishOverrides, applyManualOverrides, getFrozenOrAutoBaseScheduleForMonth]);
 
   const monthsWithOverrides = useMemo(() => {
