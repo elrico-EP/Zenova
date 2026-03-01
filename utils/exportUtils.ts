@@ -10,6 +10,7 @@ import { holidays2026 } from '../data/agenda2026';
 import { AnnualAgendaPdfView } from '../components/AnnualAgendaPdfView';
 import { PersonalAgendaPdfView } from '../components/PersonalAgendaPdfView';
 import { locales } from '../translations/locales';
+import * as XLSX from 'xlsx';
 
 declare const html2canvas: any;
 declare const jspdf: any;
@@ -249,6 +250,244 @@ export const generateAndDownloadPdf = async (props: { nurses: Nurse[]; schedule:
         root.unmount();
         document.body.removeChild(tempContainer);
     }
+};
+
+// ====================================================================================
+// EXCEL EXPORTS (Monthly and Annual Personal Agendas)
+// ====================================================================================
+
+export const generatePersonalAgendaExcel = async (props: {
+  nurse: Nurse;
+  currentDate: Date;
+  schedule: Schedule[string];
+  hours: Hours;
+  agenda: Agenda;
+  strasbourgAssignments: Record<string, string[]>;
+  specialStrasbourgEvents: SpecialStrasbourgEvent[];
+  jornadasLaborales: JornadaLaboral[];
+}): Promise<void> => {
+  const lang = (localStorage.getItem('zenova-lang') || 'en') as Language;
+  const t = locales[lang];
+  
+  const { nurse, currentDate, schedule, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales } = props;
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  
+  // Build calendar data
+  const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
+  
+  const data: any[] = [];
+  
+  // Add header
+  data.push([
+    nurse.name,
+    currentDate.toLocaleString(lang, { month: 'long', year: 'numeric' }).toUpperCase(),
+  ]);
+  data.push([]);
+  
+  // Add column headers
+  const dayNames = [...Array(7).keys()].map(i => 
+    new Date(2023, 0, i + 2).toLocaleString(lang, { weekday: 'short' })
+  );
+  data.push(['Date', ...dayNames, 'Notes']);
+  
+  // Add days
+  let dayCount = 1;
+  let isFirstWeek = true;
+  
+  for (let week = 0; week < 6; week++) {
+    if (!isFirstWeek) {
+      data.push([]);
+    }
+    isFirstWeek = false;
+    
+    const rowData: any[] = [];
+    
+    for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+      let cellData = '';
+      let dateForCell: Date | null = null;
+      
+      // Check if we're in the first week and before the start day
+      const dayPosition = week * 7 + dayOfWeek;
+      if (dayPosition < startDayOfWeek) {
+        cellData = '';
+      } else if (dayCount > daysInMonth) {
+        cellData = '';
+      } else {
+        dateForCell = new Date(Date.UTC(year, month, dayCount));
+        const dateKey = dateForCell.toISOString().split('T')[0];
+        
+        const shiftCell = schedule?.[dateKey];
+        const specialEvent = specialStrasbourgEvents.find(e => 
+          e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate
+        );
+        
+        if (specialEvent) {
+          cellData = specialEvent.name;
+        } else if (shiftCell) {
+          if (typeof shiftCell === 'string') {
+            cellData = shiftCell;
+          } else if ('custom' in shiftCell) {
+            cellData = shiftCell.custom.time || shiftCell.custom.shift;
+          } else if ('split' in shiftCell) {
+            const [morning, afternoon] = shiftCell.split;
+            cellData = `${morning || '—'} / ${afternoon || '—'}`;
+          }
+        }
+        
+        dayCount++;
+      }
+      
+      if (rowData.length === 0) {
+        rowData.push(cellData || dayCount - 1 === 0 ? '' : dayCount - 1);
+      }
+      rowData.push(cellData);
+    }
+    
+    if (rowData.some(cell => cell !== '')) {
+      data.push(rowData);
+    }
+  }
+  
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  
+  // Set column widths
+  worksheet['!cols'] = [
+    { wch: 15 }, // Date
+    { wch: 18 }, // Each day
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 30 }, // Notes
+  ];
+  
+  XLSX.utils.book_append_sheet(workbook, worksheet, currentDate.toLocaleString(lang, { month: 'short' }));
+  
+  // Save file
+  const filename = `Agenda_${nurse.name.replace(/\s/g, '_')}_${year}-${String(month + 1).padStart(2, '0')}.xlsx`;
+  XLSX.writeFile(workbook, filename);
+};
+
+export const generateAnnualAgendaExcel = async (props: {
+    nurse: Nurse;
+    year: number;
+    allSchedules: Record<number, Schedule[string]>;
+    agenda: Agenda;
+    strasbourgAssignments: Record<string, string[]>;
+    specialStrasbourgEvents: SpecialStrasbourgEvent[];
+    jornadasLaborales: JornadaLaboral[];
+}): Promise<void> => {
+  const lang = (localStorage.getItem('zenova-lang') || 'en') as Language;
+  const t = locales[lang];
+  
+  const { nurse, year, allSchedules, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales } = props;
+  
+  const workbook = XLSX.utils.book_new();
+  
+  // Create a sheet for each month
+  for (let month = 0; month < 12; month++) {
+    const currentDate = new Date(year, month, 1);
+    const schedule = allSchedules[month] || {};
+    
+    const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
+    
+    const data: any[] = [];
+    
+    // Add header
+    const monthName = currentDate.toLocaleString(lang, { month: 'long' }).toUpperCase();
+    data.push([`${monthName} ${year}`]);
+    data.push([]);
+    
+    // Add column headers
+    const dayNames = [...Array(7).keys()].map(i => 
+      new Date(2023, 0, i + 2).toLocaleString(lang, { weekday: 'short' })
+    );
+    data.push(['Week', ...dayNames]);
+    
+    // Add weeks
+    let dayCount = 1;
+    let weekNum = 1;
+    
+    for (let week = 0; week < 6; week++) {
+      const rowData: any[] = [];
+      let hasContent = false;
+      
+      const weekStart = new Date(year, month, Math.max(1, (week * 7) + 1 - startDayOfWeek));
+      const weekId = getWeekIdentifier(weekStart);
+      rowData.push(`W${weekId.split('-W')[1]}`);
+      
+      for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+        let cellData = '';
+        
+        const dayPosition = week * 7 + dayOfWeek;
+        if (dayPosition < startDayOfWeek) {
+          cellData = '';
+        } else if (dayCount > daysInMonth) {
+          cellData = '';
+        } else {
+          const dateForCell = new Date(Date.UTC(year, month, dayCount));
+          const dateKey = dateForCell.toISOString().split('T')[0];
+          
+          const shiftCell = schedule?.[dateKey];
+          const specialEvent = specialStrasbourgEvents.find(e => 
+            e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate
+          );
+          
+          if (specialEvent) {
+            cellData = specialEvent.name;
+            hasContent = true;
+          } else if (shiftCell) {
+            if (typeof shiftCell === 'string') {
+              cellData = shiftCell;
+            } else if ('custom' in shiftCell) {
+              cellData = shiftCell.custom.time || shiftCell.custom.shift;
+            } else if ('split' in shiftCell) {
+              const [morning, afternoon] = shiftCell.split;
+              cellData = `${morning || '—'} / ${afternoon || '—'}`;
+            }
+            hasContent = true;
+          }
+          
+          dayCount++;
+        }
+        
+        rowData.push(cellData);
+      }
+      
+      if (hasContent) {
+        data.push(rowData);
+      }
+    }
+    
+    // Create worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    worksheet['!cols'] = [
+      { wch: 10 },  // Week
+      { wch: 15 },  // Each day
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+    ];
+    
+    const sheetName = currentDate.toLocaleString(lang, { month: 'short' });
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  }
+  
+  // Save file
+  const filename = `Annual_Agenda_${nurse.name.replace(/\s/g, '_')}_${year}.xlsx`;
+  XLSX.writeFile(workbook, filename);
 };
 
 export const generatePersonalAgendaPdf = async (props: {
