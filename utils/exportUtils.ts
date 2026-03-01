@@ -8,6 +8,7 @@ import { getScheduleCellHours, getShiftsFromCell } from './scheduleUtils';
 import { getWeekIdentifier } from './dateUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { AnnualAgendaPdfView } from '../components/AnnualAgendaPdfView';
+import { PersonalAgendaPdfView } from '../components/PersonalAgendaPdfView';
 import { locales } from '../translations/locales';
 
 declare const html2canvas: any;
@@ -251,13 +252,51 @@ export const generateAndDownloadPdf = async (props: { nurses: Nurse[]; schedule:
 };
 
 export const generatePersonalAgendaPdf = async (props: {
-  element: HTMLElement;
   nurse: Nurse;
   currentDate: Date;
+  schedule: Schedule[string];
+  hours: Hours;
+  agenda: Agenda;
+  strasbourgAssignments: Record<string, string[]>;
+  specialStrasbourgEvents: SpecialStrasbourgEvent[];
+  jornadasLaborales: JornadaLaboral[];
 }): Promise<void> => {
-    const { element, nurse, currentDate } = props;
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '0px';
+    document.body.appendChild(tempContainer);
+    const root = ReactDOM.createRoot(tempContainer);
+
     try {
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+        await new Promise<void>((resolve) => {
+             root.render(
+                React.createElement(
+                    React.StrictMode,
+                    null,
+                    React.createElement(
+                        LanguageProvider,
+                        null,
+                        React.createElement(PersonalAgendaPdfView, props)
+                    )
+                )
+             );
+            setTimeout(resolve, 1400);
+        });
+
+        const pdfRoot = tempContainer.querySelector('.personal-agenda-pdf-root') as HTMLElement | null;
+        if (!pdfRoot) throw new Error('Personal agenda PDF root not found');
+
+        const canvas = await html2canvas(pdfRoot, {
+            scale: 1.7,
+            useCORS: true,
+            windowWidth: Math.max(pdfRoot.scrollWidth, 1400),
+            windowHeight: Math.max(pdfRoot.scrollHeight, 900),
+            width: pdfRoot.scrollWidth,
+            height: pdfRoot.scrollHeight,
+            scrollX: 0,
+            scrollY: 0
+        });
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = jspdf;
 
@@ -279,13 +318,18 @@ export const generatePersonalAgendaPdf = async (props: {
 
         pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
 
-        const year = currentDate.getFullYear();
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const year = props.currentDate.getFullYear();
+        const month = String(props.currentDate.getMonth() + 1).padStart(2, '0');
         pdf.save(`Agenda_${nurse.name.replace(/\s/g, '_')}_${year}-${month}.pdf`);
 
     } catch (error) {
         console.error("Personal Agenda PDF generation failed:", error);
         throw error; // Re-throw to be caught in the component
+    } finally {
+        root.unmount();
+        if (document.body.contains(tempContainer)) {
+            document.body.removeChild(tempContainer);
+        }
     }
 };
 
@@ -320,7 +364,7 @@ export const generateAnnualAgendaPdf = async (props: {
         });
 
         const waitForRenderedMonths = async (): Promise<NodeListOf<Element>> => {
-            const maxAttempts = 30;
+            const maxAttempts = 80;
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 const elements = tempContainer.querySelectorAll('.month-pdf-container');
                 if (elements.length >= 12) {
@@ -328,7 +372,7 @@ export const generateAnnualAgendaPdf = async (props: {
                     return elements;
                 }
                 console.log(`Attempt ${attempt + 1}: Found ${elements.length} month containers, waiting...`);
-                await new Promise(resolve => setTimeout(resolve, 300));
+                await new Promise(resolve => setTimeout(resolve, 400));
             }
             console.warn('Timeout waiting for month containers, proceeding with what we have');
             return tempContainer.querySelectorAll('.month-pdf-container');
@@ -339,8 +383,11 @@ export const generateAnnualAgendaPdf = async (props: {
             await new Promise(resolve => setTimeout(resolve, 1200));
             monthElements = await waitForRenderedMonths();
         }
+        if (monthElements.length === 0) {
+            throw new Error('No month containers found for annual export');
+        }
         if (monthElements.length < 12) {
-            throw new Error(`Expected 12 month containers but found ${monthElements.length}`);
+            console.warn(`Expected 12 month containers but found ${monthElements.length}. Exporting available months.`);
         }
         
         const { jsPDF } = jspdf;
@@ -363,7 +410,7 @@ export const generateAnnualAgendaPdf = async (props: {
             pdf.setFontSize(12);
             pdf.text(monthName, margin, margin + 8);
 
-            const canvas = await html2canvas(monthElement, { scale: 2, useCORS: true });
+            const canvas = await html2canvas(monthElement, { scale: 1.5, useCORS: true });
             const imgData = canvas.toDataURL('image/png');
             const imgProps = pdf.getImageProperties(imgData);
             const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
