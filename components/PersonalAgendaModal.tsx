@@ -87,6 +87,36 @@ const calculateEventHours = (start?: string, end?: string): number => {
     }
 };
 
+const calculateSpecialEventTotalHours = (event: SpecialStrasbourgEvent): number => {
+    if (
+        event.isSplit &&
+        event.morningStartTime &&
+        event.morningEndTime &&
+        event.afternoonStartTime &&
+        event.afternoonEndTime
+    ) {
+        return calculateEventHours(event.morningStartTime, event.morningEndTime) + calculateEventHours(event.afternoonStartTime, event.afternoonEndTime);
+    }
+    return calculateEventHours(event.startTime, event.endTime);
+};
+
+const getSpecialEventCompactLabel = (event: SpecialStrasbourgEvent): string => {
+    switch (event.type) {
+        case 'mini_sesion_bruselas':
+            return 'Mini Session';
+        case 'tuesday_permanence':
+            return 'Tue Permanence';
+        case 'wednesday_permanence':
+            return 'Wed Permanence';
+        case 'wednesday_permanence_return':
+            return 'Wed Perm + Return';
+        case 'euroscola':
+            return 'Euroscola';
+        default:
+            return event.name;
+    }
+};
+
 interface PersonalAgendaModalProps {
   nurse: Nurse;
   currentDate: Date;
@@ -632,7 +662,18 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                             <div className="my-1 h-14 relative">
                                                 {specialEvent && activeTab === 'current' ? (
                                                     <div className="w-full h-full p-1 flex items-center justify-center relative" title={`${specialEvent.name}${specialEvent.notes ? `\n\nNotas: ${specialEvent.notes}` : ''}`}>
-                                                        <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-xs text-center`}><span className="truncate px-1">{specialEvent.name}</span>{specialEvent.startTime && specialEvent.endTime && <span className="text-[10px] opacity-80 mt-1">{calculateEventHours(specialEvent.startTime, specialEvent.endTime).toFixed(1)}h</span>}</div>
+                                                        <div className={`w-full h-full px-1 py-0.5 flex flex-col items-center justify-center rounded-md shadow-sm ${SHIFTS.STRASBOURG.color} ${SHIFTS.STRASBOURG.textColor} font-bold text-center overflow-hidden`}>
+                                                            <span className="w-full text-[10px] leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{getSpecialEventCompactLabel(specialEvent)}</span>
+                                                            {specialEvent.isSplit && specialEvent.morningStartTime && specialEvent.morningEndTime && specialEvent.afternoonStartTime && specialEvent.afternoonEndTime ? (
+                                                                <>
+                                                                    <span className="text-[9px] leading-tight opacity-90">{specialEvent.morningStartTime}-{specialEvent.morningEndTime}</span>
+                                                                    <span className="text-[9px] leading-tight opacity-90">{specialEvent.afternoonStartTime}-{specialEvent.afternoonEndTime}</span>
+                                                                    <span className="text-[9px] leading-tight opacity-90">{calculateSpecialEventTotalHours(specialEvent).toFixed(1)}h</span>
+                                                                </>
+                                                            ) : (
+                                                                specialEvent.startTime && specialEvent.endTime && <span className="text-[9px] leading-tight opacity-90">{calculateEventHours(specialEvent.startTime, specialEvent.endTime).toFixed(1)}h</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ) : (() => {
                                                     const dailyHoursData = hours[nurse.id]?.[dateKey];
