@@ -281,14 +281,17 @@ export const copyPersonalAgendaToClipboard = async (props: {
     });
     
     let html = '<table border="1" style="border-collapse: collapse; font-family: sans-serif; font-size: 11pt; border-color: #CBD5E1;">';
+    const plainRows: string[] = [];
     
-    html += `<thead><tr><th colspan="8" style="padding: 12px; font-weight: bold; font-size: 14pt; background-color: #1E293B; color: #FFFFFF; text-align: center;">${nurse.name} - ${monthName}</th></tr>`;
+    html += `<thead><tr><th colspan="7" style="padding: 12px; font-weight: bold; font-size: 14pt; background-color: #1E293B; color: #FFFFFF; text-align: center;">${nurse.name} - ${monthName}</th></tr>`;
     html += '<tr>';
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     dayNames.forEach(day => {
         html += `<th style="padding: 8px; font-weight: bold; background-color: #F1F5F9; border-color: #CBD5E1; text-align: center;">${day}</th>`;
     });
     html += '</tr></thead><tbody>';
+    plainRows.push(`${nurse.name} - ${monthName}`);
+    plainRows.push(dayNames.join('\t'));
     
     const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
     const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
@@ -298,11 +301,13 @@ export const copyPersonalAgendaToClipboard = async (props: {
     for (let week = 0; week < weeksInMonth; week++) {
         if (dayCount > daysInMonth) break;
         html += '<tr>';
+        const plainWeekCells: string[] = [];
         for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
             const dayPosition = week * 7 + dayOfWeek;
             
             if (dayPosition < startDayOfWeek || dayCount > daysInMonth) {
                 html += '<td style="padding: 8px; height: 60px; background-color: #F8FAFC; border-color: #CBD5E1;"></td>';
+                plainWeekCells.push('');
             } else {
                 const dateForCell = new Date(Date.UTC(year, month, dayCount));
                 const dateKey = dateForCell.toISOString().split('T')[0];
@@ -313,17 +318,19 @@ export const copyPersonalAgendaToClipboard = async (props: {
                 
                 let cellContent = `<div style="font-weight: bold; font-size: 9pt; color: #64748B; margin-bottom: 4px;">${dayCount}</div>`;
                 let bgColor = '#FFFFFF';
+                let plainCellText = `${dayCount}`;
                 
                 if (specialEvent) {
                     cellContent += `<div style="font-weight: bold; color: #7C3AED;">${specialEvent.name}</div>`;
                     bgColor = '#EDE9FE';
+                    plainCellText = `${dayCount} ${specialEvent.name}`;
                 } else if (shiftCell) {
                     let shiftText = '';
                     if (typeof shiftCell === 'string') {
                         shiftText = SHIFTS[shiftCell as WorkZone]?.label || shiftCell;
                         bgColor = shiftColorMap[shiftCell] || '#FFFFFF';
                     } else if ('custom' in shiftCell) {
-                        shiftText = shiftCell.custom.shift || shiftCell.custom.time || '';
+                        shiftText = shiftCell.custom || shiftCell.time || '';
                         bgColor = '#FEF3C7';
                     } else if ('split' in shiftCell) {
                         const [morning, afternoon] = shiftCell.split;
@@ -333,20 +340,25 @@ export const copyPersonalAgendaToClipboard = async (props: {
                         bgColor = '#DBEAFE';
                     }
                     cellContent += `<div style="font-weight: bold;">${shiftText}</div>`;
+                    plainCellText = `${dayCount} ${shiftText}`.trim();
                 }
                 html += `<td style="padding: 8px; height: 60px; background-color: ${bgColor}; border-color: #CBD5E1; vertical-align: top;">${cellContent}</td>`;
+                plainWeekCells.push(plainCellText);
                 dayCount++;
             }
         }
         html += '</tr>';
+        plainRows.push(plainWeekCells.join('\t'));
     }
     
     html += '</tbody></table>';
+    const plainText = plainRows.join('\n');
     
     try {
         console.log('Clipboard copy: HTML size', html.length, 'bytes, weeks in output:', (html.match(/<tr>/g) || []).length, 'rows');
-        const blob = new Blob([html], { type: 'text/html' });
-        const clipboardItem = new ClipboardItem({ 'text/html': blob });
+        const htmlBlob = new Blob([html], { type: 'text/html' });
+        const textBlob = new Blob([plainText], { type: 'text/plain' });
+        const clipboardItem = new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob });
         await navigator.clipboard.write([clipboardItem]);
         console.log('✓ Personal agenda copied to clipboard');
     } catch (err) {
