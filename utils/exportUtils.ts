@@ -253,242 +253,219 @@ export const generateAndDownloadPdf = async (props: { nurses: Nurse[]; schedule:
 };
 
 // ====================================================================================
-// EXCEL EXPORTS (Monthly and Annual Personal Agendas)
+// PERSONAL AGENDA - Copy to Clipboard (Monthly)
 // ====================================================================================
 
-export const generatePersonalAgendaExcel = async (props: {
+export const copyPersonalAgendaToClipboard = async (props: {
   nurse: Nurse;
   currentDate: Date;
   schedule: Schedule[string];
-  hours: Hours;
   agenda: Agenda;
-  strasbourgAssignments: Record<string, string[]>;
   specialStrasbourgEvents: SpecialStrasbourgEvent[];
-  jornadasLaborales: JornadaLaboral[];
 }): Promise<void> => {
-  const lang = (localStorage.getItem('zenova-lang') || 'en') as Language;
-  const t = locales[lang];
-  
-  const { nurse, currentDate, schedule, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales } = props;
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  
-  // Build calendar data
-  const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
-  
-  const data: any[] = [];
-  
-  // Add header
-  data.push([
-    nurse.name,
-    currentDate.toLocaleString(lang, { month: 'long', year: 'numeric' }).toUpperCase(),
-  ]);
-  data.push([]);
-  
-  // Add column headers
-  const dayNames = [...Array(7).keys()].map(i => 
-    new Date(2023, 0, i + 2).toLocaleString(lang, { weekday: 'short' })
-  );
-  data.push(['Date', ...dayNames, 'Notes']);
-  
-  // Add days
-  let dayCount = 1;
-  let isFirstWeek = true;
-  
-  for (let week = 0; week < 6; week++) {
-    if (!isFirstWeek) {
-      data.push([]);
-    }
-    isFirstWeek = false;
+    const lang = (localStorage.getItem('zenova-lang') || 'en') as Language;
+    const t = locales[lang];
+    const { nurse, currentDate, schedule, agenda, specialStrasbourgEvents } = props;
     
-    const rowData: any[] = [];
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-      let cellData = '';
-      let dateForCell: Date | null = null;
-      
-      // Check if we're in the first week and before the start day
-      const dayPosition = week * 7 + dayOfWeek;
-      if (dayPosition < startDayOfWeek) {
-        cellData = '';
-      } else if (dayCount > daysInMonth) {
-        cellData = '';
-      } else {
-        dateForCell = new Date(Date.UTC(year, month, dayCount));
-        const dateKey = dateForCell.toISOString().split('T')[0];
-        
-        const shiftCell = schedule?.[dateKey];
-        const specialEvent = specialStrasbourgEvents.find(e => 
-          e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate
-        );
-        
-        if (specialEvent) {
-          cellData = specialEvent.name;
-        } else if (shiftCell) {
-          if (typeof shiftCell === 'string') {
-            cellData = shiftCell;
-          } else if ('custom' in shiftCell) {
-            cellData = shiftCell.custom.time || shiftCell.custom.shift;
-          } else if ('split' in shiftCell) {
-            const [morning, afternoon] = shiftCell.split;
-            cellData = `${morning || '—'} / ${afternoon || '—'}`;
-          }
+    // Color styles
+    const shiftColorMap: Record<string, string> = {};
+    Object.entries(SHIFTS).forEach(([key, value]) => {
+        if (tailwindToHexMap[value.color]) {
+            shiftColorMap[key] = tailwindToHexMap[value.color].bg;
         }
+    });
+    
+    let html = '<table border="1" style="border-collapse: collapse; font-family: sans-serif; font-size: 11pt; border-color: #CBD5E1;">';
+    
+    // Header
+    const monthName = currentDate.toLocaleString(lang, { month: 'long', year: 'numeric' });
+    html += `<thead><tr><th colspan="8" style="padding: 12px; font-weight: bold; font-size: 14pt; background-color: #1E293B; color: #FFFFFF; text-align: center;">${nurse.name} - ${monthName}</th></tr>`;
+    
+    // Day headers
+    html += '<tr>';
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    dayNames.forEach(day => {
+        html += `<th style="padding: 8px; font-weight: bold; background-color: #F1F5F9; border-color: #CBD5E1; text-align: center;">${day}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    
+    // Calendar grid
+    const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+    const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
+    
+    let dayCount = 1;
+    for (let week = 0; week < 6; week++) {
+        if (dayCount > daysInMonth) break;
         
-        dayCount++;
-      }
-      
-      if (rowData.length === 0) {
-        rowData.push(cellData || dayCount - 1 === 0 ? '' : dayCount - 1);
-      }
-      rowData.push(cellData);
+        html += '<tr>';
+        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+            const dayPosition = week * 7 + dayOfWeek;
+            
+            if (dayPosition < startDayOfWeek || dayCount > daysInMonth) {
+                html += '<td style="padding: 8px; height: 60px; background-color: #F8FAFC; border-color: #CBD5E1;"></td>';
+            } else {
+                const dateForCell = new Date(Date.UTC(year, month, dayCount));
+                const dateKey = dateForCell.toISOString().split('T')[0];
+                const shiftCell = schedule?.[dateKey];
+                const specialEvent = specialStrasbourgEvents.find(e => 
+                    e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate
+                );
+                
+                let cellContent = `<div style="font-weight: bold; font-size: 9pt; color: #64748B; margin-bottom: 4px;">${dayCount}</div>`;
+                let bgColor = '#FFFFFF';
+                
+                if (specialEvent) {
+                    cellContent += `<div style="font-weight: bold; color: #7C3AED;">${specialEvent.name}</div>`;
+                    bgColor = '#EDE9FE';
+                } else if (shiftCell) {
+                    let shiftText = '';
+                    if (typeof shiftCell === 'string') {
+                        shiftText = SHIFTS[shiftCell as WorkZone]?.label || shiftCell;
+                        bgColor = shiftColorMap[shiftCell] || '#FFFFFF';
+                    } else if ('custom' in shiftCell) {
+                        shiftText = shiftCell.custom.shift || shiftCell.custom.time || '';
+                        bgColor = '#FEF3C7';
+                    } else if ('split' in shiftCell) {
+                        const [morning, afternoon] = shiftCell.split;
+                        const morningText = morning && typeof morning === 'string' ? (SHIFTS[morning as WorkZone]?.label || morning) : '';
+                        const afternoonText = afternoon && typeof afternoon === 'string' ? (SHIFTS[afternoon as WorkZone]?.label || afternoon) : '';
+                        shiftText = `${morningText} / ${afternoonText}`;
+                        bgColor = '#DBEAFE';
+                    }
+                    cellContent += `<div style="font-weight: bold;">${shiftText}</div>`;
+                }
+                
+                html += `<td style="padding: 8px; height: 60px; background-color: ${bgColor}; border-color: #CBD5E1; vertical-align: top;">${cellContent}</td>`;
+                dayCount++;
+            }
+        }
+        html += '</tr>';
     }
     
-    if (rowData.some(cell => cell !== '')) {
-      data.push(rowData);
+    html += '</tbody></table>';
+    
+    try {
+        const blob = new Blob([html], { type: 'text/html' });
+        const clipboardItem = new ClipboardItem({ 'text/html': blob });
+        await navigator.clipboard.write([clipboardItem]);
+    } catch (err) {
+        console.error('Failed to copy personal agenda to clipboard:', err);
+        throw err;
     }
-  }
-  
-  // Create workbook
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
-  
-  // Set column widths
-  worksheet['!cols'] = [
-    { wch: 15 }, // Date
-    { wch: 18 }, // Each day
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 18 },
-    { wch: 30 }, // Notes
-  ];
-  
-  XLSX.utils.book_append_sheet(workbook, worksheet, currentDate.toLocaleString(lang, { month: 'short' }));
-  
-  // Save file
-  const filename = `Agenda_${nurse.name.replace(/\s/g, '_')}_${year}-${String(month + 1).padStart(2, '0')}.xlsx`;
-  XLSX.writeFile(workbook, filename);
 };
 
-export const generateAnnualAgendaExcel = async (props: {
+// ====================================================================================
+// ANNUAL AGENDA - Copy to Clipboard 
+// ====================================================================================
+
+export const copyAnnualAgendaToClipboard = async (props: {
     nurse: Nurse;
     year: number;
     allSchedules: Record<number, Schedule[string]>;
-    agenda: Agenda;
-    strasbourgAssignments: Record<string, string[]>;
     specialStrasbourgEvents: SpecialStrasbourgEvent[];
-    jornadasLaborales: JornadaLaboral[];
 }): Promise<void> => {
-  const lang = (localStorage.getItem('zenova-lang') || 'en') as Language;
-  const t = locales[lang];
-  
-  const { nurse, year, allSchedules, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales } = props;
-  
-  const workbook = XLSX.utils.book_new();
-  
-  // Create a sheet for each month
-  for (let month = 0; month < 12; month++) {
-    const currentDate = new Date(year, month, 1);
-    const schedule = allSchedules[month] || {};
+    const lang = (localStorage.getItem('zenova-lang') || 'en') as Language;
+    const t = locales[lang];
+    const { nurse, year, allSchedules, specialStrasbourgEvents } = props;
     
-    const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
+    let html = '<table border="1" style="border-collapse: collapse; font-family: sans-serif; font-size: 10pt; border-color: #CBD5E1;">';
     
-    const data: any[] = [];
+    // Main header
+    html += `<thead><tr><th colspan="9" style="padding: 12px; font-weight: bold; font-size: 14pt; background-color: #0F172A; color: #FFFFFF; text-align: center;">${nurse.name} - ${year} Annual Agenda</th></tr></thead>`;
     
-    // Add header
-    const monthName = currentDate.toLocaleString(lang, { month: 'long' }).toUpperCase();
-    data.push([`${monthName} ${year}`]);
-    data.push([]);
+    html += '<tbody>';
     
-    // Add column headers
-    const dayNames = [...Array(7).keys()].map(i => 
-      new Date(2023, 0, i + 2).toLocaleString(lang, { weekday: 'short' })
-    );
-    data.push(['Week', ...dayNames]);
-    
-    // Add weeks
-    let dayCount = 1;
-    let weekNum = 1;
-    
-    for (let week = 0; week < 6; week++) {
-      const rowData: any[] = [];
-      let hasContent = false;
-      
-      const weekStart = new Date(year, month, Math.max(1, (week * 7) + 1 - startDayOfWeek));
-      const weekId = getWeekIdentifier(weekStart);
-      rowData.push(`W${weekId.split('-W')[1]}`);
-      
-      for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-        let cellData = '';
+    // For each month
+    for (let month = 0; month < 12; month++) {
+        const currentDate = new Date(year, month, 1);
+        const monthName = currentDate.toLocaleString(lang, { month: 'long' });
+        const schedule = allSchedules[month] || {};
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
         
-        const dayPosition = week * 7 + dayOfWeek;
-        if (dayPosition < startDayOfWeek) {
-          cellData = '';
-        } else if (dayCount > daysInMonth) {
-          cellData = '';
-        } else {
-          const dateForCell = new Date(Date.UTC(year, month, dayCount));
-          const dateKey = dateForCell.toISOString().split('T')[0];
-          
-          const shiftCell = schedule?.[dateKey];
-          const specialEvent = specialStrasbourgEvents.find(e => 
-            e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate
-          );
-          
-          if (specialEvent) {
-            cellData = specialEvent.name;
-            hasContent = true;
-          } else if (shiftCell) {
-            if (typeof shiftCell === 'string') {
-              cellData = shiftCell;
-            } else if ('custom' in shiftCell) {
-              cellData = shiftCell.custom.time || shiftCell.custom.shift;
-            } else if ('split' in shiftCell) {
-              const [morning, afternoon] = shiftCell.split;
-              cellData = `${morning || '—'} / ${afternoon || '—'}`;
+        // Month header
+        html += `<tr><td colspan="9" style="padding: 8px; font-weight: bold; font-size: 11pt; background-color: #334155; color: #FFFFFF; text-align: center;">${monthName}</td></tr>`;
+        
+        // Week headers
+        html += '<tr>';
+        html += '<th style="padding: 6px; font-weight: bold; background-color: #F1F5F9; border-color: #CBD5E1;">Week</th>';
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        dayNames.forEach(day => {
+            html += `<th style="padding: 6px; font-weight: bold; background-color: #F1F5F9; border-color: #CBD5E1; text-align: center;">${day}</th>`;
+        });
+        html += '<th style="padding: 6px; font-weight: bold; background-color: #F1F5F9; border-color: #CBD5E1;">Notes</th></tr>';
+        
+        // Days
+        const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+        const startDayOfWeek = (firstDayOfMonth.getUTCDay() + 6) % 7;
+        
+        let dayCount = 1;
+        for (let week = 0; week < 6; week++) {
+            if (dayCount > daysInMonth) break;
+            
+            html += '<tr>';
+            
+            // Week number
+            const weekDate = new Date(year, month, Math.max(1, (week * 7) + 1 - startDayOfWeek));
+            const weekId = getWeekIdentifier(weekDate);
+            html += `<td style="padding: 4px; font-weight: bold; text-align: center; background-color: #F8FAFC; border-color: #CBD5E1;">W${weekId.split('-W')[1]}</td>`;
+            
+            // Days
+            for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+                const dayPosition = week * 7 + dayOfWeek;
+                
+                if (dayPosition < startDayOfWeek || dayCount > daysInMonth) {
+                    html += '<td style="padding: 4px; background-color: #F8FAFC; border-color: #CBD5E1;"></td>';
+                } else {
+                    const dateForCell = new Date(Date.UTC(year, month, dayCount));
+                    const dateKey = dateForCell.toISOString().split('T')[0];
+                    const shiftCell = schedule?.[dateKey];
+                    
+                    let shiftText = '';
+                    let bgColor = '#FFFFFF';
+                    
+                    if (shiftCell) {
+                        if (typeof shiftCell === 'string') {
+                            const shiftLabel = SHIFTS[shiftCell as WorkZone]?.label || shiftCell;
+                            shiftText = shiftLabel.substring(0, 6); // Abbreviated
+                            bgColor = tailwindToHexMap[SHIFTS[shiftCell as WorkZone]?.color]?.bg || '#FFFFFF';
+                        } else if ('custom' in shiftCell) {
+                            shiftText = shiftCell.custom.shift?.substring(0, 6) || 'CUST';
+                            bgColor = '#FEF3C7';
+                        } else if ('split' in shiftCell) {
+                            shiftText = 'SPLIT';
+                            bgColor = '#DBEAFE';
+                        }
+                    }
+                    
+                    html += `<td style="padding: 4px; font-size: 8pt; font-weight: bold; text-align: center; background-color: ${bgColor}; border-color: #CBD5E1;">${shiftText}</td>`;
+                    dayCount++;
+                }
             }
-            hasContent = true;
-          }
-          
-          dayCount++;
+            
+            html += '<td style="padding: 4px; background-color: #FEFCE8; border-color: #CBD5E1;"></td>';
+            html += '</tr>';
         }
-        
-        rowData.push(cellData);
-      }
-      
-      if (hasContent) {
-        data.push(rowData);
-      }
     }
     
-    // Create worksheet
-    const worksheet = XLSX.utils.aoa_to_sheet(data);
-    worksheet['!cols'] = [
-      { wch: 10 },  // Week
-      { wch: 15 },  // Each day
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-    ];
+    html += '</tbody></table>';
     
-    const sheetName = currentDate.toLocaleString(lang, { month: 'short' });
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  }
-  
-  // Save file
-  const filename = `Annual_Agenda_${nurse.name.replace(/\s/g, '_')}_${year}.xlsx`;
-  XLSX.writeFile(workbook, filename);
+    try {
+        const blob = new Blob([html], { type: 'text/html' });
+        const clipboardItem = new ClipboardItem({ 'text/html': blob });
+        await navigator.clipboard.write([clipboardItem]);
+    } catch (err) {
+        console.error('Failed to copy annual agenda to clipboard:', err);
+        throw err;
+    }
 };
+
+// ====================================================================================
+// PDF EXPORTS
+// ====================================================================================
 
 export const generatePersonalAgendaPdf = async (props: {
   nurse: Nurse;
