@@ -1,26 +1,17 @@
-// A helper to get the ISO week number for a date
-const getWeek = (date: Date): number => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+const getISOWeekInfo = (date: Date): { year: number; week: number } => {
+    const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+
+    const isoYear = d.getUTCFullYear();
+    const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+    const week = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+
+    return { year: isoYear, week };
 };
 
 export const getWeekIdentifier = (date: Date): string => {
-    let year = date.getFullYear();
-    const month = date.getMonth();
-    const week = getWeek(date);
-
-    // ISO week year logic: if the week is 52 or 53 and the month is January, it belongs to the previous year.
-    if (week >= 52 && month === 0) {
-        year--;
-    }
-    // If the week is 1 and the month is December, it belongs to the next year.
-    if (week === 1 && month === 11) {
-        year++;
-    }
-
+    const { year, week } = getISOWeekInfo(date);
     return `${year}-W${String(week).padStart(2, '0')}`;
 };
 
@@ -110,27 +101,20 @@ export const getWeeksForMonth = (year: number, month: number): Date[] => {
     const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
     const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0));
 
-    // Convert Sunday=0 to Monday=0 system
-    const firstDayOfWeek_MonIsZero = (firstDayOfMonth.getUTCDay() + 6) % 7;
-    const loopStartDate = new Date(firstDayOfMonth);
-    loopStartDate.setUTCDate(firstDayOfMonth.getUTCDate() - firstDayOfWeek_MonIsZero);
-    
-    // Find the actual render start date (first Monday of the month or before)
-    let renderStartDate = new Date(loopStartDate);
-    if (renderStartDate.getUTCMonth() !== month) {
-        renderStartDate.setUTCDate(renderStartDate.getUTCDate() + 7);
+    // Start at the first Monday within the month
+    const startDate = new Date(firstDayOfMonth);
+    while (startDate.getUTCDay() !== 1) {
+        startDate.setUTCDate(startDate.getUTCDate() + 1);
     }
-    
-    // Calculate end date (last Sunday after the last day of month)
-    const lastDayOfWeek_MonIsZero = (lastDayOfMonth.getUTCDay() + 6) % 7;
-    const loopEndDate = new Date(lastDayOfMonth);
-    loopEndDate.setUTCDate(loopEndDate.getUTCDate() + (6 - lastDayOfWeek_MonIsZero));
-    
-    // Iterate from start to end date
-    for (let d = new Date(loopStartDate); d <= loopEndDate; d.setUTCDate(d.getUTCDate() + 1)) {
-        if (d >= renderStartDate) {
-            grid.push(new Date(d));
-        }
+
+    // End at the Sunday of the week containing the month's last day
+    const endDate = new Date(lastDayOfMonth);
+    while (endDate.getUTCDay() !== 0) {
+        endDate.setUTCDate(endDate.getUTCDate() + 1);
+    }
+
+    for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
+        grid.push(new Date(d));
     }
 
     return grid;
