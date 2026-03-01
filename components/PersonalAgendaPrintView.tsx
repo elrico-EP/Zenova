@@ -24,6 +24,26 @@ export const PersonalAgendaPrintView: React.FC<PersonalAgendaPrintViewProps> = (
 }) => {
   const { language } = useLanguage();
 
+  const shiftColorMap: Record<string, { bg: string; text: string }> = {
+    'bg-blue-200': { bg: '#BFDBFE', text: '#1E40AF' },
+    'bg-yellow-200': { bg: '#FEF08A', text: '#854D0E' },
+    'bg-blue-500': { bg: '#3B82F6', text: '#EFF6FF' },
+    'bg-yellow-500': { bg: '#EAB308', text: '#FFFBEB' },
+    'bg-orange-200': { bg: '#FED7AA', text: '#9A3412' },
+    'bg-orange-600': { bg: '#EA580C', text: '#FFF7ED' },
+    'bg-purple-300': { bg: '#D8B4FE', text: '#581C87' },
+    'bg-purple-500': { bg: '#A855F7', text: '#FAF5FF' },
+    'bg-rose-300': { bg: '#FDA4AF', text: '#881337' },
+    'bg-cyan-200': { bg: '#A5F3FC', text: '#164E63' },
+    'bg-sky-200': { bg: '#BAE6FD', text: '#0C4A6E' },
+    'bg-green-200': { bg: '#BBF7D0', text: '#166534' },
+    'bg-indigo-200': { bg: '#C7D2FE', text: '#3730A3' },
+    'bg-gray-500': { bg: '#6B7280', text: '#F9FAFB' },
+    'bg-gray-100': { bg: '#F3F4F6', text: '#374151' },
+    'bg-teal-200': { bg: '#99F6E4', text: '#115E59' },
+    'bg-teal-400': { bg: '#2DD4BF', text: '#064E3B' },
+  };
+
   useEffect(() => {
     // Auto-trigger print dialog after component renders
     const timer = setTimeout(() => {
@@ -64,31 +84,40 @@ export const PersonalAgendaPrintView: React.FC<PersonalAgendaPrintViewProps> = (
           
           let shiftText = '';
           let cellClass = 'print-cell';
+          let cellStyle: React.CSSProperties | undefined;
           
           if (specialEvent) {
             shiftText = specialEvent.name;
             cellClass += ' print-cell-event';
+            cellStyle = { backgroundColor: '#EDE9FE', color: '#5B21B6' };
           } else if (shiftCell) {
             if (typeof shiftCell === 'string') {
               shiftText = SHIFTS[shiftCell]?.label || shiftCell;
               cellClass += ` print-cell-${shiftCell.toLowerCase()}`;
+              const shiftDef = SHIFTS[shiftCell];
+              const colors = shiftDef ? shiftColorMap[shiftDef.color] : undefined;
+              if (colors) {
+                cellStyle = { backgroundColor: colors.bg, color: colors.text };
+              }
             } else if ('custom' in shiftCell) {
               // CustomShift - custom is a string
               shiftText = typeof shiftCell.custom === 'string' 
                 ? shiftCell.custom 
                 : shiftCell.time || 'Custom';
               cellClass += ' print-cell-custom';
+              cellStyle = { backgroundColor: '#FEF3C7', color: '#92400E' };
             } else if ('split' in shiftCell) {
               const [morning, afternoon] = shiftCell.split;
               const morningText = morning && typeof morning === 'string' ? (SHIFTS[morning]?.label || morning) : '';
               const afternoonText = afternoon && typeof afternoon === 'string' ? (SHIFTS[afternoon]?.label || afternoon) : '';
               shiftText = `${morningText || '—'} / ${afternoonText || '—'}`;
               cellClass += ' print-cell-split';
+              cellStyle = { backgroundColor: '#DBEAFE', color: '#1E3A8A' };
             }
           }
           
           days.push(
-            <td key={`day-${dayCount}`} className={cellClass}>
+            <td key={`day-${dayCount}`} className={cellClass} style={cellStyle}>
               <div className="print-day-number">{dayCount}</div>
               {shiftText && <div className="print-shift-text">{shiftText}</div>}
             </td>
@@ -125,6 +154,11 @@ export const PersonalAgendaPrintView: React.FC<PersonalAgendaPrintViewProps> = (
           @page {
             size: ${isAnnual ? 'portrait' : 'landscape'};
             margin: 15mm;
+          }
+
+          * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           
           body {
@@ -208,14 +242,15 @@ export const PersonalAgendaPrintView: React.FC<PersonalAgendaPrintViewProps> = (
         .print-day-number {
           font-weight: bold;
           font-size: ${isAnnual ? '8px' : '10px'};
-          color: #64748B;
+          color: inherit;
+          opacity: 0.85;
           margin-bottom: 3px;
         }
         
         .print-shift-text {
           font-size: ${isAnnual ? '7px' : '9px'};
           font-weight: 600;
-          color: #1E293B;
+          color: inherit;
           word-wrap: break-word;
         }
         
