@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="hidden lg:flex items-center gap-2 bg-black/20 p-1 rounded-lg">
             <button onClick={() => setView('schedule')} className={`${navButtonClass} ${view === 'schedule' ? activeNavClass : inactiveNavClass}`}>{t.nav_agenda}</button>
-            {!permissions.isViewingAsViewer && <button onClick={() => setView('balance')} className={`${navButtonClass} ${view === 'balance' ? activeNavClass : inactiveNavClass}`}>{t.nav_balance}</button>}
+            {permissions.isViewingAsAdmin && <button onClick={() => setView('balance')} className={`${navButtonClass} ${view === 'balance' ? activeNavClass : inactiveNavClass}`}>{t.nav_balance}</button>}
             {!permissions.isViewingAsViewer && <button onClick={() => setView('wishes')} className={`${navButtonClass} ${view === 'wishes' ? activeNavClass : inactiveNavClass}`}>{t.wishesViewButton}</button>}
             {permissions.canManageUsers && user?.role === 'admin' && <button onClick={() => setView('userManagement')} className={`${navButtonClass} ${view === 'userManagement' ? activeNavClass : inactiveNavClass}`}>{t.nav_users}</button>}
         </div>
