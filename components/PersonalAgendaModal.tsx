@@ -13,7 +13,7 @@ import { getWeekIdentifier, getDateOfWeek } from '../utils/dateUtils';
 import { getScheduleCellHours, recalculateScheduleForMonth, getShiftsFromCell } from '../utils/scheduleUtils';
 import { calculateHoursForDay, calculateHoursDifference } from '../utils/hoursUtils';
 import { SHIFTS } from '../constants';
-import { generatePersonalAgendaExcel, generateAnnualAgendaExcel } from '../utils/exportUtils';
+import { generatePersonalAgendaPdf, copyPersonalAgendaToClipboard, copyAnnualAgendaToClipboard } from '../utils/exportUtils';
 import { getActiveJornada } from '../utils/jornadaUtils';
 import { Locale } from '../translations/locales';
 
@@ -470,18 +470,37 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   const handleExportMonthPdf = async () => {
     setIsExportingMonth(true);
     try {
-      await generatePersonalAgendaExcel({
+      await generatePersonalAgendaPdf({
         nurse,
-                currentDate,
-                schedule: displayedSchedule,
-                hours,
-                agenda,
-                strasbourgAssignments,
-                specialStrasbourgEvents,
-                jornadasLaborales
+        currentDate,
+        schedule: displayedSchedule,
+        hours,
+        agenda,
+        strasbourgAssignments,
+        specialStrasbourgEvents,
+        jornadasLaborales
       });
     } catch (e) {
-      console.error("Monthly Excel export failed", e);
+      console.error("Monthly PDF export failed", e);
+    } finally {
+      setIsExportingMonth(false);
+    }
+  };
+
+  const handleCopyMonthToClipboard = async () => {
+    setIsExportingMonth(true);
+    try {
+      await copyPersonalAgendaToClipboard({
+        nurse,
+        currentDate,
+        schedule: displayedSchedule,
+        agenda,
+        specialStrasbourgEvents
+      });
+      alert(t.copyToClipboardSuccess || 'Copied to clipboard! Paste into Google Sheets.');
+    } catch (e) {
+      console.error("Monthly clipboard copy failed", e);
+      alert('Failed to copy to clipboard');
     } finally {
       setIsExportingMonth(false);
     }
@@ -525,7 +544,10 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                 <div className="flex items-center gap-2 no-print">
                     <div className="flex items-center gap-1 rounded-md bg-slate-100 p-1 border border-slate-200">
                         <button onClick={handleExportMonthPdf} disabled={isExportingMonth} title={t.exportPDFMonth} className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-md disabled:opacity-50 flex items-center gap-1.5">
-                            {isExportingMonth ? '...' : <PdfIcon className="w-4 h-4" />} {t.month}
+                            {isExportingMonth ? '...' : <PdfIcon className="w-4 h-4" />} PDF
+                        </button>
+                        <button onClick={handleCopyMonthToClipboard} disabled={isExportingMonth} title="Copy to clipboard" className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-md disabled:opacity-50 flex items-center gap-1.5">
+                            {isExportingMonth ? '...' : '📋'} {t.copy || 'Copy'}
                         </button>
                         <button onClick={handleExportYearPdf} disabled={isExportingYear} title={t.exportPDFYear} className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-md disabled:opacity-50 flex items-center gap-1.5">
                             {isExportingYear ? '...' : <PdfIcon className="w-4 h-4" />} {t.year}
