@@ -39,11 +39,10 @@ export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agend
     return (
       <div className="bg-white p-2 rounded-lg shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-xs text-slate-700 flex items-center gap-1">
+          <h3 title={is2026 ? t.agenda2026Warning : undefined} className="font-bold text-xs text-slate-700 flex items-center gap-1 cursor-help">
             <span className="w-1 h-1 rounded-full bg-zen-500"></span>
             {t.agendaPlanner}
           </h3>
-          {is2026 && <span className="text-[9px] text-slate-400 font-medium italic">{t.agenda2026Warning}</span>}
         </div>
 
         <div className="overflow-y-auto max-h-[calc(100vh-400px)] pr-1 custom-scrollbar">
@@ -76,11 +75,10 @@ export const AgendaPlanner: React.FC<AgendaPlannerProps> = ({ currentDate, agend
   return (
     <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100 relative">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-bold text-sm text-slate-700 flex items-center gap-2">
+        <h3 title={is2026 ? t.agenda2026Warning : undefined} className="font-bold text-sm text-slate-700 flex items-center gap-2 cursor-help">
           <span className="w-1.5 h-1.5 rounded-full bg-zen-500"></span>
           {t.agendaPlanner}
         </h3>
-        {is2026 && <span className="text-[10px] text-slate-400 font-medium italic">{t.agenda2026Warning}</span>}
       </div>
 
       <div className="overflow-x-auto pb-2 -mb-2 custom-scrollbar">
