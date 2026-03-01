@@ -399,12 +399,14 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                 <tbody>
                     {dates.map(date => {
                         const day = date.getUTCDate();
-                        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const dateYear = date.getUTCFullYear();
+                        const dateMonth = date.getUTCMonth();
+                        const dateKey = `${dateYear}-${String(dateMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                         const dayOfWeek = date.getUTCDay();
                         const dayOfWeekStr = dayFormatter[dayOfWeek];
                         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                         const weekId = getWeekIdentifier(date);
-                        const isHoliday = year === 2026 && holidays2026.has(dateKey);
+                        const isHoliday = dateYear === 2026 && holidays2026.has(dateKey);
                         const activityLevel = agenda[weekId] || 'NORMAL';
                         const isNewWeek = weekId !== lastWeekId;
                         lastWeekId = weekId;
