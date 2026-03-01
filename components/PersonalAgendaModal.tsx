@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, BalanceData, SpecialStrasbourgEvent, HistoryEntry, JornadaLaboral, ManualChangeLogEntry } from '../types';
+import type { Nurse, Schedule, ScheduleCell, Agenda, Hours, BalanceData, SpecialStrasbourgEvent, HistoryEntry, JornadaLaboral, ManualChangeLogEntry, PersonalHoursChangePayload } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
@@ -55,8 +55,11 @@ const MonthPickerPopover: React.FC<{
 };
 
 interface LocalDayData {
-  startTime: string;
-  endTime: string;
+    segments: [
+        { startTime: string; endTime: string },
+        { startTime: string; endTime: string }
+    ];
+    note: string;
 }
 
 interface LocalMonthData {
@@ -101,6 +104,7 @@ interface PersonalAgendaModalProps {
   nurses: Nurse[];
   history: HistoryEntry[];
   onExportAnnual: (nurse: Nurse, useOriginal: boolean) => Promise<void>;
+    onSavePersonalHours: (payload: PersonalHoursChangePayload) => Promise<void>;
   jornadasLaborales: JornadaLaboral[];
 }
 
@@ -191,6 +195,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   nurses,
   history,
   onExportAnnual,
+    onSavePersonalHours,
   jornadasLaborales,
 }) => {
   const t = useTranslations();
@@ -207,7 +212,6 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   }, [currentDate]);
 
   const [localData, setLocalData] = useState<LocalMonthData>({});
-  const [comments, setComments] = useState<Record<string, string>>({});
   const [manualPreviousBalanceInput, setManualPreviousBalanceInput] = useState<string>('0');
   const [commentModalState, setCommentModalState] = useState<{ dateKey: string } | null>(null);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
@@ -217,36 +221,42 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   const modalContentRef = useRef<HTMLDivElement>(null);
   
   const canEditHours = permissions.canSeePersonalAgendaAsEditable(nurse.id);
+
+    const getDefaultDayData = (): LocalDayData => ({
+        segments: [
+            { startTime: '', endTime: '' },
+            { startTime: '', endTime: '' }
+        ],
+        note: ''
+    });
+
+    const getEffectiveDayData = (dateKey: string): LocalDayData => {
+        const local = localData[dateKey];
+        if (local) return local;
+
+        const fromHours = hours[nurse.id]?.[dateKey];
+        if (!fromHours) return getDefaultDayData();
+
+        const sourceSegments = fromHours.segments || [];
+        return {
+            segments: [
+                { startTime: sourceSegments[0]?.startTime || '', endTime: sourceSegments[0]?.endTime || '' },
+                { startTime: sourceSegments[1]?.startTime || '', endTime: sourceSegments[1]?.endTime || '' }
+            ],
+            note: fromHours.note || ''
+        };
+    };
+
+    const calculateManualHoursFromSegments = (dayData: LocalDayData): number => {
+        return dayData.segments.reduce((sum, segment) => {
+            if (!segment.startTime || !segment.endTime) return sum;
+            return sum + Math.max(0, calculateHoursDifference(segment.startTime, segment.endTime));
+        }, 0);
+    };
   
   useEffect(() => {
     try {
-      const storageKey = `individualSchedule-${nurse.id}-${monthKey}`;
-      const commentsStorageKey = `individualComments-${nurse.id}-${monthKey}`;
-      
-      const storedData = localStorage.getItem(storageKey);
-      const storedComments = localStorage.getItem(commentsStorageKey);
-
-      if (storedData) {
-        const parsed = JSON.parse(storedData);
-        if (parsed && typeof parsed === 'object') {
-          setLocalData(parsed);
-        } else {
-          setLocalData({});
-        }
-      } else {
-        setLocalData({});
-      }
-      
-      if (storedComments) {
-        const parsedComments = JSON.parse(storedComments);
-        if (parsedComments && typeof parsedComments === 'object') {
-          setComments(parsedComments);
-        } else {
-          setComments({});
-        }
-      } else {
-        setComments({});
-      }
+            setLocalData({});
 
       // Automatically load the previous month's total balance as the default value.
       const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
@@ -267,7 +277,6 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     } catch (error) {
       console.error("Error loading data from localStorage:", error);
       setLocalData({});
-      setComments({});
       setManualPreviousBalanceInput('0.00'); // Fallback in case of error
     }
   }, [nurse.id, monthKey, currentDate]);
@@ -284,38 +293,43 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (authUser?.role === 'admin') { return; }
-    try {
-      if (Object.keys(localData).length > 0) {
-        localStorage.setItem(`individualSchedule-${nurse.id}-${monthKey}`, JSON.stringify(localData));
-      }
-      localStorage.setItem(`individualComments-${nurse.id}-${monthKey}`, JSON.stringify(comments));
-    } catch (error) {
-        console.error("Error saving data to localStorage:", error);
-    }
-  }, [localData, comments, nurse.id, monthKey, authUser]);
-
-  const handleDataChange = (dateKey: string, field: keyof LocalDayData, value: string) => {
+    const handleDataChange = (
+        dateKey: string,
+        segmentIndex: 0 | 1,
+        field: 'startTime' | 'endTime',
+        value: string
+    ) => {
     setLocalData(prev => ({
       ...prev,
       [dateKey]: {
-        ...(prev[dateKey] || { startTime: '', endTime: '' }),
-        [field]: value
+                ...(prev[dateKey] || getEffectiveDayData(dateKey)),
+                segments: (prev[dateKey]?.segments || getEffectiveDayData(dateKey).segments).map((segment, index) => {
+                    if (index !== segmentIndex) return segment;
+                    return { ...segment, [field]: value };
+                }) as LocalDayData['segments']
       }
     }));
   };
-  
+
+    const persistDayData = async (dateKey: string, explicitData?: LocalDayData) => {
+        if (!canEditHours || authUser?.role === 'admin') return;
+        const dayData = explicitData || getEffectiveDayData(dateKey);
+        const segmentsToSave = dayData.segments.filter(segment => segment.startTime && segment.endTime);
+        await onSavePersonalHours({
+            nurseId: nurse.id,
+            dateKey,
+            segments: segmentsToSave,
+            reason: dayData.note?.trim() || undefined
+        });
+    };
+
   const handleSaveComment = (dateKey: string, comment: string) => {
-    setComments(prev => {
-        const newComments = { ...prev };
-        if (comment.trim()) {
-            newComments[dateKey] = comment.trim();
-        } else {
-            delete newComments[dateKey];
-        }
-        return newComments;
-    });
+        const updatedDayData: LocalDayData = {
+            ...getEffectiveDayData(dateKey),
+            note: comment.trim()
+        };
+        setLocalData(prev => ({ ...prev, [dateKey]: updatedDayData }));
+        persistDayData(dateKey, updatedDayData);
     setCommentModalState(null);
   };
 
@@ -377,9 +391,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
         weekDates.forEach(date => {
             if (date) {
                 const dateKey = date.toISOString().split('T')[0];
-                const dayData = localData[dateKey] || { startTime: '', endTime: ''};
-                
-                const dailyManual = calculateHoursDifference(dayData.startTime, dayData.endTime);
+                const dailyManual = calculateManualHoursFromSegments(getEffectiveDayData(dateKey));
 
                 if (dailyManual > 0) {
                     weekManual += dailyManual;
@@ -420,7 +432,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
         }
     }
     return balances;
-}, [calendarGrid, activeTab, displayedSchedule, localData, nurse, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales]);
+}, [calendarGrid, activeTab, displayedSchedule, localData, nurse, agenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, hours]);
 
     const differenceBalance = useMemo(() => {
         if (activeTab !== 'current') return 0;
@@ -480,7 +492,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
         {commentModalState && canEditHours && (
             <CommentModal
                 dateKey={commentModalState.dateKey}
-                initialValue={comments[commentModalState.dateKey] || ''}
+                initialValue={getEffectiveDayData(commentModalState.dateKey).note || ''}
                 onSave={(comment) => handleSaveComment(commentModalState.dateKey, comment)}
                 onClose={() => setCommentModalState(null)}
             />
@@ -541,7 +553,6 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                     const activityLevel = agenda[weekId] || 'NORMAL';
                                     const isHoliday = holidays2026.has(dateKey);
                                     const shiftCell = displayedSchedule?.[dateKey];
-                                    const dayData = localData[dateKey] || { startTime: '', endTime: ''};
                                     const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
                                     const isDayActive = isDateInWorkPeriod(nurse, date);
                                     const bgColor = isWeekend ? 'bg-slate-50' : isCurrentMonth ? 'bg-white' : 'bg-slate-50/70';
@@ -559,10 +570,20 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                                   setCommentModalState({ dateKey });
                                               }
                                           }}
-                                          title={comments[dateKey] ? `${t['comment.hover']} ${comments[dateKey]}`: ''}
+                                        title={getEffectiveDayData(dateKey).note ? `${t['comment.hover']} ${getEffectiveDayData(dateKey).note}`: ''}
                                         >
                                             <div className={`text-xs font-semibold flex justify-between items-center ${isCurrentMonth ? 'text-slate-500' : 'text-slate-400'}`}>
-                                                {comments[dateKey] && activeTab === 'current' && <span className="text-sm">📝</span>}
+                                                {activeTab === 'current' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCommentModalState({ dateKey })}
+                                                        disabled={!canEditHours || !isDayActive}
+                                                        className="text-sm disabled:opacity-40"
+                                                        title={t['comment.add_for_day']}
+                                                    >
+                                                        📝
+                                                    </button>
+                                                )}
                                                 <span>{date.getUTCDate()}</span>
                                             </div>
                                             <div className="my-1 h-14 relative">
@@ -572,7 +593,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                                     </div>
                                                 ) : (() => {
                                                     const dailyHoursData = hours[nurse.id]?.[dateKey];
-                                                    const hasManualHours = dailyHoursData?.segments?.some(s => s.startTime || s.endTime);
+                                                    const hasManualHours = activeTab === 'current' && !!dailyHoursData?.segments?.some(s => s.startTime || s.endTime);
                                                     let displayHours: string | { morning: string; afternoon: string } | string[];
                                                     
                                                     if (hasManualHours) {
@@ -581,7 +602,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                                         displayHours = getScheduleCellHours(shiftCell, nurse, date, activityLevel, agenda, jornadasLaborales);
                                                     }
                                                     
-                                                    return <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={displayHours} hasManualHours={!!hasManualHours} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false} manualNote={dailyHoursData?.note}/></div>;
+                                                    return <div className="h-full"><ShiftCell shiftCell={shiftCell} hours={displayHours} hasManualHours={!!hasManualHours} isWeekend={isWeekend} isClosingDay={isHoliday || activityLevel === 'CLOSED'} nurseId={nurse.id} weekId={weekId} activityLevel={activityLevel} strasbourgAssignments={strasbourgAssignments} dayOfWeek={dayOfWeek} isShortFriday={false} manualNote={activeTab === 'current' ? dailyHoursData?.note : undefined}/></div>;
                                                 })()}
                                                 {reductionTooltip && (
                                                     <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm ring-1 ring-white" title={reductionTooltip}>
@@ -591,9 +612,41 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                             </div>
                                             <div className="flex-grow"></div>
                                             <div className="space-y-1 text-xs mt-auto">
-                                                {isDayActive && activeTab === 'current' ? (<>
-                                                    <div className="flex items-center gap-1"><input type="time" value={dayData.startTime} onChange={e => handleDataChange(dateKey, 'startTime', e.target.value)} className="w-full text-center p-0.5 border rounded-md text-xs bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed" disabled={!canEditHours} /><span className="text-slate-400">-</span><input type="time" value={dayData.endTime} onChange={e => handleDataChange(dateKey, 'endTime', e.target.value)} className="w-full text-center p-0.5 border rounded-md text-xs bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed" disabled={!canEditHours} /></div>
-                                                </>) : <div className="h-7"></div>}
+                                                {(() => {
+                                                    const dayData = getEffectiveDayData(dateKey);
+                                                    const isSplitShift = typeof shiftCell === 'object' && shiftCell !== null && 'split' in shiftCell;
+                                                    const segmentsToRender: Array<0 | 1> = isSplitShift ? [0, 1] : [0];
+
+                                                    if (!isDayActive || activeTab !== 'current') {
+                                                        return <div className="h-7"></div>;
+                                                    }
+
+                                                    return (
+                                                        <>
+                                                            {segmentsToRender.map(segmentIndex => (
+                                                                <div key={`${dateKey}-seg-${segmentIndex}`} className="flex items-center gap-1">
+                                                                    <input
+                                                                        type="time"
+                                                                        value={dayData.segments[segmentIndex].startTime}
+                                                                        onChange={e => handleDataChange(dateKey, segmentIndex, 'startTime', e.target.value)}
+                                                                        onBlur={() => persistDayData(dateKey)}
+                                                                        className="w-full text-center p-0.5 border rounded-md text-xs bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed"
+                                                                        disabled={!canEditHours}
+                                                                    />
+                                                                    <span className="text-slate-400">-</span>
+                                                                    <input
+                                                                        type="time"
+                                                                        value={dayData.segments[segmentIndex].endTime}
+                                                                        onChange={e => handleDataChange(dateKey, segmentIndex, 'endTime', e.target.value)}
+                                                                        onBlur={() => persistDayData(dateKey)}
+                                                                        className="w-full text-center p-0.5 border rounded-md text-xs bg-white disabled:bg-slate-200/50 disabled:cursor-not-allowed"
+                                                                        disabled={!canEditHours}
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     );
