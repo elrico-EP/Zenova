@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Nurse, BalanceData, ShiftCounts } from '../types';
 import { SHIFTS } from '../constants';
 import { useTranslations } from '../hooks/useTranslations';
+import { useLanguage } from '../contexts/LanguageContext';
+import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
 
 const ALL_SHIFT_COLUMNS: (keyof ShiftCounts)[] = [
     'TRAVAIL',
@@ -39,8 +41,9 @@ const BalanceTableRow: React.FC<{
     nurse: Nurse;
     data: BalanceData;
     isActive: boolean;
+    shiftColumns: (keyof ShiftCounts)[];
     onOpenAgenda: (nurse: Nurse) => void;
-}> = ({ nurse, data, isActive, onOpenAgenda }) => {
+}> = ({ nurse, data, isActive, shiftColumns, onOpenAgenda }) => {
     const inactiveClasses = !isActive ? 'opacity-50 bg-slate-50' : 'hover:bg-blue-50/50';
 
     return (
@@ -51,7 +54,7 @@ const BalanceTableRow: React.FC<{
             <td className={`p-2 border-b border-slate-200 font-medium text-slate-800 sticky left-0 z-10 w-40 ${!isActive ? 'bg-slate-100' : 'bg-white group-hover:bg-blue-50/50'}`}>
                 {nurse.name}
             </td>
-            {ALL_SHIFT_COLUMNS.map(shiftKey => (
+            {shiftColumns.map(shiftKey => (
                 <td key={`${nurse.id}-${shiftKey}`} className="p-2 border-b border-slate-200 text-center">
                     {isActive ? (data.monthlyCounts[shiftKey] || '-') : '-'}
                 </td>
@@ -66,8 +69,10 @@ const BalanceTableRow: React.FC<{
     );
 };
 
-export const BalancePage: React.FC<BalancePageProps> = ({ nurses, balanceData, onOpenAgenda, currentDate }) => {
+export const BalancePage: React.FC<BalancePageProps> = ({ nurses, balanceData, onOpenAgenda, currentDate, onDateChange }) => {
     const t = useTranslations();
+    const { language } = useLanguage();
+    const [showAllShifts, setShowAllShifts] = useState(false);
 
     const enrichedData = useMemo(() => {
         return nurses.map(nurse => {
@@ -88,15 +93,57 @@ export const BalancePage: React.FC<BalancePageProps> = ({ nurses, balanceData, o
         }).filter((d): d is Exclude<typeof d, null> => d !== null);
     }, [balanceData, nurses, currentDate]);
 
+    const visibleShiftColumns = useMemo<(keyof ShiftCounts)[]>(() => {
+        if (showAllShifts) return ALL_SHIFT_COLUMNS;
+        return ALL_SHIFT_COLUMNS.filter(shiftKey =>
+            enrichedData.some(data => (data.monthlyCounts[shiftKey] || 0) > 0)
+        );
+    }, [showAllShifts, enrichedData]);
+
+    const monthLabel = currentDate.toLocaleString(language, { month: 'long', year: 'numeric' });
+
+    const handlePrevMonth = () => {
+        onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    };
+
+    const handleNextMonth = () => {
+        onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    };
+
     return (
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto p-4">
-             <h2 className="text-2xl font-bold text-slate-800 mb-4">{t.balancePageTitle}</h2>
+             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <h2 className="text-2xl font-bold text-slate-800">{t.balancePageTitle}</h2>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handlePrevMonth}
+                        title={t.previousMonth}
+                        className="p-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800"
+                    >
+                        <ArrowLeftIcon className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm font-semibold text-slate-700 capitalize min-w-[180px] text-center">{monthLabel}</span>
+                    <button
+                        onClick={handleNextMonth}
+                        title={t.nextMonth}
+                        className="p-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800"
+                    >
+                        <ArrowRightIcon className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setShowAllShifts(prev => !prev)}
+                        className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-md border border-slate-300"
+                    >
+                        {showAllShifts ? t.balance_show_only_active_shifts : t.balance_show_all_shifts}
+                    </button>
+                </div>
+            </div>
              <div className="overflow-x-auto">
                 <table className="min-w-full text-sm border-collapse">
                     <thead className="sticky top-0 bg-slate-100 z-10">
                         <tr>
                             <th className="p-2 border-b-2 border-slate-200 text-left font-semibold text-slate-600 sticky left-0 bg-slate-100 w-40">{t.nurse}</th>
-                            {ALL_SHIFT_COLUMNS.map(shiftKey => (
+                            {visibleShiftColumns.map(shiftKey => (
                                 <th key={shiftKey} className="p-2 border-b-2 border-slate-200 text-center font-semibold text-slate-600 whitespace-nowrap">
                                     {SHIFTS[shiftKey]?.label || shiftKey}
                                 </th>
@@ -112,6 +159,7 @@ export const BalancePage: React.FC<BalancePageProps> = ({ nurses, balanceData, o
                                 nurse={data.nurse} 
                                 data={data} 
                                 isActive={data.isActive}
+                                shiftColumns={visibleShiftColumns}
                                 onOpenAgenda={onOpenAgenda} 
                             />
                         ))}
