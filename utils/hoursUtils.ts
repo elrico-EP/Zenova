@@ -42,6 +42,17 @@ export const calculateHoursForDay = (
     jornadasLaborales: JornadaLaboral[]
 ): number => {
     // ---- Early returns for special cases that are exempt from jornada reductions ----
+    if (
+        specialEvent?.isSplit &&
+        specialEvent.morningStartTime &&
+        specialEvent.morningEndTime &&
+        specialEvent.afternoonStartTime &&
+        specialEvent.afternoonEndTime
+    ) {
+        const morningHours = calculateSimpleHoursDifference(specialEvent.morningStartTime, specialEvent.morningEndTime);
+        const afternoonHours = calculateSimpleHoursDifference(specialEvent.afternoonStartTime, specialEvent.afternoonEndTime);
+        return morningHours + afternoonHours;
+    }
     if (specialEvent && specialEvent.startTime && specialEvent.endTime) {
         return calculateSimpleHoursDifference(specialEvent.startTime, specialEvent.endTime);
     }
