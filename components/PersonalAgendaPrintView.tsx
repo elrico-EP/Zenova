@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import type { Nurse, Schedule, SpecialStrasbourgEvent } from '../types';
 import { SHIFTS } from '../constants';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getWeeksForMonth } from '../utils/dateUtils';
 
 interface PersonalAgendaPrintViewProps {
   nurse: Nurse;
@@ -55,27 +56,26 @@ export const PersonalAgendaPrintView: React.FC<PersonalAgendaPrintViewProps> = (
   const renderMonthCalendar = (monthIndex: number, monthSchedule: Schedule[string]) => {
     const currentDate = new Date(year, monthIndex, 1);
     const monthName = currentDate.toLocaleString(language, { month: 'long', year: 'numeric' });
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const firstDay = new Date(Date.UTC(year, monthIndex, 1));
-    const startDayOfWeek = (firstDay.getUTCDay() + 6) % 7;
+    const allDates = getWeeksForMonth(year, monthIndex);
     
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
     const weeks: React.ReactElement[] = [];
-    let dayCount = 1;
     
-    for (let week = 0; week < 6; week++) {
+    // Group dates into weeks of 7
+    for (let i = 0; i < allDates.length; i += 7) {
+      const weekDates = allDates.slice(i, i + 7);
       const days: React.ReactElement[] = [];
       
       for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-        const dayPosition = week * 7 + dayOfWeek;
+        const dateForCell = weekDates[dayOfWeek];
         
-        if (dayPosition < startDayOfWeek || dayCount > daysInMonth) {
+        if (!dateForCell) {
           days.push(
-            <td key={`empty-${week}-${dayOfWeek}`} className="print-cell print-cell-empty"></td>
+            <td key={`empty-${i}-${dayOfWeek}`} className="print-cell print-cell-empty"></td>
           );
         } else {
-          const dateForCell = new Date(Date.UTC(year, monthIndex, dayCount));
+          const dayCount = dateForCell.getUTCDate();
           const dateKey = dateForCell.toISOString().split('T')[0];
           const shiftCell = monthSchedule?.[dateKey];
           const specialEvent = specialStrasbourgEvents.find(e => 
@@ -122,12 +122,10 @@ export const PersonalAgendaPrintView: React.FC<PersonalAgendaPrintViewProps> = (
               {shiftText && <div className="print-shift-text">{shiftText}</div>}
             </td>
           );
-          dayCount++;
         }
       }
       
-      weeks.push(<tr key={`week-${week}`}>{days}</tr>);
-      if (dayCount > daysInMonth) break;
+      weeks.push(<tr key={`week-${i / 7}`}>{days}</tr>);
     }
     
     return (

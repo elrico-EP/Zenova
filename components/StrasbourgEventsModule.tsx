@@ -80,6 +80,8 @@ const EventForm: React.FC<{
         if(type === 'euroscola') { dataToSave.name = t.event_type_euroscola; dataToSave.startTime = '08:00'; dataToSave.endTime = '17:00'; }
         if(type === 'tuesday_permanence') { dataToSave.name = t.event_type_tuesday_permanence; dataToSave.startTime = '13:30'; dataToSave.endTime = '18:30'; }
         if(type === 'wednesday_permanence') { dataToSave.name = t.event_type_wednesday_permanence; dataToSave.startTime = '09:30'; dataToSave.endTime = '14:30'; }
+        if(type === 'wednesday_permanence_return') { dataToSave.name = 'Miércoles Estrasburgo (Permanencia + Retorno)'; dataToSave.startTime = '09:30'; dataToSave.endTime = '17:30'; }
+        if(type === 'mini_sesion_bruselas') { dataToSave.name = 'Mini Sesión Bruselas'; dataToSave.startTime = '16:00'; dataToSave.endTime = '22:00'; }
 
         onSave(dataToSave);
     };
@@ -152,6 +154,8 @@ const EventTypeSelector: React.FC<{
         { type: 'euroscola', label: t.event_type_euroscola, description: 'Horario fijo 08:00-17:00' },
         { type: 'tuesday_permanence', label: t.event_type_tuesday_permanence, description: 'Horario fijo 13:30-18:30. Solo martes.' },
         { type: 'wednesday_permanence', label: t.event_type_wednesday_permanence, description: 'Horario fijo 09:30-14:30. Solo miércoles.' },
+        { type: 'wednesday_permanence_return', label: 'Wed. Permanencia + Retorno', description: 'Miércoles: permanencia 09:30-14:30 + viaje retorno 17:30.' },
+        { type: 'mini_sesion_bruselas', label: 'Mini Sesión Bruselas', description: 'Horario fijo 16:00-22:00. Asignación manual de un enfermero.' },
         { type: 'other', label: t.event_type_other, description: 'Nombre y horario personalizables.' },
     ];
 
@@ -197,6 +201,8 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
             case 'euroscola': newEvent.name = t.event_type_euroscola; newEvent.startTime = '08:00'; newEvent.endTime = '17:00'; break;
             case 'tuesday_permanence': newEvent.name = t.event_type_tuesday_permanence; newEvent.startTime = '13:30'; newEvent.endTime = '18:30'; break;
             case 'wednesday_permanence': newEvent.name = t.event_type_wednesday_permanence; newEvent.startTime = '09:30'; newEvent.endTime = '14:30'; break;
+            case 'wednesday_permanence_return': newEvent.name = 'Miércoles Estrasburgo (Permanencia + Retorno)'; newEvent.startTime = '09:30'; newEvent.endTime = '17:30'; break;
+            case 'mini_sesion_bruselas': newEvent.name = 'Mini Sesión Bruselas'; newEvent.startTime = '16:00'; newEvent.endTime = '22:00'; break;
             default: break;
         }
         setEditingEvent(newEvent);

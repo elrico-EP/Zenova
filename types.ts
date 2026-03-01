@@ -169,7 +169,7 @@ export interface StrasbourgEvent {
     time?: string;
 }
 
-export type SpecialStrasbourgEventType = 'euroscola' | 'tuesday_permanence' | 'wednesday_permanence' | 'other';
+export type SpecialStrasbourgEventType = 'euroscola' | 'tuesday_permanence' | 'wednesday_permanence' | 'wednesday_permanence_return' | 'mini_sesion_bruselas' | 'other';
 
 export interface SpecialStrasbourgEvent {
   id: string;

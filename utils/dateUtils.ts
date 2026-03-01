@@ -103,3 +103,35 @@ export const getWeeksOfYear = (year: number): WeekInfo[] => {
 
     return weeks.sort((a,b) => a.id.localeCompare(b.id));
 }
+
+// Calculate dates for complete weeks (first Monday through last Sunday) for a given month
+export const getWeeksForMonth = (year: number, month: number): Date[] => {
+    const grid: Date[] = [];
+    const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+    const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0));
+
+    // Convert Sunday=0 to Monday=0 system
+    const firstDayOfWeek_MonIsZero = (firstDayOfMonth.getUTCDay() + 6) % 7;
+    const loopStartDate = new Date(firstDayOfMonth);
+    loopStartDate.setUTCDate(firstDayOfMonth.getUTCDate() - firstDayOfWeek_MonIsZero);
+    
+    // Find the actual render start date (first Monday of the month or before)
+    let renderStartDate = new Date(loopStartDate);
+    if (renderStartDate.getUTCMonth() !== month) {
+        renderStartDate.setUTCDate(renderStartDate.getUTCDate() + 7);
+    }
+    
+    // Calculate end date (last Sunday after the last day of month)
+    const lastDayOfWeek_MonIsZero = (lastDayOfMonth.getUTCDay() + 6) % 7;
+    const loopEndDate = new Date(lastDayOfMonth);
+    loopEndDate.setUTCDate(loopEndDate.getUTCDate() + (6 - lastDayOfWeek_MonIsZero));
+    
+    // Iterate from start to end date
+    for (let d = new Date(loopStartDate); d <= loopEndDate; d.setUTCDate(d.getUTCDate() + 1)) {
+        if (d >= renderStartDate) {
+            grid.push(new Date(d));
+        }
+    }
+
+    return grid;
+}

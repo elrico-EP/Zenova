@@ -1,7 +1,7 @@
 import React, { useRef, useState, useLayoutEffect, useEffect, useMemo } from 'react';
 import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote } from '../types';
 import { SHIFTS } from '../constants';
-import { getWeekIdentifier } from '../utils/dateUtils';
+import { getWeekIdentifier, getWeeksForMonth } from '../utils/dateUtils';
 import { getScheduleCellHours, getShiftsFromCell } from '../utils/scheduleUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -335,7 +335,7 @@ interface ScheduleGridProps {
   onOpenManualHoursModal?: (dateKey: string, nurseId: string) => void;
 }
 
-const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'STRASBOURG']);
+const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'CS', 'STRASBOURG']);
 
 export const BASE_CELL_WIDTH = 140;
 export const DAY_COL_WIDTH = 70;  // Reduced from 100 for more space to shifts
@@ -365,8 +365,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    const dates = getWeeksForMonth(year, month);
     
     let lastWeekId: string | null = null;
     
@@ -398,8 +397,8 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                     </tr>
                 </thead>
                 <tbody>
-                    {days.map(day => {
-                        const date = new Date(Date.UTC(year, month, day));
+                    {dates.map(date => {
+                        const day = date.getUTCDate();
                         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                         const dayOfWeek = date.getUTCDay();
                         const dayOfWeekStr = dayFormatter[dayOfWeek];
@@ -413,7 +412,12 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                         let presentCount = 0;
                         nurses.forEach(nurse => {
                             const shiftCell = schedule[nurse.id]?.[dateKey];
-                            if (shiftCell && !((typeof shiftCell === 'string') && EXCLUDED_SHIFTS.has(shiftCell as WorkZone))) presentCount++;
+                            const strasbourgAttendees = strasbourgAssignments[weekId] || [];
+                            const isStrasburgAttendee = strasbourgAttendees.includes(nurse.id);
+                            // Don't count: excluded shifts, OR Strasbourg attendees on SESSION activity days (plenary sessions)
+                            if (shiftCell && !((typeof shiftCell === 'string') && EXCLUDED_SHIFTS.has(shiftCell as WorkZone)) && !(activityLevel === 'SESSION' && isStrasburgAttendee)) {
+                                presentCount++;
+                            }
                         });
 
                         const dayHeader = <td className="sticky left-0 z-10 border-r border-b border-gray-200/80" style={{ width: `${DAY_COL_WIDTH * zoomLevel}px`}}><DayHeaderCell day={day} dayOfWeek={dayOfWeekStr} isWeekend={isWeekend} activityLevel={activityLevel} isNewWeek={isNewWeek} weekId={weekId} weekLabel={t.week} /></td>;
@@ -433,7 +437,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
 
                         if (activityLevel === 'CLOSED' && !isWeekend) {
                             return (
-                                <tr key={day} className="group relative">
+                                <tr key={dateKey} className="group relative">
                                     {dayHeader}
                                     {nurses.map((nurse, nurseIndex) => <td key={nurse.id} className="border-r border-b border-gray-200/80 h-16 bg-gray-200 text-center" style={{ width: `${BASE_CELL_WIDTH * zoomLevel}px` }}>{nurseIndex === Math.floor(nurses.length / 2) && <span className="text-xl font-bold text-gray-500 tracking-wider uppercase select-none">{t.closed}</span>}</td>)}
                                     {presentCell}{notesCell}
