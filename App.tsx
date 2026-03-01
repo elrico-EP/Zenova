@@ -69,21 +69,6 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  // If in print mode, render only the print view
-  if (printData && printData.type === 'personal-agenda') {
-    return (
-      <PersonalAgendaPrintView
-        nurse={printData.nurse}
-        year={printData.year}
-        month={printData.month || 0}
-        schedule={printData.schedule || {}}
-        specialStrasbourgEvents={printData.specialStrasbourgEvents || []}
-        isAnnual={printData.isAnnual || false}
-        allSchedules={printData.allSchedules}
-      />
-    );
-  }
-
   const [localNurses, setLocalNurses] = useState<Nurse[]>([]);
   const [isEditingNurses, setIsEditingNurses] = useState(false);
 
@@ -1095,6 +1080,21 @@ const handleAddNurse = useCallback((name: string) => {
       addHistoryEntry(t.history_vaccinationPeriodChange, `Period set to ${period ? `${period.start} to ${period.end}` : 'None'}`);
       updateData({ vaccinationPeriod: period });
   }, [addHistoryEntry, updateData, t.history_vaccinationPeriodChange]);
+
+  // Print mode: render isolated printable agenda view
+  if (printData && printData.type === 'personal-agenda') {
+    return (
+      <PersonalAgendaPrintView
+        nurse={printData.nurse}
+        year={printData.year}
+        month={printData.month || 0}
+        schedule={printData.schedule || {}}
+        specialStrasbourgEvents={printData.specialStrasbourgEvents || []}
+        isAnnual={printData.isAnnual || false}
+        allSchedules={printData.allSchedules}
+      />
+    );
+  }
 
   if (isAuthLoading || isStateLoading) { return ( <div className="min-h-screen flex items-center justify-center bg-zen-50"> <div className="text-center"> <svg className="animate-spin h-8 w-8 text-zen-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> <p className="mt-2 text-zen-600">{t.loadingData}</p> </div> </div> ); }
   if (!user) { return <LoginScreen />; }
