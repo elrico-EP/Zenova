@@ -158,7 +158,7 @@ export const SHIFTS: Record<string, Shift> = {
     textColor: 'text-teal-50' 
   },
   
-  // ❌ ELIMINADOS: URGENCES_TARDE_PLUS, TRAVAIL_TARDE_PLUS, ADM_TARDE
+  // ❌ ELIMINADOS: variantes T+ clínicas y ADM_TARDE
   
   // COMPLEMENTOS CLÍNICOS CORTOS
   'TRAVAIL_C': { 
