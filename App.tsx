@@ -300,6 +300,33 @@ const AppContent: React.FC = () => {
     return merged;
   }, [specialStrasbourgEvents]);
 
+  // Auto-migrate wednesday_permanence_return events that don't have split fields
+  useEffect(() => {
+    const needsMigration = specialStrasbourgEvents.some(event => 
+      event.type === 'wednesday_permanence_return' && 
+      (!event.isSplit || !event.morningStartTime || !event.afternoonStartTime)
+    );
+    
+    if (needsMigration) {
+      const migratedEvents = specialStrasbourgEvents.map(event => {
+        if (event.type === 'wednesday_permanence_return' && (!event.isSplit || !event.morningStartTime)) {
+          return {
+            ...event,
+            isSplit: true,
+            morningStartTime: event.morningStartTime || '09:30',
+            morningEndTime: event.morningEndTime || '14:30',
+            afternoonStartTime: event.afternoonStartTime || '16:00',
+            afternoonEndTime: event.afternoonEndTime || '21:30',
+            name: 'Wednesday Permanence + Return'
+          };
+        }
+        return event;
+      });
+      
+      updateData({ specialStrasbourgEvents: migratedEvents });
+    }
+  }, [specialStrasbourgEvents, updateData]);
+
   const applyManualOverrides = useCallback((baseSchedule: Schedule, overrides: Schedule): Schedule => {
     const merged: Schedule = JSON.parse(JSON.stringify(baseSchedule));
     Object.entries(overrides).forEach(([nurseId, days]) => {
