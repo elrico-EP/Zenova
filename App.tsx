@@ -1159,35 +1159,34 @@ const handleAddNurse = useCallback((name: string) => {
 
           <div className={`flex flex-col min-w-0 h-full overflow-hidden ${view === 'schedule' && !permissions.isViewingAsViewer ? 'lg:w-3/4 xl:w-4/5' : 'w-full'}`}>
               {view === 'schedule' ? (
-                <div className="flex h-full gap-2">
-                  <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
+                <div className="flex h-full flex-col gap-2">
+                  <div className="no-print">
+                    <WorkConditionsBar 
+                      nurses={nurses}
+                      jornadas={jornadasLaborales}
+                      currentDate={currentDate}
+                    />
+                  </div>
+
+                  <div className="flex min-h-0 flex-1 gap-2">
+                    <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
                     <div className="flex items-center justify-between mb-2">
                       <div></div>
                       <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
                     </div>
                     <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} />
-                  </div>
+                    </div>
                   
-                  <div className="flex-shrink-0 w-36 no-print flex flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
-                    {permissions.isViewingAsAdmin && (
+                    <div className="flex-shrink-0 w-36 no-print flex flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
                       <div className="flex-shrink-0">
-                        <WorkConditionsBar 
-                          nurses={nurses}
-                          jornadas={jornadasLaborales}
+                        <AgendaPlanner
                           currentDate={currentDate}
-                          compact={true}
+                          agenda={agenda}
+                          onAgendaChange={handleAgendaChange}
+                          onWeekSelect={setCurrentDate}
+                          vertical={true}
                         />
                       </div>
-                    )}
-                    
-                    <div className="flex-shrink-0">
-                      <AgendaPlanner
-                        currentDate={currentDate}
-                        agenda={agenda}
-                        onAgendaChange={handleAgendaChange}
-                        onWeekSelect={setCurrentDate}
-                        vertical={true}
-                      />
                     </div>
                   </div>
                 </div>
