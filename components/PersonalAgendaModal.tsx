@@ -366,7 +366,6 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
 }, [year, month]);
 
   const weeklyBalances = useMemo(() => {
-    if (activeTab !== 'current') return [];
     const balances: { theoretical: number; manual: number; diff: number }[] = [];
     
     for (let i = 0; i < calendarGrid.length; i += 7) {
@@ -391,9 +390,11 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
         weekDates.forEach(date => {
             if (date) {
                 const dateKey = date.toISOString().split('T')[0];
-                const dailyManual = calculateManualHoursFromSegments(getEffectiveDayData(dateKey));
+                
+                // In original mode, don't use manual hours
+                const dailyManual = activeTab === 'current' ? calculateManualHoursFromSegments(getEffectiveDayData(dateKey)) : 0;
 
-                if (dailyManual > 0) {
+                if (dailyManual > 0 && activeTab === 'current') {
                     weekManual += dailyManual;
                     weekRealTotal += dailyManual;
                 } else {
@@ -537,11 +538,11 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                             {t.individual_original_planning}
                         </button>
                     </div>
-                    <div className={`grid ${activeTab === 'current' ? 'grid-cols-8' : 'grid-cols-7'} sticky top-0 bg-slate-100 z-10 border-b-2 border-slate-200`}>
+                    <div className="grid grid-cols-8 sticky top-0 bg-slate-100 z-10 border-b-2 border-slate-200">
                         {dayNames.map(dayName => <div key={dayName} className="p-2 text-center font-semibold text-slate-600 text-sm capitalize">{dayName}</div>)}
-                         {activeTab === 'current' && <div className="p-2 text-center font-semibold text-slate-600 text-sm">{t.nav_balance}</div>}
+                        <div className="p-2 text-center font-semibold text-slate-600 text-sm">{t.nav_balance}</div>
                     </div>
-                    <div className={`grid ${activeTab === 'current' ? 'grid-cols-8' : 'grid-cols-7'} border-l border-t border-slate-200`}>
+                    <div className="grid grid-cols-8 border-l border-t border-slate-200">
                         {calendarGrid.flatMap((date, index) => {
                             const dayCell = date ? (
                                 (() => {
@@ -655,7 +656,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                 <div key={`empty-${index}`} className="border-r border-b border-slate-200 bg-slate-50 min-h-[12rem]"></div>
                             );
 
-                            if (activeTab === 'current' && (index + 1) % 7 === 0) {
+                            if ((index + 1) % 7 === 0) {
                                 const weekIndex = Math.floor(index / 7);
                                 const balance = weeklyBalances[weekIndex];
                                 
@@ -667,10 +668,12 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                                     <span className="text-slate-500">{t.balance_planned}:</span>
                                                     <span className="font-semibold text-slate-700">{balance.theoretical.toFixed(2)}h</span>
                                                 </div>
-                                                <div className="flex justify-between items-center px-1">
-                                                    <span className="text-slate-500">{t.balance_manual}:</span>
-                                                    <span className="font-semibold text-slate-700">{balance.manual > 0 ? balance.manual.toFixed(2) + 'h' : '-'}</span>
-                                                </div>
+                                                {activeTab === 'current' && (
+                                                    <div className="flex justify-between items-center px-1">
+                                                        <span className="text-slate-500">{t.balance_manual}:</span>
+                                                        <span className="font-semibold text-slate-700">{balance.manual > 0 ? balance.manual.toFixed(2) + 'h' : '-'}</span>
+                                                    </div>
+                                                )}
                                                 <div className={`pt-1 mt-1 border-t font-bold flex justify-between items-center px-1 text-xs ${balance.diff > 0.01 ? 'text-green-600' : balance.diff < -0.01 ? 'text-red-600' : 'text-slate-800'}`}>
                                                     <span className="">{t.balance_weekly}:</span>
                                                     <span className="">{balance.diff > 0.01 ? '+' : ''}{balance.diff.toFixed(2)}h</span>
