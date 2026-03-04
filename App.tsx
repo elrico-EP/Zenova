@@ -1187,13 +1187,15 @@ const handleAddNurse = useCallback((name: string) => {
           <div className={`flex flex-col min-w-0 h-full overflow-hidden ${view === 'schedule' && !permissions.isViewingAsViewer ? 'lg:w-3/4 xl:w-4/5' : 'w-full'}`}>
               {view === 'schedule' ? (
                 <div className="flex h-full flex-col gap-2">
-                  <div className="no-print">
-                    <WorkConditionsBar 
-                      nurses={nurses}
-                      jornadas={jornadasLaborales}
-                      currentDate={currentDate}
-                    />
-                  </div>
+                  {permissions.isViewingAsAdmin && (
+                    <div className="no-print">
+                      <WorkConditionsBar 
+                        nurses={nurses}
+                        jornadas={jornadasLaborales}
+                        currentDate={currentDate}
+                      />
+                    </div>
+                  )}
 
                   <div className="flex min-h-0 flex-1 gap-2">
                     <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
