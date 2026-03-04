@@ -80,6 +80,8 @@ export const getScheduleCellHours = (
         return ''; 
     }
 
+    const isAfternoonShiftType = shiftType.includes('_TARDE') || shiftType.includes('_PM') || shiftType === 'ADM_PLUS';
+
     // BASE HOUR CALCULATION
     let baseHours: string;
     switch (shiftType) {
@@ -90,18 +92,17 @@ export const getScheduleCellHours = (
         case 'TRAVAIL_C': baseHours = '14:00 - 17:00'; break;
         case 'VACCIN': baseHours = '08:00 - 14:00'; break;
         default:
-            const isAfternoonShift = shiftType.includes('_TARDE') || shiftType.includes('_PM');
             const nextMonday = new Date(date);
             nextMonday.setUTCDate(date.getUTCDate() + (8 - dayOfWeek) % 7 || 7);
             const isPreSessionFriday = date.getUTCDay() === 5 && agenda[getWeekIdentifier(nextMonday)] === 'SESSION';
 
             if (isPreSessionFriday) {
-                if (isAfternoonShift) baseHours = '12:00 - 17:45';
+                if (isAfternoonShiftType) baseHours = '12:00 - 17:45';
                 else if (shiftType === 'LIBERO') baseHours = '10:00 - 16:00';
                 else baseHours = '08:00 - 14:00';
             } else if (date.getUTCDay() === 5) {
                 baseHours = '08:00 - 14:00';
-            } else if (isAfternoonShift) {
+            } else if (isAfternoonShiftType) {
                 const isPlus = shiftType.endsWith('_PLUS');
                 if (activityLevel === 'NORMAL') {
                     baseHours = isPlus ? '10:00 - 19:00' : '10:00 - 18:30';
@@ -129,7 +130,7 @@ export const getScheduleCellHours = (
     
     if (activeJornada.porcentaje === 90) {
         if (activeJornada.reductionOption === 'LEAVE_EARLY_1H_L_J' && isMonToThu) {
-             if (shiftType.includes('_TARDE')) start = modifyTime(start, 1);
+               if (isAfternoonShiftType) start = modifyTime(start, 1);
              else end = modifyTime(end, -1);
         }
         if ((activeJornada.reductionOption === 'START_SHIFT_4H' || activeJornada.reductionOption === 'END_SHIFT_4H') && dayOfWeek === activeJornada.reductionDayOfWeek) {
@@ -138,7 +139,7 @@ export const getScheduleCellHours = (
         }
     } else if (activeJornada.porcentaje === 80) {
         if (activeJornada.reductionOption === 'FRIDAY_PLUS_EXTRA' && dayOfWeek === activeJornada.secondaryReductionDayOfWeek) {
-             if (shiftType.includes('_TARDE')) start = modifyTime(start, 1, 30);
+               if (isAfternoonShiftType) start = modifyTime(start, 1, 30);
              else end = modifyTime(end, -1, -30);
         }
     }
@@ -256,14 +257,14 @@ const applyJornadaModification = (
                 return { custom: `Red. 80%`, type: 'CA' };
             }
             if (dayOfWeek === activeJornada.secondaryReductionDayOfWeek) {
-                if (primaryShift.includes('_TARDE')) start = modifyTime(start, 1, 30);
+                if (primaryShift.includes('_TARDE') || primaryShift.includes('_PM') || primaryShift === 'ADM_PLUS') start = modifyTime(start, 1, 30);
                 else end = modifyTime(end, -1, -30);
                 modified = true;
             }
         }
     } else if (activeJornada.porcentaje === 90) {
         if (activeJornada.reductionOption === 'LEAVE_EARLY_1H_L_J' && dayOfWeek >= 1 && dayOfWeek <= 4) {
-             if (primaryShift.includes('_TARDE')) start = modifyTime(start, 1);
+             if (primaryShift.includes('_TARDE') || primaryShift.includes('_PM') || primaryShift === 'ADM_PLUS') start = modifyTime(start, 1);
              else end = modifyTime(end, -1);
              modified = true;
         }
