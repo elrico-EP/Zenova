@@ -170,9 +170,7 @@ export const calculateHoursForDay = (
             } else if (isFriday) {
                 baseHours = 6.0;
             } else { // Monday to Thursday
-                if (primaryShift === 'ADM_PLUS') {
-                    baseHours = activityLevel === 'NORMAL' ? 8.5 : 8.75;
-                } else if (activityLevel === 'NORMAL') {
+                if (activityLevel === 'NORMAL') {
                     baseHours = 8.0; // 10:00-18:30 is 8.5h gross, minus 0.5h break.
                 } else { // Session, White/Green, Reduced
                     baseHours = 8.25; // 09:00-17:45 is 8.75h gross, minus 0.5h break
