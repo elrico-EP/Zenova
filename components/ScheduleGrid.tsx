@@ -416,8 +416,10 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                             const shiftCell = schedule[nurse.id]?.[dateKey];
                             const strasbourgAttendees = strasbourgAssignments[weekId] || [];
                             const isStrasburgAttendee = strasbourgAttendees.includes(nurse.id);
-                            // Don't count: excluded shifts, OR Strasbourg attendees on SESSION activity days (plenary sessions)
-                            if (shiftCell && !((typeof shiftCell === 'string') && EXCLUDED_SHIFTS.has(shiftCell as WorkZone)) && !(activityLevel === 'SESSION' && isStrasburgAttendee)) {
+                            const shiftsInCell = getShiftsFromCell(shiftCell);
+                            const hasPresentShift = shiftsInCell.some(shift => !EXCLUDED_SHIFTS.has(shift));
+                            // Don't count: cells without present shifts, OR Strasbourg attendees on SESSION activity days (plenary sessions)
+                            if (shiftCell && hasPresentShift && !(activityLevel === 'SESSION' && isStrasburgAttendee)) {
                                 presentCount++;
                             }
                         });
