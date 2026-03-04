@@ -161,7 +161,7 @@ export const calculateHoursForDay = (
             baseHours = 3.0;
         }
         // Afternoon shifts with complex rules
-        else if (['URGENCES_TARDE', 'TRAVAIL_TARDE'].includes(primaryShift)) {
+        else if (['URGENCES_TARDE', 'TRAVAIL_TARDE', 'ADM_PLUS'].includes(primaryShift)) {
             const weekId = getWeekIdentifier(date);
             const activityLevel = agenda[weekId] || 'NORMAL';
 
@@ -170,7 +170,9 @@ export const calculateHoursForDay = (
             } else if (isFriday) {
                 baseHours = 6.0;
             } else { // Monday to Thursday
-                if (activityLevel === 'NORMAL') {
+                if (primaryShift === 'ADM_PLUS') {
+                    baseHours = activityLevel === 'NORMAL' ? 8.5 : 8.75;
+                } else if (activityLevel === 'NORMAL') {
                     baseHours = 8.0; // 10:00-18:30 is 8.5h gross, minus 0.5h break.
                 } else { // Session, White/Green, Reduced
                     baseHours = 8.25; // 09:00-17:45 is 8.75h gross, minus 0.5h break
