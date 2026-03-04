@@ -103,7 +103,7 @@ export const getScheduleCellHours = (
             } else if (date.getUTCDay() === 5) {
                 baseHours = '08:00 - 14:00';
             } else if (isAfternoonShiftType) {
-                const isPlus = shiftType.endsWith('_PLUS');
+                const isPlus = shiftType.endsWith('_PLUS') && shiftType !== 'ADM_PLUS';
                 if (activityLevel === 'NORMAL') {
                     baseHours = isPlus ? '10:00 - 19:00' : '10:00 - 18:30';
                 } else {
