@@ -13,6 +13,7 @@
 // - AWS SES: https://aws.amazon.com/ses/
 // - Mailgun: https://www.mailgun.com
 
+// @deno-types='https://deno.land/std@0.168.0/http/server.ts'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -24,7 +25,7 @@ interface EmailPayload {
   html: string
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
