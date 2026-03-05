@@ -4,6 +4,7 @@ import { getWeekIdentifier } from '../utils/dateUtils';
 import { useUser } from '../contexts/UserContext';
 import { useTranslations } from '../hooks/useTranslations';
 import { useLanguage } from '../contexts/LanguageContext';
+import { holidays2026 } from '../data/agenda2026';
 
 const activityStyles: Record<ActivityLevel, string> = {
   NORMAL: 'bg-white',
@@ -212,11 +213,11 @@ export const WishesCalendar: React.FC<WishesCalendarProps> = ({ nurses, year, wi
                 <thead className="sticky top-0 z-20">
                     <tr>
                         <th className="sticky left-0 bg-slate-100 z-30 p-2 border-b-2 font-normal text-slate-600 w-32 text-left">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2">
                                 <span>{t.dayHeader}</span>
                                 <button
                                     onClick={() => setShowBulkEdit(true)}
-                                    className="ml-2 px-2 py-1 text-xs bg-zen-600 text-white rounded hover:bg-zen-700 font-semibold"
+                                    className="px-2 py-1 text-sm bg-zen-600 text-white rounded hover:bg-zen-700 font-bold flex-shrink-0"
                                     title={t.bulkEditWishes || 'Aplicar deseo a varios días'}
                                 >
                                     +
@@ -245,7 +246,13 @@ export const WishesCalendar: React.FC<WishesCalendarProps> = ({ nurses, year, wi
                         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                         const weekId = getWeekIdentifier(date);
                         const activityLevel = agenda[weekId] || 'NORMAL';
-                        const bgColor = activityStyles[activityLevel];
+                        const isHoliday = holidays2026.has(dateKey);
+                        const isClosed = activityLevel === 'CLOSED';
+                        const isSpecialDay = isHoliday || isClosed;
+                        let bgColor = activityStyles[activityLevel];
+                        if (isSpecialDay) {
+                            bgColor = isHoliday ? 'bg-red-50' : 'bg-gray-100';
+                        }
 
                         return (
                             <tr key={dateKey} className="hover:bg-zen-50/50">
