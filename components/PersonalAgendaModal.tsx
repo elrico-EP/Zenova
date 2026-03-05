@@ -28,22 +28,39 @@ const MonthPickerPopover: React.FC<{
         new Date(viewYear, i, 1).toLocaleString(language, { month: 'short' })
     ), [viewYear, language]);
 
+    const canGoToPreviousYear = viewYear > 2026;
+    const isYearBlocked = viewYear < 2026;
+
     return (
         <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 bg-white rounded-lg shadow-2xl border border-gray-200 p-4 w-64 text-gray-800">
             <div className="flex items-center justify-between mb-4">
-                <button onClick={() => setViewYear(y => y - 1)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-800"><ArrowLeftIcon className="w-5 h-5" /></button>
+                <button 
+                    onClick={() => setViewYear(y => y - 1)} 
+                    disabled={!canGoToPreviousYear}
+                    className={`p-1 rounded-full ${canGoToPreviousYear ? 'hover:bg-gray-100 text-gray-500 hover:text-gray-800' : 'opacity-30 cursor-not-allowed text-gray-300'}`}
+                >
+                    <ArrowLeftIcon className="w-5 h-5" />
+                </button>
                 <span className="font-semibold text-lg text-gray-700">{viewYear}</span>
                 <button onClick={() => setViewYear(y => y + 1)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-800"><ArrowRightIcon className="w-5 h-5" /></button>
             </div>
+            {isYearBlocked && (
+                <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800 text-center">
+                    🔒 Years before 2026 are locked
+                </div>
+            )}
             <div className="grid grid-cols-3 gap-2">
                 {months.map((monthName, index) => (
                     <button
                         key={monthName}
                         onClick={() => onSelectDate(new Date(viewYear, index, 1))}
+                        disabled={isYearBlocked}
                         className={`p-2 rounded-md text-sm font-medium transition-colors capitalize ${
-                            currentDate.getFullYear() === viewYear && currentDate.getMonth() === index
-                                ? 'bg-zen-800 text-white shadow-sm'
-                                : 'hover:bg-gray-100 text-gray-700'
+                            isYearBlocked 
+                                ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400'
+                                : currentDate.getFullYear() === viewYear && currentDate.getMonth() === index
+                                    ? 'bg-zen-800 text-white shadow-sm'
+                                    : 'hover:bg-gray-100 text-gray-700'
                         }`}
                     >
                         {monthName}
@@ -97,7 +114,12 @@ const calculateSpecialEventTotalHours = (event: SpecialStrasbourgEvent): number 
     ) {
         return calculateEventHours(event.morningStartTime, event.morningEndTime) + calculateEventHours(event.afternoonStartTime, event.afternoonEndTime);
     }
-    return calculateEventHours(event.startTime, event.endTime);
+    const totalHours = calculateEventHours(event.startTime, event.endTime);
+    // Mini Session Brussels: subtract 0.5h for lunch break if shift > 6 hours
+    if (event.type === 'mini_sesion_bruselas' && totalHours > 6) {
+        return totalHours - 0.5;
+    }
+    return totalHours;
 };
 
 const getSpecialEventCompactLabel = (event: SpecialStrasbourgEvent): string => {
@@ -250,7 +272,8 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   const [isExportingYear, setIsExportingYear] = useState(false);
   const modalContentRef = useRef<HTMLDivElement>(null);
   
-  const canEditHours = permissions.canSeePersonalAgendaAsEditable(nurse.id);
+  const isYearLocked = currentDate.getFullYear() < 2026;
+  const canEditHours = permissions.canSeePersonalAgendaAsEditable(nurse.id) && !isYearLocked;
 
     const getDefaultDayData = (): LocalDayData => ({
         segments: [
@@ -288,21 +311,30 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     try {
             setLocalData({});
 
-      // Automatically load the previous month's total balance as the default value.
-      const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-      const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
-      const prevBalanceCacheKey = `totalBalanceCache-${nurse.id}-${prevMonthKey}`;
+      // First, check if there's a manually edited previous balance for this month
+      const manualPrevBalanceKey = `manualPreviousBalance-${nurse.id}-${monthKey}`;
+      const storedManualValue = localStorage.getItem(manualPrevBalanceKey);
       
-      const storedPrevBalance = localStorage.getItem(prevBalanceCacheKey);
-      if (storedPrevBalance) {
-          try {
-              const prevBalance = JSON.parse(storedPrevBalance);
-              setManualPreviousBalanceInput(Number(prevBalance).toFixed(2));
-          } catch {
+      if (storedManualValue !== null) {
+          // User has manually edited this value before, use it
+          setManualPreviousBalanceInput(storedManualValue);
+      } else {
+          // Automatically load the previous month's total balance as the default value.
+          const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+          const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+          const prevBalanceCacheKey = `totalBalanceCache-${nurse.id}-${prevMonthKey}`;
+          
+          const storedPrevBalance = localStorage.getItem(prevBalanceCacheKey);
+          if (storedPrevBalance) {
+              try {
+                  const prevBalance = JSON.parse(storedPrevBalance);
+                  setManualPreviousBalanceInput(Number(prevBalance).toFixed(2));
+              } catch {
+                  setManualPreviousBalanceInput('0.00');
+              }
+          } else {
               setManualPreviousBalanceInput('0.00');
           }
-      } else {
-          setManualPreviousBalanceInput('0.00');
       }
     } catch (error) {
       console.error("Error loading data from localStorage:", error);
@@ -780,7 +812,13 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                         type="number"
                                         step="0.01"
                                         value={manualPreviousBalanceInput}
-                                        onChange={e => setManualPreviousBalanceInput(e.target.value)}
+                                        onChange={e => {
+                                            const newValue = e.target.value;
+                                            setManualPreviousBalanceInput(newValue);
+                                            // Save manually edited value to localStorage
+                                            const manualPrevBalanceKey = `manualPreviousBalance-${nurse.id}-${monthKey}`;
+                                            localStorage.setItem(manualPrevBalanceKey, newValue);
+                                        }}
                                         disabled={!canEditHours}
                                         className={`w-full text-center p-1 border rounded-md text-sm font-bold ${
                                             manualPreviousBalance > 0.01 ? 'text-green-600' : 
