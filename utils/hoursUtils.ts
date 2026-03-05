@@ -42,6 +42,13 @@ export const calculateHoursForDay = (
     specialEvent: SpecialStrasbourgEvent | undefined,
     jornadasLaborales: JornadaLaboral[]
 ): number => {
+    // If the service was closed that week, no hours count towards balance
+    const weekId = getWeekIdentifier(date);
+    const activityLevel = agenda[weekId] || 'NORMAL';
+    if (activityLevel === 'CLOSED') {
+        return 0;
+    }
+    
     // ---- Early returns for special cases that are exempt from jornada reductions ----
     
     // Handle split shift special events (Wednesday Permanence + Return)
