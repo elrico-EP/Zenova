@@ -184,9 +184,19 @@ export const calculateHoursForDay = (
                 }
             }
         }
-        // Other non-work shifts that are always 0 hours
-        else if (['F', 'RECUP'].includes(primaryShift)) {
+        // Other non-work shifts that are always 0 hours, except RECUP
+        else if (['F'].includes(primaryShift)) {
             baseHours = 0;
+        }
+        // RECUP: Apply standard hours for that day to discount from balance
+        else if (primaryShift === 'RECUP') {
+            // Get standard theoretical hours for this day
+            const dayOfWeekForRecup = date.getUTCDay();
+            if (dayOfWeekForRecup >= 1 && dayOfWeekForRecup <= 5) {
+                baseHours = dayOfWeekForRecup === 5 ? 6.0 : 8.5; // Friday: 6h, Mon-Thu: 8.5h
+            } else {
+                baseHours = 0; // Weekend
+            }
         }
     }
 
