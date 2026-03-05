@@ -930,7 +930,7 @@ const handleAddNurse = useCallback((name: string) => {
 
   const handleConfirmSwap = useCallback(async (payload: { date: string; nurse1Id: string; nurse2Id: string }) => {
     const { date, nurse1Id, nurse2Id } = payload;
-    const recalcScope = await askRecalcScopeForManualChanges('swap');
+    const recalcScope: RecalcScope = 'none'; // No reschedule menu for swaps
     const nurse1Name = nurses.find(n => n.id === nurse1Id)?.name || 'N/A';
     const nurse2Name = nurses.find(n => n.id === nurse2Id)?.name || 'N/A';
     addHistoryEntry(t.history_swapShifts, `${nurse1Name} ↔ ${nurse2Name} on ${date}`);
