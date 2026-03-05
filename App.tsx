@@ -1309,8 +1309,18 @@ const handleAddNurse = useCallback((name: string) => {
 
                         updates.wishOverrides = nextWishOverrides;
 
+                        // Turnos que requieren recalcular cobertura automáticamente
+                        const shiftsRequiringCoverage: WorkZone[] = ['F', 'FP', 'CS', 'CA', 'RECUP', 'SICK_LEAVE'];
+                        const requiresCoverage = shiftsRequiringCoverage.includes(wish.shiftType);
+
                         const wishDate = new Date(`${dateKey}T12:00:00Z`);
-                        if (isValidated && isFrozenGenerationMonth(wishDate)) {
+                        if (isValidated && isFrozenGenerationMonth(wishDate) && requiresCoverage) {
+                          // Recalcular automáticamente desde la fecha afectada hasta fin de mes
+                          // para mantener la cobertura obligatoria
+                          updates.frozenSchedules = buildFrozenSchedulesForScope([dateKey], 'rest-month');
+                          console.log(`✓ Vacaciones aprobadas para ${nurses.find(n => n.id === nurseId)?.name || nurseId} el ${dateKey}. Recalculando cobertura automáticamente...`);
+                        } else if (isValidated && isFrozenGenerationMonth(wishDate) && !requiresCoverage) {
+                          // Para otros turnos (TW, etc), regenerar solo el mes completo
                           const targetMonthKey = getMonthKeyFromDate(wishDate);
                           updates.frozenSchedules = {
                             ...frozenSchedules,
