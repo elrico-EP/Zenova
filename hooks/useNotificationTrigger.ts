@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
-import { createNotification, createShiftChangeToast } from '../utils/notificationService';
-import { NotificationType } from '../types';
+import { createNotification, sendNotificationEmail } from '../utils/notificationService';
+import { NotificationType, User, Nurse } from '../types';
+import { supabase } from '../firebase/supabase-config';
 
 interface TriggerNotificationOptions {
   type: NotificationType;
@@ -15,12 +16,15 @@ interface TriggerNotificationOptions {
   relatedNurseName?: string;
   showToast?: boolean;
   toastMessage?: string;
+  sendEmail?: boolean; // Whether to send email notification
+  nurses?: Nurse[]; // Pass nurses list to get emails
+  users?: User[]; // Pass users list to get emails
 }
 
 export const useNotificationTrigger = () => {
   const { addToast, addNotification } = useNotification();
 
-  const trigger = useCallback((options: TriggerNotificationOptions) => {
+  const trigger = useCallback(async (options: TriggerNotificationOptions) => {
     // Create and add notification
     const notification = createNotification(
       options.type,
@@ -44,6 +48,49 @@ export const useNotificationTrigger = () => {
         type: 'info',
         message: options.toastMessage || options.message,
         duration: 5000,
+      });
+    }
+
+    // Send emails if requested
+    if (options.sendEmail && (options.nurses || options.users)) {
+      // Send emails in background (don't block UI)
+      Promise.all(
+        options.recipientIds.map(async (recipientId) => {
+          // Try to find email in nurses list first
+          let recipientEmail = '';
+          let recipientName = '';
+
+          if (options.nurses) {
+            const nurse = options.nurses.find((n) => n.id === recipientId);
+            if (nurse) {
+              recipientEmail = nurse.email;
+              recipientName = nurse.name;
+            }
+          }
+
+          // If not found in nurses, try users list
+          if (!recipientEmail && options.users) {
+            const user = options.users.find((u) => u.id === recipientId || u.nurseId === recipientId);
+            if (user) {
+              recipientEmail = user.email;
+              recipientName = user.name;
+            }
+          }
+
+          // Send email if we found the recipient's email
+          if (recipientEmail) {
+            await sendNotificationEmail(
+              notification,
+              recipientEmail,
+              recipientName,
+              supabase
+            );
+          } else {
+            console.warn(`No email found for recipient ID: ${recipientId}`);
+          }
+        })
+      ).catch((error) => {
+        console.error('Error sending notification emails:', error);
       });
     }
   }, [addNotification, addToast]);

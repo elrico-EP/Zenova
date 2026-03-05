@@ -134,19 +134,72 @@ export const formatNotificationEmail = (notification: Notification): string => {
 };
 
 /**
- * Send email notification (to be called with Supabase edge function or external service)
+ * Send email notification via Supabase Edge Function
+ * 
+ * This function calls a Supabase Edge Function to send emails.
+ * You need to create the edge function in your Supabase project.
+ * 
+ * To create the edge function:
+ * 1. Go to Supabase Dashboard → Edge Functions
+ * 2. Create a new function called 'send-notification-email'
+ * 3. Use a service like Resend, SendGrid, or SMTP
+ * 
+ * Example edge function code (with Resend):
+ * 
+ * import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+ * import { Resend } from 'npm:resend'
+ * 
+ * const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+ * 
+ * serve(async (req) => {
+ *   const { to, subject, html } = await req.json()
+ *   const data = await resend.emails.send({
+ *     from: 'Zenova <noreply@yourdomain.com>',
+ *     to: [to],
+ *     subject: subject,
+ *     html: html,
+ *   })
+ *   return new Response(JSON.stringify(data), {
+ *     headers: { 'Content-Type': 'application/json' },
+ *   })
+ * })
  */
 export const sendNotificationEmail = async (
   notification: Notification,
   recipientEmail: string,
-  recipientName: string
+  recipientName: string,
+  supabaseClient?: any // Pass supabase client if available
 ): Promise<boolean> => {
   try {
-    // This will be called from the notification context when email sending is needed
-    // For now, return true to indicate it would be sent
-    // Implementation will depend on email service (Supabase functions, SendGrid, etc.)
-    console.log(`Email would be sent to ${recipientEmail} for notification: ${notification.id}`);
-    return true;
+    const emailHtml = formatNotificationEmail(notification);
+    const subject = `Zenova: ${notification.title}`;
+
+    // If supabase client is provided, use edge function
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient.functions.invoke('send-notification-email', {
+        body: {
+          to: recipientEmail,
+          subject: subject,
+          html: emailHtml,
+        },
+      });
+
+      if (error) {
+        console.error('Error calling Supabase edge function:', error);
+        return false;
+      }
+
+      console.log(`✓ Email sent to ${recipientEmail}`);
+      return true;
+    } else {
+      // Fallback: Log the email that would be sent
+      console.log('📧 Email notification (Supabase not configured):');
+      console.log(`To: ${recipientEmail}`);
+      console.log(`Subject: ${subject}`);
+      console.log(`Body (preview): ${notification.message}`);
+      console.log('Configure Supabase Edge Function to send real emails.');
+      return true;
+    }
   } catch (error) {
     console.error('Error sending email notification:', error);
     return false;

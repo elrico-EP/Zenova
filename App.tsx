@@ -786,6 +786,8 @@ useEffect(() => {
         relatedNurseName: nurseName,
         showToast: true,
         toastMessage: `Cambio de turno para ${nurseName}`,
+        sendEmail: true,
+        nurses: nurses,
       });
     }
 
@@ -1030,6 +1032,8 @@ const handleAddNurse = useCallback((name: string) => {
         relatedDate: date,
         showToast: true,
         toastMessage: `Intercambio realizado: ${nurse1Name} ↔ ${nurse2Name}`,
+        sendEmail: true,
+        nurses: nurses,
       });
     } catch (error) {
       console.error('❌ Error al guardar intercambio:', error);
