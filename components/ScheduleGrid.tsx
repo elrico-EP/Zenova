@@ -433,7 +433,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
                               note={notes[dateKey]}
                               dateKey={dateKey}
                               isWeekend={isWeekend}
-                              canEdit={!isMonthClosed && permissions.canEditGeneralNotes}
+                              canEdit={!isMonthClosed}
                               onNoteChange={onNoteChange}
                             />
                           </td>
