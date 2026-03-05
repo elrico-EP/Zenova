@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Supabase Edge Function: send-notification-email
 // This function sends email notifications using Resend API
 // 

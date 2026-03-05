@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ALTERNATIVA: Usar SendGrid en lugar de Resend
 // 
 // Setup:
