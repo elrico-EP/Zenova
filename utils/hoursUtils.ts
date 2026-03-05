@@ -133,10 +133,12 @@ export const calculateHoursForDay = (
             return totalGross >= 6 ? totalGross - 0.5 : totalGross;
         }
         
-        // Existing logic for other split shifts
+        // For non-manual splits: sum all hours (RECUP will be negative and subtract)
         let totalHours = 0;
         for (const part of scheduleCell.split) {
-             totalHours += calculateHoursForDay(nurse, part, date, agenda, strasbourgAssignments, undefined, jornadasLaborales);
+            const hoursForPart = calculateHoursForDay(nurse, part, date, agenda, strasbourgAssignments, undefined, jornadasLaborales);
+            // All parts are summed: RECUP returns negative so it automatically subtracts
+            totalHours += hoursForPart;
         }
         return totalHours;
     }
@@ -188,12 +190,12 @@ export const calculateHoursForDay = (
         else if (['F'].includes(primaryShift)) {
             baseHours = 0;
         }
-        // RECUP: Apply standard hours for that day to discount from balance
+        // RECUP: discount standard hours of that day from balance (return as negative)
         else if (primaryShift === 'RECUP') {
-            // Get standard theoretical hours for this day
+            // Get standard theoretical hours for this day and return as negative (discount)
             const dayOfWeekForRecup = date.getUTCDay();
             if (dayOfWeekForRecup >= 1 && dayOfWeekForRecup <= 5) {
-                baseHours = dayOfWeekForRecup === 5 ? 6.0 : 8.5; // Friday: 6h, Mon-Thu: 8.5h
+                baseHours = -(dayOfWeekForRecup === 5 ? 6.0 : 8.5); // Friday: -6h, Mon-Thu: -8.5h (negative = discount)
             } else {
                 baseHours = 0; // Weekend
             }
@@ -202,6 +204,11 @@ export const calculateHoursForDay = (
 
     if (baseHours === 0) {
         return 0;
+    }
+
+    // RECUP (negative values) bypass jornada reductions and are returned as-is
+    if (baseHours < 0) {
+        return baseHours;
     }
 
     // ---- Single point for applying jornada reductions FOR WORK SHIFTS ----
