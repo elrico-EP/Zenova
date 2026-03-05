@@ -12,8 +12,8 @@ export const calculateHoursDifference = (start: string, end: string): number => 
         const endTime = new Date(`1970-01-01T${end}:00Z`);
         if (endTime <= startTime) return 0;
         const diff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-        // Standard 30 min break for shifts of 6 hours or longer
-        return diff >= 6 ? diff - 0.5 : diff;
+        // Standard 30 min break for shifts longer than 6 hours
+        return diff > 6 ? diff - 0.5 : diff;
     } catch (e) {
         return 0;
     }
