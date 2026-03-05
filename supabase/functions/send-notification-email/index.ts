@@ -73,7 +73,12 @@ serve(async (req) => {
       }),
     })
 
-    const data = await res.json()
+    let data
+    try {
+      data = await res.json()
+    } catch {
+      data = { error: 'Invalid JSON response from Resend API' }
+    }
 
     if (!res.ok) {
       console.error('Resend API error:', data)
@@ -89,8 +94,9 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('Error sending email:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

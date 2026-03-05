@@ -77,7 +77,12 @@ serve(async (req) => {
     })
 
     if (!res.ok) {
-      const errorData = await res.text()
+      let errorData
+      try {
+        errorData = await res.text()
+      } catch {
+        errorData = 'Unable to read error response'
+      }
       console.error('SendGrid API error:', errorData)
       return new Response(
         JSON.stringify({ error: 'Failed to send email', details: errorData }),
@@ -94,8 +99,9 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('Error sending email:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error' }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
