@@ -94,7 +94,7 @@ const EventForm: React.FC<{
         if(type === 'tuesday_permanence') { dataToSave.name = 'Tuesday Permanence'; dataToSave.startTime = '13:30'; dataToSave.endTime = '18:30'; }
         if(type === 'wednesday_permanence') { dataToSave.name = 'Wednesday Permanence'; dataToSave.startTime = '09:30'; dataToSave.endTime = '14:30'; }
         if(type === 'wednesday_permanence_return') { dataToSave.name = 'Wednesday Permanence + Return'; dataToSave.isSplit = true; dataToSave.morningStartTime = morningStartTime; dataToSave.morningEndTime = morningEndTime; dataToSave.afternoonStartTime = afternoonStartTime; dataToSave.afternoonEndTime = afternoonEndTime; }
-        if(type === 'mini_sesion_bruselas') { dataToSave.name = 'Mini Session Brussels'; dataToSave.startTime = '16:00'; dataToSave.endTime = '22:00'; }
+        if(type === 'mini_sesion_bruselas') { dataToSave.name = 'Mini Session Brussels'; dataToSave.startTime = '14:00'; dataToSave.endTime = '23:00'; }
 
         onSave(dataToSave);
     };
@@ -199,7 +199,7 @@ const EventTypeSelector: React.FC<{
         { type: 'tuesday_permanence', label: 'Tuesday Permanence', description: 'Fixed schedule 13:30-18:30. Tuesdays only.' },
         { type: 'wednesday_permanence', label: 'Wednesday Permanence', description: 'Fixed schedule 09:30-14:30. Wednesdays only.' },
         { type: 'wednesday_permanence_return', label: 'Wednesday Permanence + Return', description: 'Wednesday split shift: Permanence 09:30-14:30 + Return travel 16:00-21:30 (times editable)' },
-        { type: 'mini_sesion_bruselas', label: 'Mini Session Brussels', description: 'Fixed schedule 16:00-22:00. Manual nurse assignment.' },
+        { type: 'mini_sesion_bruselas', label: 'Mini Session Brussels', description: 'Standard schedule 14:00-23:00 (adjustable in personal agenda). Next day: afternoon shift or TW if sufficient staff (following general TW rules).' },
         { type: 'other', label: 'Other', description: 'Custom name and time.' },
     ];
 
@@ -246,7 +246,7 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
             case 'tuesday_permanence': newEvent.name = 'Tuesday Permanence'; newEvent.startTime = '13:30'; newEvent.endTime = '18:30'; break;
             case 'wednesday_permanence': newEvent.name = 'Wednesday Permanence'; newEvent.startTime = '09:30'; newEvent.endTime = '14:30'; break;
             case 'wednesday_permanence_return': newEvent.name = 'Wednesday Permanence + Return'; newEvent.isSplit = true; newEvent.morningStartTime = '09:30'; newEvent.morningEndTime = '14:30'; newEvent.afternoonStartTime = '16:00'; newEvent.afternoonEndTime = '21:30'; break;
-            case 'mini_sesion_bruselas': newEvent.name = 'Mini Session Brussels'; newEvent.startTime = '16:00'; newEvent.endTime = '22:00'; break;
+            case 'mini_sesion_bruselas': newEvent.name = 'Mini Session Brussels'; newEvent.startTime = '14:00'; newEvent.endTime = '23:00'; break;
             default: break;
         }
         setEditingEvent(newEvent);
