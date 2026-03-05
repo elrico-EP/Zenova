@@ -407,17 +407,12 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
     const loopStartDate = new Date(firstDayOfMonth);
     loopStartDate.setUTCDate(firstDayOfMonth.getUTCDate() - firstDayOfWeek_MonIsZero);
     
-    let renderStartDate = new Date(loopStartDate);
-    if (renderStartDate.getUTCMonth() !== month) {
-        renderStartDate.setUTCDate(renderStartDate.getUTCDate() + 7);
-    }
-    
     const lastDayOfWeek_MonIsZero = (lastDayOfMonth.getUTCDay() + 6) % 7;
     const loopEndDate = new Date(lastDayOfMonth);
     loopEndDate.setUTCDate(loopEndDate.getUTCDate() + (6 - lastDayOfWeek_MonIsZero));
     
     for (let d = new Date(loopStartDate); d <= loopEndDate; d.setUTCDate(d.getUTCDate() + 1)) {
-        if (d < renderStartDate) {
+        if (d.getUTCMonth() !== month) {
             grid.push(null);
         } else {
             grid.push(new Date(d));
