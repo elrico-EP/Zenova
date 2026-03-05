@@ -75,13 +75,47 @@ interface WishesCalendarProps {
 
 export const WishesCalendar: React.FC<WishesCalendarProps> = ({ nurses, year, wishes, onWishesChange, agenda }) => {
     const { language } = useLanguage();
+    const { effectiveUser } = useUser();
     const t = useTranslations();
+    const [showBulkEdit, setShowBulkEdit] = useState(false);
+    const [bulkNurseId, setBulkNurseId] = useState<string>('');
+    const [bulkStartDate, setBulkStartDate] = useState('');
+    const [bulkEndDate, setBulkEndDate] = useState('');
+    const [bulkText, setBulkText] = useState('');
 
     const { months, dayNames } = useMemo(() => {
         const m = [...Array(12).keys()].map(i => new Date(year, i, 1).toLocaleString(language, { month: 'long' }));
         const d = [...Array(7).keys()].map(i => new Date(2023, 0, i + 1).toLocaleString(language, { weekday: 'short' }));
         return { months: m, dayNames: d };
     }, [year, language]);
+
+    const handleBulkApply = () => {
+        if (!bulkNurseId || !bulkStartDate || !bulkEndDate || !bulkText.trim()) return;
+        
+        const start = new Date(bulkStartDate);
+        const end = new Date(bulkEndDate);
+        
+        if (start > end) {
+            alert(t.error_dateOrder || 'La fecha de inicio debe ser anterior a la fecha de fin');
+            return;
+        }
+
+        // Aplicar el deseo a todos los días en el rango, excluyendo fines de semana
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dayOfWeek = d.getDay();
+            // Excluir sábados (6) y domingos (0)
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                const dateKey = d.toISOString().split('T')[0];
+                onWishesChange(bulkNurseId, dateKey, bulkText);
+            }
+        }
+
+        // Resetear formulario
+        setBulkText('');
+        setBulkStartDate('');
+        setBulkEndDate('');
+        setShowBulkEdit(false);
+    };
 
     const calendarDays = useMemo(() => {
         const days = [];
@@ -97,10 +131,98 @@ export const WishesCalendar: React.FC<WishesCalendarProps> = ({ nurses, year, wi
 
     return (
         <div className="overflow-auto h-full">
+            {/* Modal de edición múltiple */}
+            {showBulkEdit && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowBulkEdit(false)}>
+                    <div className="bg-white rounded-lg shadow-xl p-6 m-4 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">{t.bulkEditWishes || 'Aplicar deseo a varios días'}</h3>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t.nurse || 'Enfermera'}</label>
+                                <select 
+                                    value={bulkNurseId} 
+                                    onChange={(e) => setBulkNurseId(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-zen-500 focus:border-zen-500"
+                                >
+                                    <option value="">{t.selectNurse || 'Seleccionar enfermera'}</option>
+                                    {nurses.filter(n => effectiveUser?.role === 'admin' || effectiveUser?.id === n.id).map(nurse => (
+                                        <option key={nurse.id} value={nurse.id}>{nurse.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.startDate || 'Fecha inicio'}</label>
+                                    <input
+                                        type="date"
+                                        value={bulkStartDate}
+                                        onChange={(e) => setBulkStartDate(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-zen-500 focus:border-zen-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.endDate || 'Fecha fin'}</label>
+                                    <input
+                                        type="date"
+                                        value={bulkEndDate}
+                                        onChange={(e) => setBulkEndDate(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-zen-500 focus:border-zen-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t.wishText || 'Deseo / Turno'}</label>
+                                <textarea
+                                    value={bulkText}
+                                    onChange={(e) => setBulkText(e.target.value)}
+                                    placeholder="Ej: CA, FP, Formación..."
+                                    rows={3}
+                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-zen-500 focus:border-zen-500"
+                                />
+                            </div>
+
+                            <p className="text-xs text-gray-500 italic">
+                                {t.bulkEditNote || 'Los fines de semana se excluirán automáticamente'}
+                            </p>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setShowBulkEdit(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    {t.cancel}
+                                </button>
+                                <button
+                                    onClick={handleBulkApply}
+                                    disabled={!bulkNurseId || !bulkStartDate || !bulkEndDate || !bulkText.trim()}
+                                    className="px-4 py-2 bg-zen-600 text-white font-semibold rounded-md hover:bg-zen-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                >
+                                    {t.apply || 'Aplicar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <table className="border-collapse w-full text-sm border-separate border-spacing-0">
                 <thead className="sticky top-0 z-20">
                     <tr>
-                        <th className="sticky left-0 bg-slate-100 z-30 p-2 border-b-2 font-normal text-slate-600 w-32 text-left">{t.dayHeader}</th>
+                        <th className="sticky left-0 bg-slate-100 z-30 p-2 border-b-2 font-normal text-slate-600 w-32 text-left">
+                            <div className="flex items-center justify-between">
+                                <span>{t.dayHeader}</span>
+                                <button
+                                    onClick={() => setShowBulkEdit(true)}
+                                    className="ml-2 px-2 py-1 text-xs bg-zen-600 text-white rounded hover:bg-zen-700 font-semibold"
+                                    title={t.bulkEditWishes || 'Aplicar deseo a varios días'}
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </th>
                         {nurses.map(nurse => (
                             <th key={nurse.id} className="p-2 border-b-2 font-normal text-slate-600 min-w-[12rem] text-left">{nurse.name}</th>
                         ))}
