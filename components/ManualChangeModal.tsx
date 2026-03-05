@@ -3,6 +3,7 @@ import type { Nurse, Schedule, Agenda, ScheduleCell, ManualChangePayload, WorkZo
 import { SHIFTS } from '../constants';
 import { useTranslations } from '../hooks/useTranslations';
 import { useUser } from '../contexts/UserContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { Locale } from '../translations/locales';
 import { getShiftsFromCell } from '../utils/scheduleUtils';
 
@@ -32,6 +33,7 @@ interface ManualChangeModalProps {
 export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, schedule, onManualChange, initialNurseId, initialDateKey, vaccinationPeriod }) => {
     const t = useTranslations();
     const { user } = useUser();
+    const permissions = usePermissions();
     
     // State for the new form structure
     const [isManualSplit, setIsManualSplit] = useState(false);
