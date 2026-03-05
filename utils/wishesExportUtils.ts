@@ -66,13 +66,19 @@ export const generateWishesPDFHTML = (
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { text-align: center; color: #1a3a3a; }
+            h2 { color: #2d5555; margin-top: 30px; page-break-before: avoid; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 30px; page-break-inside: avoid; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10px; }
-            th { background-color: #4a7c7c; color: white; font-weight: bold; }
-            .month-header { background-color: #e8f4f4; font-weight: bold; font-size: 12px; }
-            .holiday { background-color: #ffe8e8; }
-            .validated { background-color: #e8f5e9; }
-            .pending { background-color: #fff3e0; }
+            th { background-color: #2d5555; color: white; font-weight: bold; }
+            .day-normal { background-color: #f9fafb; }
+            .day-session { background-color: #fce7e6; }
+            .day-white_green { background-color: #e8fae6; }
+            .day-reduced { background-color: #fef3c7; }
+            .day-closed { background-color: #e5e7eb; }
+            .day-holiday { background-color: #ffe8e8; }
+            .wish-validated { background-color: #e8f5e9; border-left: 4px solid #4caf50; }
+            .wish-pending { background-color: #fff3e0; border-left: 4px solid #ff9800; }
+            .wish-empty { background-color: #fff; }
             .page-break { page-break-after: always; }
             .footer { font-size: 8px; color: #666; margin-top: 20px; text-align: center; }
         </style>
@@ -82,6 +88,14 @@ export const generateWishesPDFHTML = (
 
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    const activityStyles: Record<string, string> = {
+        'NORMAL': 'day-normal',
+        'SESSION': 'day-session',
+        'WHITE_GREEN': 'day-white_green',
+        'REDUCED': 'day-reduced',
+        'CLOSED': 'day-closed'
+    };
 
     html += `<h1>Deseos y Eventos - ${year}</h1>`;
 
@@ -107,14 +121,17 @@ export const generateWishesPDFHTML = (
             const weekId = getWeekIdentifier(date);
             const isHoliday = holidays2026.has(dateKey);
             const dayOfWeek = date.getDay();
+            const activityLevel = agenda[weekId] || 'NORMAL';
+            const activityClass = activityStyles[activityLevel] || 'day-normal';
+            const dayBg = isHoliday ? 'day-holiday' : activityClass;
             
-            html += `<tr><td class="${isHoliday ? 'holiday' : ''}">${dateKey}</td>`;
+            html += `<tr><td class="${dayBg}"><strong>${dateKey}</strong></td>`;
             
             nurses.forEach(nurse => {
                 const wish = wishes[nurse.id]?.[dateKey];
                 const status = wish?.validated ? '✅ Aprobado' : (wish?.text ? '⏳ Pendiente' : '');
-                const className = wish?.validated ? 'validated' : (wish?.text ? 'pending' : '');
-                html += `<td class="${className}">${wish?.text || ''}<br/><small>${status}</small></td>`;
+                const wishClass = wish?.validated ? 'wish-validated' : (wish?.text ? 'wish-pending' : 'wish-empty');
+                html += `<td class="${wishClass}">${wish?.text || ''}<br/><small>${status}</small></td>`;
             });
             
             html += '</tr>';
@@ -145,8 +162,9 @@ export const downloadWishesCSV = (csv: string, year: number) => {
 
 // Abrir Google Sheets
 export const openInGoogleSheets = (csv: string) => {
-    // Codificar CSV en base64 para pasarlo a Google Sheets
-    const base64 = btoa(unescape(encodeURIComponent(csv)));
-    const url = `https://docs.google.com/spreadsheets/create?importUrl=data:text/csv;base64,${base64}`;
-    window.open(url, '_blank');
+    // Descargar CSV primero
+    downloadWishesCSV(csv, new Date().getFullYear());
+    
+    // Abrir Google Sheets en nuevo tab para que el usuario importe manualmente
+    window.open('https://sheets.google.com/spreadsheets/create', '_blank');
 };
