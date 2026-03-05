@@ -305,6 +305,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                     </section>
                 )}
                 
+                {permissions.isViewingAsAdmin && (
                 <section className="border-t pt-4 mt-4">
                     <label className="block text-sm font-semibold text-gray-800 mb-2">{t.recalcScope_title}</label>
                     <div className="grid grid-cols-4 gap-1">
@@ -342,6 +343,7 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                         </button>
                     </div>
                 </section>
+                )}
                 
                 {error && <p className="text-sm text-red-600 p-2 bg-red-100 rounded-md">{error}</p>}
                 
