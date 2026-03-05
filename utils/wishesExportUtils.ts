@@ -160,7 +160,71 @@ export const downloadWishesCSV = (csv: string, year: number) => {
     link.click();
 };
 
-// Abrir Google Sheets
+// Copiar wishes al portapapeles (formato HTML para pegar en Google Sheets/Excel)
+export const copyWishesToClipboard = async (wishes: Wishes, nurses: Nurse[], year: number, agenda: Agenda): Promise<void> => {
+    const activityHexStyles: Record<string, { bg: string }> = {
+        'NORMAL': { bg: '#F9FAFB' },
+        'SESSION': { bg: '#FCE7E6' },
+        'WHITE_GREEN': { bg: '#E8FAE6' },
+        'REDUCED': { bg: '#FEF3C7' },
+        'CLOSED': { bg: '#E5E7EB' }
+    };
+
+    let html = '<table border="1" style="border-collapse: collapse; font-family: sans-serif; font-size: 10pt; border-color: #E5E7EB;">';
+    html += '<thead><tr><th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 100px;">Date</th>';
+    
+    nurses.forEach(nurse => {
+        html += `<th style="padding: 8px; font-weight: bold; background-color: #F8FAFC; border-color: #E5E7EB; width: 120px;">${nurse.name}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    // Generar todas las fechas del año
+    for (let month = 0; month < 12; month++) {
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month, day);
+            const dateKey = date.toISOString().split('T')[0];
+            const weekId = getWeekIdentifier(date);
+            const isHoliday = holidays2026.has(dateKey);
+            const activityLevel = agenda[weekId] || 'NORMAL';
+            const activityStyle = activityHexStyles[activityLevel];
+            const dayOfWeek = date.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            
+            const dayBg = isHoliday ? '#FFE8E8' : (isWeekend ? '#F1F5F9' : activityStyle.bg);
+            
+            html += `<tr><td style="padding: 4px; font-weight: bold; text-align: center; background-color: ${dayBg}; border-color: #E5E7EB;">'${dateKey}</td>`;
+            
+            nurses.forEach(nurse => {
+                const wish = wishes[nurse.id]?.[dateKey];
+                const isValidated = wish?.validated;
+                const cellBg = isValidated ? '#E8F5E9' : dayBg;
+                const wishText = wish?.text || '';
+                const statusIcon = isValidated ? '✅' : (wish?.text ? '⏳' : '');
+                
+                html += `<td style="padding: 4px; text-align: center; background-color: ${cellBg}; border-color: #E5E7EB;">${wishText}${statusIcon ? ' ' + statusIcon : ''}</td>`;
+            });
+            
+            html += '</tr>';
+        }
+    }
+    
+    html += '</tbody></table>';
+
+    try {
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                'text/html': new Blob([html], { type: 'text/html' })
+            })
+        ]);
+    } catch (err) {
+        console.error('Failed to copy to clipboard:', err);
+        throw err;
+    }
+};
+
+// Abrir Google Sheets (deprecated - use copyWishesToClipboard instead)
 export const openInGoogleSheets = (csv: string) => {
     // Descargar CSV primero
     downloadWishesCSV(csv, new Date().getFullYear());

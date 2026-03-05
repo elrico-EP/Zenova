@@ -7,7 +7,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useTranslations } from '../hooks/useTranslations';
 import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon } from './Icons';
 import { MonthPicker } from './MonthPicker';
-import { generateWishesCSV, downloadWishesCSV, openInGoogleSheets, generateWishesPDFHTML } from '../utils/wishesExportUtils';
+import { generateWishesCSV, downloadWishesCSV, copyWishesToClipboard, generateWishesPDFHTML } from '../utils/wishesExportUtils';
 import { holidays2026 } from '../data/agenda2026';
 
 const activityStyles: Record<ActivityLevel, { bg: string }> = {
@@ -187,6 +187,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
     const [bulkStartDate, setBulkStartDate] = useState('');
     const [bulkEndDate, setBulkEndDate] = useState('');
     const [bulkText, setBulkText] = useState('');
+    const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
 
     const dayNames = useMemo(() => {
         const formatter = new Intl.DateTimeFormat(language, { weekday: 'narrow' });
@@ -338,11 +339,17 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
 
                     {/* Botón para agregar múltiples días */}
                     <button
-                        onClick={() => setShowBulkEdit(true)}
+                        onClick={() => {
+                            // Auto-select current user if not admin
+                            if (effectiveUser && effectiveUser.role !== 'admin') {
+                                setBulkNurseId(effectiveUser.id);
+                            }
+                            setShowBulkEdit(true);
+                        }}
                         className="px-3 py-1 text-sm bg-zen-600 text-white rounded-lg hover:bg-zen-700 font-bold transition-all"
-                        title="Aplicar deseo a varios días"
+                        title={t.bulkEditWishes || 'Apply wish to multiple days'}
                     >
-                        + Múltiples días
+                        + {t.multipleDays || 'Multiple Days'}
                     </button>
 
                     {/* Botones exportar */}
@@ -353,19 +360,28 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                 downloadWishesCSV(csv, year);
                             }}
                             className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-semibold transition-all"
-                            title="Descargar como CSV"
+                            title={t.downloadCSV || 'Download as CSV'}
                         >
                             📊 CSV
                         </button>
                         <button
-                            onClick={() => {
-                                const csv = generateWishesCSV(wishes, nurses, year);
-                                openInGoogleSheets(csv);
+                            onClick={async () => {
+                                try {
+                                    await copyWishesToClipboard(wishes, nurses, year, agenda);
+                                    setCopyStatus('copied');
+                                    setTimeout(() => setCopyStatus('idle'), 2000);
+                                } catch (err) {
+                                    alert('Failed to copy to clipboard');
+                                }
                             }}
-                            className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 font-semibold transition-all"
-                            title="Abrir en Google Sheets"
+                            className={`px-2 py-1 text-xs rounded font-semibold transition-all ${
+                                copyStatus === 'copied' 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            }`}
+                            title={t.copyToSheets || 'Copy to clipboard for Google Sheets'}
                         >
-                            📈 Sheets
+                            {copyStatus === 'copied' ? '✓ ' : '📋 '}{t.copyToSheets || 'Copy'}
                         </button>
                         <button
                             onClick={() => {
@@ -378,7 +394,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                 }
                             }}
                             className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-semibold transition-all"
-                            title="Imprimir/PDF"
+                            title={t.printPDF || 'Print/Export to PDF'}
                         >
                             🖨️ PDF
                         </button>
@@ -388,28 +404,30 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
             
             {/* Modal de edición múltiple */}
             {showBulkEdit && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowBulkEdit(false)}>
-                    <div className="bg-white rounded-lg shadow-xl p-6 m-4 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">{t.bulkEditWishes || 'Aplicar deseo a varios días'}</h3>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={() => setShowBulkEdit(false)}>
+                    <div className="bg-white rounded-lg shadow-xl p-6 m-auto max-w-md w-full my-8" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">{t.bulkEditWishes || 'Apply wish to multiple days'}</h3>
                         
                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">{t.nurse || 'Enfermera'}</label>
-                                <select 
-                                    value={bulkNurseId} 
-                                    onChange={(e) => setBulkNurseId(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-zen-500 focus:border-zen-500"
-                                >
-                                    <option value="">{t.selectNurse || 'Seleccionar enfermera'}</option>
-                                    {nurses.filter(n => effectiveUser?.role === 'admin' || effectiveUser?.id === n.id).map(nurse => (
-                                        <option key={nurse.id} value={nurse.id}>{nurse.name}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            {effectiveUser?.role === 'admin' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.nurse || 'Nurse'}</label>
+                                    <select 
+                                        value={bulkNurseId} 
+                                        onChange={(e) => setBulkNurseId(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-zen-500 focus:border-zen-500"
+                                    >
+                                        <option value="">{t.selectNurse || 'Select nurse'}</option>
+                                        {nurses.map(nurse => (
+                                            <option key={nurse.id} value={nurse.id}>{nurse.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.startDate || 'Fecha inicio'}</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.startDate || 'Start date'}</label>
                                     <input
                                         type="date"
                                         value={bulkStartDate}
@@ -418,7 +436,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.endDate || 'Fecha fin'}</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.endDate || 'End date'}</label>
                                     <input
                                         type="date"
                                         value={bulkEndDate}
@@ -429,18 +447,18 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">{t.wishText || 'Deseo / Turno'}</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t.wishText || 'Wish / Shift'}</label>
                                 <textarea
                                     value={bulkText}
                                     onChange={(e) => setBulkText(e.target.value)}
-                                    placeholder="Ej: CA, FP, Formación..."
+                                    placeholder={t.wishPlaceholder || 'E.g.: CA, FP, Training...'}
                                     rows={3}
                                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-zen-500 focus:border-zen-500"
                                 />
                             </div>
 
                             <p className="text-xs text-gray-500 italic">
-                                {t.bulkEditNote || 'Los fines de semana se excluirán automáticamente'}
+                                {t.bulkEditNote || 'Weekends will be automatically excluded'}
                             </p>
 
                             <div className="flex justify-end gap-3 pt-2">
@@ -455,7 +473,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                     disabled={!bulkNurseId || !bulkStartDate || !bulkEndDate || !bulkText.trim()}
                                     className="px-4 py-2 bg-zen-600 text-white font-semibold rounded-md hover:bg-zen-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                                 >
-                                    {t.apply || 'Aplicar'}
+                                    {t.apply || 'Apply'}
                                 </button>
                             </div>
                         </div>
@@ -497,24 +515,23 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                             const activityLevel = agenda[weekId] || 'NORMAL';
                                             const activityStyle = activityStyles[activityLevel];
                                             
-                                            let dayRowBg = activityStyle.bg;
-                                            let dayLabel = '';
+                                                            let dayRowBg = activityStyle.bg;
+                                            let borderStyle = '';
                                             
                                             if (isHoliday) {
-                                                dayRowBg = 'bg-red-100 border-l-4 border-l-red-600';
-                                                dayLabel = '🎉';
+                                                dayRowBg = 'bg-red-50';
+                                                borderStyle = 'border-l-[3px] border-l-red-400';
                                             } else if (isWeekend) {
                                                 dayRowBg = 'bg-slate-100';
                                             } else if (activityLevel === 'CLOSED') {
-                                                dayRowBg = 'bg-slate-300 border-l-4 border-l-slate-600';
-                                                dayLabel = '🔒';
+                                                dayRowBg = 'bg-slate-200';
+                                                borderStyle = 'border-l-[3px] border-l-slate-500';
                                             }
 
                                             return (
                                                 <tr key={dateKey}>
-                                                    <td className={`${viewMode === 'month' ? 'sticky left-0 z-10' : ''} p-2 border-b font-medium ${dayRowBg}`} style={{width: '6rem'}}>
-                                                        <span className={`capitalize text-xs font-semibold ${isHoliday || activityLevel === 'CLOSED' ? 'text-slate-700' : isWeekend ? 'text-slate-500' : 'text-slate-800'}`}>
-                                                            {dayLabel && <span className="mr-1">{dayLabel}</span>}
+                                                    <td className={`${viewMode === 'month' ? 'sticky left-0 z-10' : ''} p-2 border-b font-medium ${dayRowBg} ${borderStyle}`} style={{width: '6rem'}}>
+                                                        <span className={`capitalize text-xs ${isHoliday ? 'font-bold text-red-700' : activityLevel === 'CLOSED' ? 'font-bold text-slate-600' : isWeekend ? 'text-slate-500' : 'text-slate-800'}`}>
                                                             {dayNames[dayOfWeek]} {date.getDate()}
                                                         </span>
                                                     </td>

@@ -362,6 +362,13 @@ export const locales = {
     validatedByAdmin: 'Validado por admin',
     dayHeader: 'Día',
     monthHeader: 'Mes',
+    bulkEditWishes: 'Aplicar deseo a varios días',
+    multipleDays: 'Varios Días',
+    wishPlaceholder: 'Ej: CA, FP, Formación...',
+    downloadCSV: 'Descargar como CSV',
+    printPDF: 'Imprimir/Exportar a PDF',
+    wishText: 'Deseo / Turno',
+    bulkEditNote: 'Los fines de semana se excluirán automáticamente',
 
     // Agenda Popup
     planningNotice: 'Aviso de Planificación',
@@ -988,6 +995,13 @@ export const locales = {
     validatedByAdmin: 'Validated by admin',
     dayHeader: 'Day',
     monthHeader: 'Month',
+    bulkEditWishes: 'Apply wish to multiple days',
+    multipleDays: 'Multiple Days',
+    wishPlaceholder: 'E.g.: CA, FP, Training...',
+    downloadCSV: 'Download as CSV',
+    printPDF: 'Print/Export to PDF',
+    wishText: 'Wish / Shift',
+    bulkEditNote: 'Weekends will be automatically excluded',
 
     // Agenda Popup
     planningNotice: 'Planning Notice',
@@ -1596,6 +1610,13 @@ export const locales = {
     validatedByAdmin: "Validé par l'admin",
     dayHeader: 'Jour',
     monthHeader: 'Mois',
+    bulkEditWishes: 'Appliquer un souhait à plusieurs jours',
+    multipleDays: 'Plusieurs Jours',
+    wishPlaceholder: 'Ex: CA, FP, Formation...',
+    downloadCSV: 'Télécharger en CSV',
+    printPDF: 'Imprimer/Exporter en PDF',
+    wishText: 'Souhait / Quart',
+    bulkEditNote: 'Les week-ends seront automatiquement exclus',
 
     planningNotice: 'Avis de Planification',
     agendaPopupMessage: "Rappel : en entrant en octobre, vous devez examiner et configurer le nouvel agenda pour l'année prochaine ({year}).",
