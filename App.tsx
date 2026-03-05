@@ -366,25 +366,6 @@ const AppContent: React.FC = () => {
     );
   }, [getNursesForDate, effectiveAgenda, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
 
-  // Auto-regenerate May 2026 schedule after timezone fix (UTC fix in getClinicalNeedsForDay)
-  useEffect(() => {
-    if (frozenSchedules['2026-05'] && year === 2026 && nurses.length > 0) {
-      // Schedule regeneration key to prevent infinite loops
-      const hasRegeneratedMay = localStorage.getItem('zenova_may_2026_regen');
-      if (!hasRegeneratedMay) {
-        // Regenerate May 2026 schedule due to UTC day calculation fix
-        const mayDate = new Date(2026, 4, 1); // May 1, 2026
-        const regeneratedMay = getAutoBaseScheduleForMonth(mayDate);
-        
-        const nextFrozen = { ...frozenSchedules };
-        nextFrozen['2026-05'] = regeneratedMay;
-        updateData({ frozenSchedules: nextFrozen });
-        localStorage.setItem('zenova_may_2026_regen', 'true');
-        addHistoryEntry('Schedule Regeneration', 'May 2026 schedule regenerated to apply UTC timezone fix for clinical needs calculation');
-      }
-    }
-  }, [year, nurses.length, getAutoBaseScheduleForMonth, frozenSchedules, updateData, addHistoryEntry]);
-
   const getFrozenOrAutoBaseScheduleForMonth = useCallback((date: Date): Schedule => {
     const key = getMonthKeyFromDate(date);
     if (isFrozenGenerationMonth(date) && frozenSchedules[key]) {
