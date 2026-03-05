@@ -16,6 +16,8 @@ import { UserManagementPage } from './components/UserManagementPage';
 import { ProfilePage } from './components/ProfilePage';
 import { ForceChangePasswordScreen } from './components/ForceChangePasswordScreen';
 import { PersonalAgendaPrintView } from './components/PersonalAgendaPrintView';
+import { NotificationToast } from './components/NotificationToast';
+import { NotificationPanel } from './components/NotificationPanel';
 import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState, RecalcScope } from './types';
 import { UndoIcon } from './components/Icons';
 import { SHIFTS, INITIAL_NURSES } from './constants';
@@ -31,6 +33,7 @@ import { useUser, UserProvider } from './contexts/UserContext';
 import { NurseProvider, useNurses } from './contexts/NurseContext';
 import { useTranslations } from './hooks/useTranslations';
 import { usePermissions } from './hooks/usePermissions';
+import { useNotificationTrigger } from './hooks/useNotificationTrigger';
 import { SwapShiftPanel } from './components/SwapShiftModal';
 import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
@@ -39,12 +42,14 @@ import { RecalcScopeModal } from './components/RecalcScopeModal';
 import { MaximizeIcon, RestoreIcon } from './components/Icons';
 import { useSupabaseState } from './hooks/useSupabaseState'
 import { supabase } from './firebase/supabase-config';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 const AppContent: React.FC = () => {
   const t = useTranslations();
   const [currentDate, setCurrentDate] = useState(new Date('2026-01-01T12:00:00'));
   const { user, effectiveUser, isLoading: isAuthLoading } = useUser();
   const { nurses, setMonth } = useNurses();
+  const { trigger: triggerNotification } = useNotificationTrigger();
 
   // Check for print mode data
   const [printData, setPrintData] = useState<any>(null);
@@ -762,9 +767,31 @@ useEffect(() => {
     }
 
     await updateDataWithUndo(updates);
+
+    // Trigger notifications for affected nurses
+    const shiftDescription = payload.shift === 'DELETE' ? 'eliminado' : `cambiado a ${payload.shift}`;
+    const dateRange = startDate === endDate ? new Date(startDate).toLocaleDateString('es-ES') : `${new Date(startDate).toLocaleDateString('es-ES')} a ${new Date(endDate).toLocaleDateString('es-ES')}`;
+    
+    for (const nurseId of nurseIds) {
+      const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
+      triggerNotification({
+        type: 'shift_change',
+        title: 'Turno Modificado',
+        message: `Tu turno ha sido ${shiftDescription} para ${dateRange}`,
+        recipientIds: [nurseId],
+        senderId: user?.id || 'system',
+        senderName: user?.name || 'Sistema',
+        relatedDate: startDate,
+        relatedNurseId: nurseId,
+        relatedNurseName: nurseName,
+        showToast: true,
+        toastMessage: `Cambio de turno para ${nurseName}`,
+      });
+    }
+
     // Ya no recargamos, los cambios se ven en tiempo real
     console.log(t.log_changesSaved)
-  }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildDateRangeKeys, buildFrozenSchedulesForScope, updateDataWithUndo]);
+  }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildDateRangeKeys, buildFrozenSchedulesForScope, updateDataWithUndo, triggerNotification]);
   
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
     addHistoryEntry(t.history_bulk_edit, t.history_bulk_edit_details);
@@ -991,10 +1018,23 @@ const handleAddNurse = useCallback((name: string) => {
 
       await updateData(updates);
       console.log(t.log_swapSavedSuccessfully);
+
+      // Trigger notification for swap
+      triggerNotification({
+        type: 'shift_swap',
+        title: 'Turno Intercambiado',
+        message: `${nurse1Name} y ${nurse2Name} han intercambiado turno del ${new Date(date).toLocaleDateString('es-ES')}`,
+        recipientIds: [nurse1Id, nurse2Id],
+        senderId: user?.id || 'system',
+        senderName: user?.name || 'Sistema',
+        relatedDate: date,
+        showToast: true,
+        toastMessage: `Intercambio realizado: ${nurse1Name} ↔ ${nurse2Name}`,
+      });
     } catch (error) {
       console.error('❌ Error al guardar intercambio:', error);
     }
-  }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildFrozenSchedulesForScope, updateData]);
+  }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildFrozenSchedulesForScope, updateData, triggerNotification]);
   
   const handleOpenManualHoursModal = useCallback((dateKey: string, nurseId: string) => {
     const nurse = nurses.find(n => n.id === nurseId);
@@ -1129,6 +1169,7 @@ const handleAddNurse = useCallback((name: string) => {
 
   return (
     <div className="min-h-screen flex flex-col overflow-y-auto">
+      <NotificationToast />
       {showFullscreenToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm transition-opacity duration-300 animate-fade-in-out">
             Press ESC to exit fullscreen mode
@@ -1150,6 +1191,7 @@ const handleAddNurse = useCallback((name: string) => {
             isFullscreen={isFullscreen}
             onToggleFullscreen={handleToggleFullscreen}
         />
+         {effectiveUser?.id && <NotificationPanel userId={effectiveUser.id} />}
       </div>
 
       <main className="flex-grow max-w-screen-2xl w-full mx-auto p-4 flex flex-col">
@@ -1413,9 +1455,11 @@ const handleAddNurse = useCallback((name: string) => {
   );
 };
 const App: React.FC = () => (
-  <NurseProvider>
-    <AppContent />
-  </NurseProvider>
+  <NotificationProvider>
+    <NurseProvider>
+      <AppContent />
+    </NurseProvider>
+  </NotificationProvider>
 );
 
 export default App;

@@ -301,3 +301,22 @@ export interface SwapInfo {
   swappedWithNurseId: string;
   originalShift: ScheduleCell;
 }
+// Notification System Types
+export type NotificationType = 'shift_change' | 'shift_swap' | 'shift_delete' | 'schedule_update' | 'general';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  recipientIds: string[]; // Array of user IDs who receive this notification
+  senderId: string; // User ID of who made the change
+  senderName: string;
+  title: string;
+  message: string;
+  relatedDate?: string; // Date of the shift change (YYYY-MM-DD)
+  relatedNurseId?: string; // Nurse ID affected by the change
+  relatedNurseName?: string;
+  timestamp: string; // ISO timestamp
+  isRead: Record<string, boolean>; // { userId: boolean }
+  emailSent?: boolean;
+  createdAt?: string;
+}
