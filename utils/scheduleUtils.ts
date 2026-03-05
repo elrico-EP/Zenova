@@ -186,7 +186,7 @@ const findBestCandidateWithWeeklyEquity = (
 
 
 export const getClinicalNeedsForDay = (date: Date, agenda: Agenda, vaccinationPeriod: { start: string; end: string } | null): Record<string, number> => {
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = date.getUTCDay();
     const weekId = getWeekIdentifier(date);
     const activityLevel = agenda[weekId] || 'NORMAL';
     const dateStr = date.toISOString().split('T')[0];
