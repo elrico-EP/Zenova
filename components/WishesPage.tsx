@@ -245,6 +245,8 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
         setBulkEndDate('');
         setShowBulkEdit(false);
     };
+
+    return (
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 p-4 h-full flex flex-col">
             <header className="flex flex-col md:flex-row items-center justify-between pb-4 border-b-2 border-zen-100 mb-6 flex-shrink-0 gap-4">
                 <div className="flex flex-col items-center gap-1 order-2 md:order-1">
