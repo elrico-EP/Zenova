@@ -287,6 +287,27 @@ const applyJornadaModification = (
     return cell;
 };
 
+const isJornadaFullDayOff = (
+    nurseId: string,
+    date: Date,
+    jornadas: JornadaLaboral[]
+): boolean => {
+    const activeJornada = getActiveJornada(nurseId, date, jornadas);
+    if (!activeJornada || activeJornada.porcentaje !== 80) return false;
+
+    const dayOfWeek = date.getUTCDay();
+
+    if (activeJornada.reductionOption === 'FULL_DAY_OFF') {
+        return dayOfWeek === activeJornada.reductionDayOfWeek;
+    }
+
+    if (activeJornada.reductionOption === 'FRIDAY_PLUS_EXTRA') {
+        return dayOfWeek === 5;
+    }
+
+    return false;
+};
+
 export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda: Agenda, manualOverrides: Schedule, vaccinationPeriod: { start: string; end: string } | null, strasbourgAssignments: Record<string, string[]>, jornadasLaborales: JornadaLaboral[]): Schedule => {
     const schedule: Schedule = {};
     const year = date.getFullYear();
@@ -321,8 +342,16 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
             const dailyAssignments: Record<string, ScheduleCell> = {};
             let availableForDutyNurses = [...nurses];
             
+            // Jornada full-day reductions (must be applied before coverage assignment)
+            availableForDutyNurses.forEach(nurse => {
+                if (isJornadaFullDayOff(nurse.id, currentDate, jornadasLaborales)) {
+                    dailyAssignments[nurse.id] = { custom: `Red. 80%`, type: 'CA' };
+                }
+            });
+
             // System-determined assignments (Strasbourg is part of the system)
             availableForDutyNurses.forEach(nurse => {
+                if (dailyAssignments[nurse.id]) return;
                 const attendees = strasbourgAssignments[weekId] || [];
                 if (activityLevel === 'SESSION') {
                     if (dayOfWeek >= 1 && dayOfWeek <= 4 && attendees.includes(nurse.id)) { dailyAssignments[nurse.id] = 'STRASBOURG'; }
@@ -511,6 +540,33 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 }
             }
 
+            const mandatoryShiftNeeds = getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod);
+            const mandatoryShiftKeys: WorkZone[] = ['URGENCES', 'TRAVAIL', 'URGENCES_TARDE', 'TRAVAIL_TARDE'];
+
+            mandatoryShiftKeys.forEach((mandatoryShift) => {
+                const requiredCount = mandatoryShiftNeeds[mandatoryShift] || 0;
+                if (requiredCount <= 0) return;
+
+                let currentCount = Object.values(dailyAssignments).reduce((count, cell) => {
+                    return count + (getShiftsFromCell(cell).includes(mandatoryShift) ? 1 : 0);
+                }, 0);
+
+                while (currentCount < requiredCount) {
+                    const replacementCandidate = Object.entries(dailyAssignments).find(([nurseId, cell]) => {
+                        const shifts = getShiftsFromCell(cell);
+                        const isReassignable = shifts.length > 0 && shifts.every(s => s === 'ADMIN' || s === 'TW');
+                        const isAfternoonEligible = !mandatoryShift.includes('_TARDE') || !ineligibleForAfternoon.has(nurseId);
+                        return isReassignable && isAfternoonEligible;
+                    });
+
+                    if (!replacementCandidate) break;
+
+                    const [candidateId] = replacementCandidate;
+                    dailyAssignments[candidateId] = mandatoryShift;
+                    currentCount++;
+                }
+            });
+
             const internIsUnassigned = dutyPool.some(n => n.id === 'nurse-11') && !dailyAssignments['nurse-11'];
             if (internIsUnassigned) {
                 const adminNurseId = Object.keys(dailyAssignments).find(id => getShiftsFromCell(dailyAssignments[id]).includes('ADMIN') && id !== 'nurse-1');
@@ -603,6 +659,14 @@ export const generateAndBalanceGaps = (
                     dailyAssignments[nurse.id] = fullSchedule[nurse.id][dateKey];
                 }
             });
+
+            nurses.forEach(nurse => {
+                if (dailyAssignments[nurse.id]) return;
+                if (isJornadaFullDayOff(nurse.id, currentDate, jornadasLaborales)) {
+                    dailyAssignments[nurse.id] = { custom: `Red. 80%`, type: 'CA' };
+                }
+            });
+
             let dutyPool = nurses.filter(n => !dailyAssignments[n.id]);
 
             if (dutyPool.length > 0) {
