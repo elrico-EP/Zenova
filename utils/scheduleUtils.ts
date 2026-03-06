@@ -244,6 +244,85 @@ const getNeededShiftsInPriorityOrder = (needs: Record<string, number>): WorkZone
     return result;
 };
 
+/**
+ * Ensure mandatory shift coverage after applying manual overrides.
+ * If mandatory shifts are not covered, reassign nurses with ADMIN/TW to fill gaps.
+ * This maintains the rule: 6 mandatory shifts must be covered before ADMIN is assigned.
+ */
+export const ensureMandatoryCoverage = (
+    schedule: Schedule,
+    nurses: Nurse[],
+    year: number,
+    month: number,
+    agenda: Agenda,
+    vaccinationPeriod: { start: string; end: string } | null,
+    jornadasLaborales: JornadaLaboral[]
+): Schedule => {
+    const result: Schedule = JSON.parse(JSON.stringify(schedule));
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const currentDate = new Date(Date.UTC(year, month, day));
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayOfWeek = currentDate.getUTCDay();
+        const isWorkday = !(dayOfWeek === 0 || dayOfWeek === 6 || holidays2026.has(dateKey));
+
+        if (!isWorkday) continue;
+
+        // Get mandatory shift requirements
+        const mandatoryNeeds = getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod);
+        const mandatoryShiftTypes: WorkZone[] = ['URGENCES_TARDE', 'TRAVAIL_TARDE', 'URGENCES', 'TRAVAIL'];
+
+        // Build ineligibleForAfternoon set
+        const ineligibleForAfternoon = new Set<string>();
+        nurses.forEach(nurse => {
+            const activeJornada = getActiveJornada(nurse.id, currentDate, jornadasLaborales);
+            if (activeJornada && activeJornada.porcentaje === 90 && 
+                (activeJornada.reductionOption === 'START_SHIFT_4H' || activeJornada.reductionOption === 'END_SHIFT_4H') && 
+                dayOfWeek >= 1 && dayOfWeek <= 4 && dayOfWeek === activeJornada.reductionDayOfWeek) {
+                ineligibleForAfternoon.add(nurse.id);
+            }
+        });
+
+        // Check each mandatory shift
+        for (const mandatoryShift of mandatoryShiftTypes) {
+            const requiredCount = mandatoryNeeds[mandatoryShift] || 0;
+            if (requiredCount <= 0) continue;
+
+            let currentCount = 0;
+            nurses.forEach(nurse => {
+                const cell = result[nurse.id]?.[dateKey];
+                if (cell && getShiftsFromCell(cell).includes(mandatoryShift)) {
+                    currentCount++;
+                }
+            });
+
+            // If not enough coverage, reassign from ADMIN/TW
+            while (currentCount < requiredCount) {
+                const replacementCandidate = nurses.find(nurse => {
+                    const cell = result[nurse.id]?.[dateKey];
+                    if (!cell) return false;
+                    
+                    const shifts = getShiftsFromCell(cell);
+                    const isReassignable = shifts.length > 0 && shifts.every(s => s === 'ADMIN' || s === 'TW');
+                    const isAfternoonEligible = !mandatoryShift.includes('_TARDE') || !ineligibleForAfternoon.has(nurse.id);
+                    const notElvio = nurse.id !== 'nurse-1'; // Elvio should keep ADMIN
+                    
+                    return isReassignable && isAfternoonEligible && notElvio;
+                });
+
+                if (!replacementCandidate) break;
+
+                // Reassign this nurse to the mandatory shift
+                result[replacementCandidate.id][dateKey] = mandatoryShift;
+                currentCount++;
+            }
+        }
+    }
+
+    return result;
+};
+
 const applyJornadaModification = (
     cell: ScheduleCell | undefined,
     nurse: Nurse,
