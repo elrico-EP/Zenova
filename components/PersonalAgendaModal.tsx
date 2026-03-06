@@ -440,6 +440,23 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
             if (activeJornada.porcentaje === 90) weekTheoreticalFixed = 36;
             else if (activeJornada.porcentaje === 80) weekTheoreticalFixed = 32;
         }
+
+        const inMonthWeekDates = weekDates.filter((d): d is Date => !!d && d.getUTCMonth() === month);
+        const hasPlannableWeekday = inMonthWeekDates.some((date) => {
+            const dayOfWeek = date.getUTCDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+
+            const dateKey = date.toISOString().split('T')[0];
+            const weekId = getWeekIdentifier(date);
+            const activityLevel = agenda[weekId] || 'NORMAL';
+            const isHoliday = holidays2026.has(dateKey);
+
+            return isDateInWorkPeriod(nurse, date) && activityLevel !== 'CLOSED' && !isHoliday;
+        });
+
+        if (!hasPlannableWeekday) {
+            weekTheoreticalFixed = 0;
+        }
         
         let weekManual = 0;
         let weekRealTotal = 0;
@@ -464,7 +481,10 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                     const isSickDay = shifts.includes('SICK_LEAVE');
 
                     let dailyHours = 0;
-                    if (activityLevel === 'CLOSED' || isHoliday || isSickDay) {
+                    if (!hasPlannableWeekday) {
+                        const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
+                        dailyHours = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
+                    } else if (activityLevel === 'CLOSED' || isHoliday || isSickDay) {
                         if (dayOfWeek >= 1 && dayOfWeek <= 4) { // Mon-Thu
                             dailyHours = 8.5;
                         } else if (dayOfWeek === 5) { // Fri
