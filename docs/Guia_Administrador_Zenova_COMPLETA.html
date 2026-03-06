@@ -26,10 +26,11 @@
 <body>
 
 <h1>Zenova — Guía Completa de Administración</h1>
-<p style="color: #666; font-style: italic;">Versión 2026 · Manual operacional para gestores de turno</p>
+<p style="color: #666; font-style: italic;">Versión 2026.3 (Actualizada Marzo 2026) · Manual operacional para gestores de turno</p>
 
 <div class="intro">
-<strong>A quién va dirigida:</strong> Jefes de turno, coordinadores, responsables de planificación. Si tienes acceso "Admin" en Zenova, esta guía es para ti. Aprenderás a gestionar calendario, usuarios, cobertura, validaciones y soluciones prácticas a problemas diarios.
+<strong>A quién va dirigida:</strong> Jefes de turno, coordinadores, responsables de planificación. Si tienes acceso "Admin" en Zenova, esta guía es para ti. Aprenderás a gestionar calendario, usuarios, cobertura, validaciones y soluciones prácticas a problemas diarios.<br><br>
+<strong>📌 ACTUALIZACIÓN MARZO 2026:</strong> Nueva funcionalidad de reasignación automática de turnos, prioridad de turnos de tarde, y reglas actualizadas de ADMIN/TW. Ver secciones 5, 5A y 7 para detalles completos.
 </div>
 
 <h2>1. RESPONSABILIDADES DEL ADMIN</h2>
@@ -125,16 +126,34 @@ Si usuario olvida contraseña o está bloqueado:<br>
 
 <h2>4. CALENDARIO & PLANIFICACIÓN</h2>
 
-<h3>4.1 Editar Turno Individual</h3>
+<h3>4.1 Editar Turno Individual (ACTUALIZADO 2026)</h3>
 <div class="step">
-<strong>Escenario:</strong> Ana está asignada a URGENCES el 15/5 pero se enferma. Necesitas cambiarla a ADMIN ese día.<br>
+<strong>Escenario:</strong> Ana está asignada a URGENCES_TARDE el 15/5 pero se enferma. Necesitas cambiarla a SICK_LEAVE (baja médica) ese día.<br><br>
 <strong>Paso 1:</strong> Ve a vista "Calendario General".<br>
 <strong>Paso 2:</strong> Localiza celda de Ana, 15 mayo (intersección fila+columna).<br>
 <strong>Paso 3:</strong> Haz clic en celda. Se abre modal "Editar Turno".<br>
-<strong>Paso 4:</strong> Desplegable: cambia de URGENCES a ADMIN.<br>
-<strong>Paso 5:</strong> Haz clic "Guardar".<br>
-<strong>Resultado:</strong> Turno cambió. Ana ve notificación "Tu turno 15/5 cambió de URGENCES a ADMIN" + email.<br>
-<strong>CRÍTICO:</strong> El sistema automáticamente valida cobertura. Si Ana era ÚNICA en URGENCES ese día, sistema avisa: "⚠️ URGENCES baja a 1. Mínimo requerido: 2".
+<strong>Paso 4:</strong> Desplegable: cambia de URGENCES_TARDE a SICK_LEAVE.<br>
+<strong>Paso 5:</strong> Haz clic "Guardar".<br><br>
+<strong>NUEVO - Reasignación Automática:</strong><br>
+<strong>Paso 6:</strong> Sistema detecta: "Ana era el único URGENCES_TARDE ese día. Ahora falta cobertura."<br>
+<strong>Paso 7:</strong> Sistema busca automáticamente enfermeros con ADMIN ese día (ejemplo: Elena tiene ADMIN).<br>
+<strong>Paso 8:</strong> Sistema reasigna automáticamente: Elena ADMIN → URGENCES_TARDE.<br>
+<strong>Paso 9:</strong> Notificaciones enviadas:
+<ul>
+  <li>Ana: "Tu turno 15/5 cambió de URGENCES_TARDE a SICK_LEAVE" + email</li>
+  <li>Elena: "Tu turno 15/5 cambió de ADMIN a URGENCES_TARDE (cobertura baja médica)" + email</li>
+</ul>
+</div>
+
+<div class="tip">
+💡 <strong>ANTES vs AHORA:</strong><br>
+<strong>ANTES (2025):</strong> Tú debías buscar manualmente quién puede cubrir y hacer cambio adicional.<br>
+<strong>AHORA (2026):</strong> Sistema lo hace automáticamente. Tú solo cambias el turno de Ana, el resto es automático.
+</div>
+
+<div class="warning">
+⚠️ <strong>IMPORTANTE:</strong> Si sistema NO puede reasignar automáticamente (no hay ADMIN disponibles), muestra alerta:<br>
+"⚠️ URGENCES_TARDE baja a 0/1. NO hay enfermeros disponibles para reasignar. Debes buscar cobertura manual o rechazar cambio."
 </div>
 
 <h3>4.2 Cambios en Rango (Semana o Múltiples Días)</h3>
@@ -183,28 +202,68 @@ Si usuario olvida contraseña o está bloqueado:<br>
 
 <div class="section-break"></div>
 
-<h2>5. COBERTURA CLÍNICA: Garantizar Mínimos</h2>
+<h2>5. COBERTURA CLÍNICA: Garantizar Mínimos (ACTUALIZADO 2026)</h2>
 <p>ESTO ES LO MÁS CRÍTICO. Sin cobertura válida: hospital no puede operar.</p>
 
-<h3>5.1 Mínimos Requeridos</h3>
-<p><strong>CADA DÍA DEBE TENER:</strong></p>
+<h3>5.1 Mínimos Requeridos (Turnos Obligatorios)</h3>
+<p><strong>CADA DÍA LABORABLE DEBE TENER EXACTAMENTE 6 TURNOS OBLIGATORIOS:</strong></p>
 <ul>
-  <li>🔴 Mínimo 2 URGENCES (Urgencias)</li>
-  <li>🔵 Mínimo 2 TRAVAIL (Turno general)</li>
-  <li>🟣 1 TW (Teletrabajo) - flexible, si es posible</li>
-  <li>⚪ 1 ADMIN - puede ser 0 si nadie disponible</li>
+  <li>🔴 <strong>2 URGENCES</strong> (Urgencias mañana) - OBLIGATORIO</li>
+  <li>🔵 <strong>2 TRAVAIL</strong> (Turno general mañana) - OBLIGATORIO</li>
+  <li>🟠 <strong>1 URGENCES_TARDE</strong> (Urgencias tarde) - OBLIGATORIO</li>
+  <li>🟢 <strong>1 TRAVAIL_TARDE</strong> (Turno general tarde) - OBLIGATORIO</li>
 </ul>
 
-<h3>5.2 Detección de Violación de Cobertura</h3>
-<div class="step">
-<strong>Paso 1:</strong> Sistema automáticamente monitorea. Si detecta que día 15 solo tiene 1 URGENCES (debería 2):<br>
-<strong>Paso 2:</strong> Muestra ALERTA ROJA: "⚠️ 15/5: URGENCES insuficiente (1/2). Acción requerida."<br>
-<strong>Paso 3:</strong> Como admin, DEBES resolver. Opciones:
+<div class="tip">
+💡 <strong>NUEVA NORMA 2026:</strong> Los turnos de TARDE tienen PRIORIDAD sobre los de MAÑANA cuando hay enfermeros limitados. Si solo hay 7 enfermeros disponibles, el sistema asigna primero URGENCES_TARDE y TRAVAIL_TARDE antes que completar los turnos de mañana.
+</div>
+
+<h3>5.2 Turnos Administrativos (Solo Después de Cubrir Obligatorios)</h3>
+<p><strong>Después de cubrir los 6 turnos obligatorios:</strong></p>
 <ul>
-  <li><strong>Opción A:</strong> Asignar otro enfermero a URGENCES ese día (cambiar su turno).</li>
-  <li><strong>Opción B:</strong> Si no hay disponibilidad: justificar en nota (ej: "3 bajas sin previo aviso, justificado").</li>
-  <li><strong>Opción C:</strong> Cambiar un TRAVAIL a temporalmente a URGENCES (redistribución).</li>
+  <li>⚪ <strong>Enfermeros 7º y 8º:</strong> Reciben ADMIN automáticamente</li>
+  <li>🟣 <strong>Enfermero 9º en adelante:</strong> Sistema intenta asignar TW (teletrabajo) si cumplen reglas:
+    <ul>
+      <li>No ha tenido TW esta semana (máximo 1 TW/semana)</li>
+      <li>No es Elvio (nurse-1) ni Marie (nurse-2) ni trainee (nurse-11)</li>
+      <li>Ayer no tuvo ADMIN ni TW consecutivo</li>
+    </ul>
+  </li>
+  <li>Si no cumple reglas TW: recibe ADMIN como fallback</li>
 </ul>
+
+<div class="warning">
+⚠️ <strong>CRÍTICO:</strong> El sistema NUNCA asigna ADMIN si no están cubiertos los 6 turnos obligatorios primero. Si apruebas vacaciones y quedan menos de 6 enfermeros cubriendo obligatorios, el sistema AUTOMÁTICAMENTE reasigna de ADMIN → turno obligatorio faltante.
+</div>
+
+<h3>5.3 Sistema de Reasignación Automática (Nuevo 2026)</h3>
+<div class="step">
+<strong>¿Qué pasa cuando apruebas vacaciones o haces cambios manuales?</strong><br><br>
+<strong>ANTES (2025):</strong> Tú debías verificar manualmente si quedaba cobertura suficiente.<br>
+<strong>AHORA (2026):</strong> Sistema automático verifica y reasigna.<br><br>
+<strong>Ejemplo:</strong><br>
+- Día 13 abril tiene: 2 URG (Ana, Pedro), 2 TRAV (Juan, Luis), 1 URG_TARDE (María), 1 TRAV_TARDE (Carlos), 2 ADMIN (Elena, Sofia)<br>
+- Apruebas vacaciones de María (URG_TARDE) → Solo queda 0 URG_TARDE<br>
+- <strong>Sistema detecta:</strong> "Falta 1 URG_TARDE obligatorio"<br>
+- <strong>Sistema reasigna automáticamente:</strong> Elena (que tenía ADMIN) → URG_TARDE<br>
+- <strong>Resultado:</strong> Cobertura mantenida. Elena recibe notificación del cambio.<br>
+</div>
+
+<h3>5.4 Detección de Violación de Cobertura</h3>
+<div class="step">
+<strong>Paso 1:</strong> Sistema automáticamente monitorea CADA cambio en tiempo real.<br>
+<strong>Paso 2:</strong> Si detecta que después de aplicar cambios + reasignaciones automáticas AÚN falta cobertura:<br>
+<strong>Paso 3:</strong> Muestra ALERTA ROJA: "⚠️ 15/5: URGENCES_TARDE insuficiente (0/1). NO hay enfermeros con ADMIN disponibles para reasignar."<br>
+<strong>Paso 4:</strong> Como admin, DEBES resolver manualmente. Opciones:
+<ul>
+  <li><strong>Opción A:</strong> Rechazar la vacación/cambio que causó el problema.</li>
+  <li><strong>Opción B:</strong> Buscar otro enfermero para cubrir (cambiar turno de alguien más).</li>
+  <li><strong>Opción C:</strong> Si es situación excepcional (3+ bajas simultáneas): documentar en nota "Situación excepcional justificada" y escalar.</li>
+</ul>
+</div>
+
+<div class="tip">
+💡 <strong>MEJORA:</strong> En la mayoría de casos, ya NO necesitas resolver manualmente. El sistema reasigna automáticamente de ADMIN → obligatorio. Solo interviene cuando literalmente no hay solución posible.
 </div>
 
 <h3>5.3 Dashboard de Violations</h3>
@@ -218,6 +277,50 @@ Si usuario olvida contraseña o está bloqueado:<br>
 
 <div class="critical">
 🚨 CRÍTICO: Si pasa 3 días sin resolver un violation = escalada automática a dirección. No permitas.
+</div>
+
+<div class="section-break"></div>
+
+<h2>5A. NUEVA NORMA: PRIORIDAD DE TURNOS DE TARDE (2026)</h2>
+<p>Sistema cambió el orden de asignación para garantizar mejor cobertura en horarios críticos.</p>
+
+<h3>5A.1 Orden de Prioridad Actual</h3>
+<div class="step">
+<strong>Cuando hay enfermeros limitados (menos de 10 disponibles), sistema asigna en este ORDEN:</strong><br><br>
+<strong>1º PRIORIDAD - URGENCES_TARDE</strong> (Urgencias tarde)<br>
+<strong>2º PRIORIDAD - TRAVAIL_TARDE</strong> (Turno general tarde)<br>
+<strong>3º PRIORIDAD - URGENCES</strong> (Urgencias mañana)<br>
+<strong>4º PRIORIDAD - TRAVAIL</strong> (Turno general mañana)<br>
+<strong>5º PRIORIDAD - VACCIN</strong> (Si periodo vacunación activo)<br>
+<strong>6º PRIORIDAD - LIBERO</strong> (Viernes pre-Strasbourg)
+</div>
+
+<h3>5A.2 ¿Por Qué Este Cambio?</h3>
+<div class="step">
+<strong>Problema anterior:</strong> Cuando había 7 enfermeros disponibles, sistema asignaba:<br>
+- 2 URGENCES (mañana) ✅<br>
+- 2 TRAVAIL (mañana) ✅<br>
+- 1 URGENCES_TARDE ✅<br>
+- 1 TRAVAIL_TARDE... ❌ NO SE ASIGNABA (faltaba 1 enfermero)<br>
+- 1 ADMIN<br><br>
+<strong>Resultado:</strong> Tarde sin cobertura completa. Problema operacional grave.<br><br>
+<strong>Solución nueva:</strong> Con mismos 7 enfermeros, sistema ahora asigna:<br>
+- 1 URGENCES_TARDE ✅ (PRIMERO)<br>
+- 1 TRAVAIL_TARDE ✅ (SEGUNDO)<br>
+- 2 URGENCES (mañana) ✅<br>
+- 2 TRAVAIL (mañana) ✅<br>
+- 1 ADMIN<br><br>
+<strong>Resultado:</strong> Turnos de TARDE siempre cubiertos primero. Mañana puede adaptarse mejor.
+</div>
+
+<h3>5A.3 Impacto en Tus Decisiones</h3>
+<div class="tip">
+💡 <strong>Como Admin, esto significa:</strong>
+<ul>
+  <li>Si un enfermero solicita "excluir turno tarde": impacto es MAYOR que excluir mañana.</li>
+  <li>Si necesitas quitar a alguien por emergencia: trata de NO tocar turnos tarde (URG_TARDE, TRAV_TARDE).</li>
+  <li>Si alguien tiene restricción jornada "no tardes": sistema respeta, pero puede crear más conflictos de cobertura.</li>
+</ul>
 </div>
 
 <div class="section-break"></div>
@@ -255,8 +358,8 @@ Si usuario olvida contraseña o está bloqueado:<br>
 
 <div class="section-break"></div>
 
-<h2>7. WISHES: Validación y Aprobación</h2>
-<p>Los usuarios solicitan "wishes" (preferencias). Tú decides si se cumplen.</p>
+<h2>7. WISHES: Validación y Aprobación (ACTUALIZADO 2026)</h2>
+<p>Los usuarios solicitan "wishes" (preferencias). Tú decides si se cumplen. <strong>NUEVO:</strong> El sistema automáticamente mantiene cobertura al aprobar.</p>
 
 <h3>7.1 Ver Wishes Pendientes</h3>
 <div class="step">
@@ -266,30 +369,60 @@ Si usuario olvida contraseña o está bloqueado:<br>
 <strong>Paso 4:</strong> Haz clic en una wish para ver detalles.
 </div>
 
-<h3>7.2 Aprobar Wish</h3>
+<h3>7.2 Aprobar Wish - PROCESO SIMPLIFICADO 2026</h3>
 <div class="step">
-<strong>EJEMPLO:</strong> Ana solicita "Excluir URGENCES el 20/5" (cita médica ese día).<br>
-<strong>Paso 1:</strong> Abriste detalles de wish.<br>
-<strong>Paso 2:</strong> Verifica lógica: ¿puedo hacer esto sin violar cobertura?<br>
-  - 20/5 tiene 2 URGENCES programadas: Ana + Juan.<br>
-  - Si quito Ana: solo Juan. Baja a 1. PROBLEMA.<br>
-<strong>Paso 3:</strong> Dos opciones:<br>
-  - <strong>A) Buscar solución:</strong> Asignar otro URGENCES el 20. Luego aprobar wish de Ana.<br>
-  - <strong>B) Rechazar:</strong> Si no hay disponibilidad, rechaza con nota "No es posible sin bajar cobertura".<br>
-<strong>Paso 4:</strong> Si approves: haz clic "Aprobar" botón verde.<br>
-<strong>Resultado:</strong> Sistema automáticamente: 1) marca wish aprobada, 2) aplica cambio (Ana → día libre), 3) notifica a Ana por email + pantalla.
-</div>
-
-<h3>7.3 Rechazar Wish</h3>
-<div class="step">
-<strong>Paso 1:</strong> Si no puedes aprobar wish: haz clic "Rechazar" botón rojo.<br>
-<strong>Paso 2:</strong> Campo "Motivo": siempre EXPLICA. Ejemplo: "Ese día URGENCES mínimo (2), no podemos bajar. Propón otro día."<br>
-<strong>Paso 3:</strong> Haz clic "Rechazar".<br>
-<strong>Resultado:</strong> Usuario VE rechazo + tu motivo. Puede resubmit con otro día/razón.
+<strong>EJEMPLO:</strong> Ana solicita vacaciones (F) del 13 al 15 de abril. Está asignada URGENCES_TARDE el 13.<br><br>
+<strong>ANTES (2025):</strong><br>
+- Tenías que verificar manualmente: "¿Si quito a Ana, queda cobertura?"<br>
+- Tenías que buscar manualmente quién puede cubrir<br>
+- Tenías que cambiar turnos manualmente ANTES de aprobar<br><br>
+<strong>AHORA (2026) - AUTOMÁTICO:</strong><br>
+<strong>Paso 1:</strong> Haces clic "Aprobar" en la wish de vacaciones de Ana.<br>
+<strong>Paso 2:</strong> Sistema automáticamente:
+<ul>
+  <li>✅ Marca los días 13-15 como F (vacaciones) para Ana</li>
+  <li>✅ Detecta que el día 13 quedó sin URGENCES_TARDE (falta 1 obligatorio)</li>
+  <li>✅ Busca enfermeros con ADMIN ese día (ejemplo: Elena tiene ADMIN)</li>
+  <li>✅ Reasigna automáticamente: Elena ADMIN → URGENCES_TARDE</li>
+  <li>✅ Recalcula el resto del mes para mantener equidad</li>
+  <li>✅ Notifica a Ana: "Vacaciones aprobadas 13-15 abril"</li>
+  <li>✅ Notifica a Elena: "Tu turno 13 abril cambió de ADMIN a URGENCES_TARDE (cobertura de vacaciones Ana)"</li>
+</ul>
+<strong>Paso 3:</strong> ¡Listo! No tuviste que hacer nada más.<br>
 </div>
 
 <div class="tip">
-💡 Mejor admin: siempre ofrece alternativa. "No puedo 20/5, pero ¿21/5?" = usuario feliz.
+💡 <strong>GRAN MEJORA:</strong> Ya NO necesitas verificar cobertura manualmente antes de aprobar. El sistema lo hace automáticamente. Tu trabajo ahora es:
+<ol>
+  <li>Verificar que la solicitud es legítima (no abusos)</li>
+  <li>Click "Aprobar"</li>
+  <li>Sistema se encarga del resto</li>
+</ol>
+</div>
+
+<h3>7.3 Cuándo SÍ debes intervenir manualmente</h3>
+<div class="warning">
+⚠️ Sistema automático tiene límites. Debes intervenir SI:
+<ul>
+  <li><strong>No hay enfermeros con ADMIN disponibles para reasignar:</strong> Ejemplo: 6 obligatorios cubiertos, 0 ADMIN ese día. Si apruebas vacación de obligatorio → NO HAY QUIEN CUBRA.</li>
+  <li><strong>Múltiples vacaciones simultáneas:</strong> 5+ enfermeros piden el mismo día. Físicamente imposible mantener 6 obligatorios.</li>
+  <li><strong>Enfermero con reducción jornada especial:</strong> Si Elena tiene jornada 90% con restricción "no trabaja tardes" y sistema intenta reasignarla a TARDE → conflicto.</li>
+</ul>
+En estos casos: sistema muestra ALERTA: "⚠️ No es posible aprobar automáticamente. Revisar manualmente."
+</div>
+
+<h3>7.4 Rechazar Wish</h3>
+<div class="step">
+<strong>Paso 1:</strong> Si no puedes aprobar wish (casos especiales sección 7.3): haz clic "Rechazar" botón rojo.<br>
+<strong>Paso 2:</strong> Campo "Motivo": siempre EXPLICA claramente. Ejemplos:<br>
+- "Ese día ya hay 4 vacaciones aprobadas. No podemos mantener 6 obligatorios. Propón otro día."<br>
+- "Sistema no puede reasignar automáticamente porque no hay enfermeros ADMIN disponibles ese día. Consulta con compañeros si alguien puede intercambiar."<br>
+<strong>Paso 3:</strong> Haz clic "Rechazar".<br>
+<strong>Resultado:</strong> Usuario VE rechazo + tu motivo detallado. Puede resubmit con ajustes.
+</div>
+
+<div class="tip">
+💡 Mejor admin: ofrece alternativa constructiva. "No puedo 13/4 (4 vacaciones ya), pero ¿14/4 o 20/4 está libre?" = usuario comprende y colabora.
 </div>
 
 <div class="section-break"></div>
@@ -362,7 +495,58 @@ Si usuario olvida contraseña o está bloqueado:<br>
 
 <div class="section-break"></div>
 
-<h2>10. CHECKLISTS OPERACIONALES DIARIOS</h2>
+<h2>9A. CASOS DE USO PRÁCTICOS CON REASIGNACIÓN AUTOMÁTICA (NUEVO 2026)</h2>
+<p>Ejemplos reales de cómo el nuevo sistema maneja situaciones comunes.</p>
+
+<h3>Caso 1: Baja médica de último minuto</h3>
+<div class="step">
+<strong>Situación:</strong> Hoy lunes 8:00 AM. Ana llama: "Tengo gripe, baja médica hoy."<br>
+Ana tiene URGENCES_TARDE hoy. Solo quedan 30 minutos antes de que llegue el equipo.<br><br>
+<strong>Tu acción:</strong><br>
+1. Abres calendario, buscas Ana hoy.<br>
+2. Cambias su turno de URGENCES_TARDE → SICK_LEAVE.<br>
+3. Click "Guardar".<br><br>
+<strong>Sistema automático:</strong><br>
+4. Detecta: "Hoy falta 1 URGENCES_TARDE (obligatorio)"<br>
+5. Busca: Elena y Carlos tienen ADMIN hoy<br>
+6. Reasigna: Elena ADMIN → URGENCES_TARDE<br>
+7. Notifica: Elena recibe alerta en pantalla + SMS "Tu turno hoy cambió a URGENCES_TARDE (cobertura baja médica Ana)"<br>
+8. Notifica: Ana recibe confirmación de baja médica registrada<br><br>
+<strong>Tiempo total: 30 segundos.</strong> Antes: 5-10 minutos buscando manualmente + llamadas.
+</div>
+
+<h3>Caso 2: Aprobación de vacaciones en bloque</h3>
+<div class="step">
+<strong>Situación:</strong> Tienes 8 wishes pendientes para aprobar (vacaciones semana 15-21 abril).<br><br>
+<strong>Tu acción:</strong><br>
+1. Vas a Wishes Pendientes<br>
+2. Revisas que solicitudes son legítimas (no abusos)<br>
+3. Approves 8 wishes una por una: click, click, click...<br><br>
+<strong>Sistema automático (POR CADA wish aprobada):</strong><br>
+4. Marca enfermero como F (vacaciones) esos días<br>
+5. Detecta qué turnos obligatorios quedan vacíos<br>
+6. Reasigna automáticamente desde ADMIN disponibles<br>
+7. Notifica a todos los afectados (vacación aprobada + reasignaciones)<br>
+8. Recalcula resto del mes para mantener equidad<br><br>
+<strong>Resultado:</strong> Cobertura entera semana mantenida. Antes: tenías que hacer 20+ cambios manuales.
+</div>
+
+<h3>Caso 3: Sistema NO puede reasignar - escalamiento necesario</h3>
+<div class="step">
+<strong>Situación:</strong> Día 13 abril: 3 enfermeros piden vacaciones simultáneas (Ana, Juan, María).<br>
+Ana = URGENCES, Juan = TRAVAIL, María = URGENCES_TARDE.<br>
+Ese día solo hay 7 enfermeros totales: 6 obligatorios + 1 ADMIN (Carlos).<br><br>
+<strong>Tu acción:</strong><br>
+1. Intentas aprobar wish de Ana → Sistema reasigna Carlos (ADMIN) → URGENCES. ✅<br>
+2. Intentas aprobar wish de Juan → Sistema dice: "⚠️ No hay ADMIN disponible. No es posible aprobar automáticamente."<br><br>
+<strong>Tu decisión:</strong><br>
+<strong>Opción A:</strong> Rechaza wishes de Juan y María: "Solo puedo aprobar 1 vacación ese día (cobertura insuficiente). Reordena prioridad médica."<br>
+<strong>Opción B:</strong> Busca enfermero de otro departamento para turno extra ese día (contacto directo).<br>
+<strong>Opción C:</strong> Escala a dirección: "Necesito autorización para 3 vacaciones simultáneas con cobertura reducida justificada."<br><br>
+<strong>Lección:</strong> Sistema automatiza 90% casos. El 10% restante requiere gestión humana.
+</div>
+
+<div class="section-break"></div>
 
 <h3>Checklist Mañana (7:00 - 8:00 AM)</h3>
 <div class="checklist">
@@ -413,7 +597,37 @@ Si usuario olvida contraseña o está bloqueado:<br>
 
 <div class="section-break"></div>
 
-<h2>12. PROBLEMAS COMUNES & SOLUCIONES</h2>
+<h2>12. PROBLEMAS COMUNES & SOLUCIONES (ACTUALIZADO 2026)</h2>
+
+<h3>Problema: "Sistema reasignó automáticamente a alguien y ahora se queja"</h3>
+<div class="step">
+<strong>Causa:</strong> Aprobaste vacaciones de Ana (turno obligatorio). Sistema reasignó automáticamente a Elena (ADMIN → obligatorio) para mantener cobertura. Elena reclama.<br>
+<strong>Solución:</strong><br>
+<strong>Paso 1:</strong> Explica a Elena: "Ana pidió vacaciones. Sistema automáticamente te asignó su turno porque eras ADMIN ese día. Es necesario para mantener cobertura hospitalaria."<br>
+<strong>Paso 2:</strong> Si Elena tiene razón legítima (ej: ella también tiene cita médica ese día que no registró):<br>
+  - Busca otro enfermero con ADMIN ese día<br>
+  - Cámbialo manualmente<br>
+  - O rechaza la vacación de Ana si no hay alternativa<br>
+<strong>Paso 3:</strong> Si Elena simplemente no quiere: recuérdale que ADMIN es rotativo y flexible precisamente para cubrir estas situaciones. Es parte del contrato.<br>
+</div>
+
+<h3>Problema: "Aprobé wish pero sistema dice 'No es posible aprobar automáticamente'"</h3>
+<div class="step">
+<strong>Causa:</strong> No hay enfermeros con ADMIN disponibles para reasignar ese día. Todos están en turnos obligatorios o ausentes.<br>
+<strong>Solución:</strong><br>
+<strong>Opción A:</strong> Busca MANUALMENTE alguien que pueda intercambiar con otro día. Haz swap manual primero, luego aprueba wish.<br>
+<strong>Opción B:</strong> Rechaza wish explicando: "Ese día no hay cobertura disponible. Todos en turnos obligatorios. Propón otro día, por favor."<br>
+<strong>Opción C:</strong> Si es urgente (médico, emergencia familiar): contacta enfermeros directamente para ver quién puede hacer turno extra ese día.
+</div>
+
+<h3>Problema: "Sistema muestra alerta 'Tarde sin cobertura' pero yo veo que hay gente asignada"</h3>
+<div class="step">
+<strong>Causa:</strong> Puede ser que enfermeros asignados tienen restricción jornada "no tardes" (90% con reducción tarde).<br>
+<strong>Solución:</strong><br>
+<strong>Paso 1:</strong> Revisa jornadas de enfermeros asignados ese día (sección 6).<br>
+<strong>Paso 2:</strong> Si alguien tiene restricción tarde: ese turno NO cuenta para cobertura tarde obligatoria.<br>
+<strong>Paso 3:</strong> Debes asignar otro enfermero SIN restricción tarde a ese turno.<br>
+</div>
 
 <h3>Problema: "Calendario congelado. No puedo editar turnos"</h3>
 <div class="step">
@@ -469,8 +683,20 @@ Si usuario olvida contraseña o está bloqueado:<br>
 </ul>
 
 <p style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #ccc; color: #666; font-style: italic;">
-— Versión 2026 · Guía Zenova Administración · Última actualización: Marzo 2026 —
+— Versión 2026.3 · Guía Zenova Administración · Última actualización: 6 Marzo 2026 —
 </p>
+
+<div class="tip" style="margin-top: 20px;">
+<strong>📋 Historial de Cambios - Versión 2026.3 (Marzo 2026):</strong>
+<ul>
+  <li>✅ Nueva función automática: <strong>ensureMandatoryCoverage()</strong> - Reasigna automáticamente de ADMIN a turnos obligatorios cuando se aprueban vacaciones o cambios manuales</li>
+  <li>✅ Nueva norma: <strong>Prioridad de turnos de tarde</strong> - URGENCES_TARDE y TRAVAIL_TARDE se asignan ANTES que turnos de mañana cuando hay enfermeros limitados</li>
+  <li>✅ Reglas actualizadas: Enfermeros 7º-8º reciben ADMIN, 9º+ reciben TW (con reglas) o ADMIN</li>
+  <li>✅ Sección 5 completamente reescrita con nuevas reglas de cobertura automática</li>
+  <li>✅ Sección 7 actualizada: Aprobar wishes ahora es más simple (sistema maneja reasignaciones)</li>
+  <li>✅ Nueva sección 5A: Explicación completa de prioridad de turnos de tarde</li>
+</ul>
+</div>
 
 </body>
 </html>
