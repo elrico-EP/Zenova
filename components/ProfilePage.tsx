@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../hooks/useTranslations';
 import type { Nurse, User } from '../types';
 
 export const ProfilePage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) => {
-    const { user, changePassword } = useUser();
+    const { user, changePassword, updateOwnEmail } = useUser();
     const { language, setLanguage } = useLanguage();
     const t = useTranslations();
 
@@ -16,6 +16,14 @@ export const ProfilePage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [notificationEmail, setNotificationEmail] = useState(user?.email || '');
+    const [emailError, setEmailError] = useState('');
+    const [emailSuccess, setEmailSuccess] = useState('');
+    const [isSavingEmail, setIsSavingEmail] = useState(false);
+
+    useEffect(() => {
+        setNotificationEmail(user?.email || '');
+    }, [user?.email]);
 
     const associatedNurseName = useMemo(() => {
         if (user?.role === 'nurse' && (user as User).nurseId) {
@@ -61,6 +69,30 @@ export const ProfilePage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) => {
         setLanguage(e.target.value as 'es' | 'en' | 'fr');
     };
 
+    const handleEmailSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setEmailError('');
+        setEmailSuccess('');
+
+        const normalizedEmail = notificationEmail.trim().toLowerCase();
+        const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+
+        if (!isValidEmail) {
+            setEmailError(t.profileEmailInvalid);
+            return;
+        }
+
+        setIsSavingEmail(true);
+        try {
+            await updateOwnEmail(normalizedEmail);
+            setEmailSuccess(t.profileEmailSaved);
+        } catch (e) {
+            setEmailError((e as Error).message);
+        } finally {
+            setIsSavingEmail(false);
+        }
+    };
+
     if (!user) return null;
 
     return (
@@ -89,6 +121,29 @@ export const ProfilePage: React.FC<{ nurses: Nurse[] }> = ({ nurses }) => {
                             </div>
                         )}
                     </div>
+                    <form onSubmit={handleEmailSubmit} className="mt-6 pt-4 border-t border-slate-200 space-y-3">
+                        <label className="block text-sm font-medium text-slate-600">{t.profileNotificationEmail}</label>
+                        <input
+                            type="email"
+                            value={notificationEmail}
+                            onChange={e => setNotificationEmail(e.target.value)}
+                            required
+                            className="w-full p-2 border border-slate-300 rounded-md"
+                            placeholder="correo@ejemplo.com"
+                        />
+                        <p className="text-xs text-slate-500">{t.profileEmailLoginHint}</p>
+                        {emailError && <p className="text-sm text-red-600">{emailError}</p>}
+                        {emailSuccess && <p className="text-sm text-green-600">{emailSuccess}</p>}
+                        <div className="flex justify-end">
+                            <button
+                                type="submit"
+                                disabled={isSavingEmail || notificationEmail.trim().toLowerCase() === (user?.email || '').toLowerCase()}
+                                className="px-4 py-2 bg-zen-800 text-white font-semibold rounded-md hover:bg-zen-700 disabled:opacity-50"
+                            >
+                                {isSavingEmail ? t.saving : t.save}
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
                 {/* Language Preferences Section */}
