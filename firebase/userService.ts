@@ -209,3 +209,36 @@ export const resetPassword = async (username: string, newPassword: string): Prom
         .eq('email', username);
     if (error) throw error;
 };
+
+export const updateOwnEmail = async (userId: string, email: string): Promise<User> => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+
+    if (!isValidEmail) {
+        throw new Error('Email no válido');
+    }
+
+    const { data: existingUser, error: existingUserError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .neq('id', userId)
+        .maybeSingle();
+
+    if (existingUserError) throw existingUserError;
+    if (existingUser) {
+        throw new Error('El email ya está en uso por otro usuario');
+    }
+
+    const { data, error } = await supabase
+        .from('users')
+        .update({ email: normalizedEmail })
+        .eq('id', userId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    if (!data) throw new Error('No se pudo actualizar el email');
+
+    return data as User;
+};
