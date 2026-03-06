@@ -17,6 +17,7 @@ interface UserContextType {
   updateUser: (userData: User) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  updateOwnEmail: (newEmail: string) => Promise<void>;
   forceSetPassword: (newPassword: string) => Promise<void>;
   requestPasswordReset: (username: string) => Promise<boolean>;
   resetPassword: (username: string, newPassword: string) => Promise<void>;
@@ -151,6 +152,14 @@ useEffect(() => {
     setUser(updatedUser);
   }, [user]);
 
+  const updateOwnEmail = useCallback(async (newEmail: string) => {
+    if (!user) throw new Error("No user authenticated");
+    const updatedUser = await userService.updateOwnEmail(user.id, newEmail);
+    setUser(updatedUser);
+    localStorage.setItem('zenova_user', JSON.stringify(updatedUser));
+    await refreshUsers();
+  }, [user, refreshUsers]);
+
  const forceSetPassword = useCallback(async (newPassword: string) => {
     if (!user) throw new Error("No user authenticated");
     
@@ -174,9 +183,9 @@ useEffect(() => {
 
   const contextValue = useMemo(() => ({
     user, effectiveUser, isLoading, login, logout, impersonate, isImpersonating, authError,
-    users, register, updateUser, deleteUser, changePassword, forceSetPassword,
+    users, register, updateUser, deleteUser, changePassword, updateOwnEmail, forceSetPassword,
     requestPasswordReset, resetPassword,
-  }), [user, effectiveUser, isLoading, login, logout, impersonate, isImpersonating, authError, users, register, updateUser, deleteUser, changePassword, forceSetPassword, requestPasswordReset, resetPassword]);
+  }), [user, effectiveUser, isLoading, login, logout, impersonate, isImpersonating, authError, users, register, updateUser, deleteUser, changePassword, updateOwnEmail, forceSetPassword, requestPasswordReset, resetPassword]);
 
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };
