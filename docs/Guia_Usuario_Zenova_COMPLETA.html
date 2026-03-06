@@ -140,14 +140,19 @@
 
 <h3>4.3 Significado de colores</h3>
 <ul>
-  <li>🔴 <strong>URGENCES</strong> (rojo): Turno en Urgencias. Crítico, stress alto.</li>
-  <li>🔵 <strong>TRAVAIL</strong> (azul): Turno normal/general.</li>
-  <li>⚪ <strong>ADMIN</strong> (gris): Administración/oficina.</li>
-  <li>🟣 <strong>TW</strong> (morado): Teletrabajo (trabajas desde casa).</li>
-  <li>🟢 <strong>CA</strong> (verde): Congé Annuel / Vacaciones.</li>
-  <li>🟡 <strong>SICK_LEAVE</strong> (amarillo): Baja por enfermedad.</li>
-  <li>🟤 <strong>F</strong> (marrón): Festivo (día no laborable).</li>
-  <li>⭐ <strong>STRASBOURG</strong>: Viaje/sesión especial.</li>
+  <li>🔵 <strong>URGENCES / URGENCES_C</strong>: azul claro (AM) y azul intenso (URG PM).</li>
+  <li>🟡 <strong>TRAVAIL / TRAVAIL_C</strong>: amarillo claro (AM) y amarillo intenso (TRAV PM).</li>
+  <li>🟠 <strong>ADMIN / ADM_PLUS</strong>: naranja claro (Adm) y naranja intenso (Adm +).</li>
+  <li>🟣 <strong>TW / TW_ABROAD</strong>: morado claro (TW) y morado intenso (TW abroad).</li>
+  <li>🌹 <strong>STRASBOURG</strong>: rosa/rose.</li>
+  <li>🩵 <strong>LIBERO / RECUP</strong>: cian o azul cielo (según tipo).</li>
+  <li>🟩 <strong>FP</strong>: verde claro.</li>
+  <li>🟦 <strong>CS</strong>: índigo claro.</li>
+  <li>⚫ <strong>SICK_LEAVE (CM)</strong>: gris oscuro.</li>
+  <li>⚪ <strong>CA</strong>: gris muy claro.</li>
+  <li>🔴 <strong>F</strong>: rojo (festivo).</li>
+  <li>🟢 <strong>VACCIN / VACCIN_AM / VACCIN_PM / VACCIN_PM_PLUS</strong>: gama verde-azulada (teal).</li>
+  <li>🧩 <strong>Split / custom</strong>: si el turno es dividido o personalizado, verás bloques combinados con color según el tipo.</li>
 </ul>
 
 <h3>4.4 Leer tu planificación personal</h3>
@@ -225,27 +230,25 @@
 <div class="step">
 <strong>Paso 1:</strong> En menú principal, busca "Wishes" o "Mis Deseos".<br>
 <strong>Paso 2:</strong> Verás lista de wishes que ya solicitaste.<br>
-<strong>Paso 3:</strong> Busca botón "+ Nueva Wish" o "+ New Wish".<br>
-<strong>Paso 4:</strong> Se abrirá modal/formulario.
+<strong>Paso 3:</strong> Ve a la celda del día que quieres pedir.<br>
+<strong>Paso 4:</strong> Escribe directamente tu texto en la celda (zona con "...").<br>
+<strong>Paso 5 (opcional):</strong> Haz clic en los <strong>3 puntos verticales</strong> para elegir tipo de turno (CA, CM, FP, RECUP, TW, TW Abroad).
 </div>
 
 <h3>7.2 Rellenar solicitud: Ejemplo Real</h3>
 <div class="step">
-<strong>EJEMPLO:</strong> Quiero solicitar "No trabajar en Urgencias el 20 de mayo"<br><br>
-<strong>Paso 1:</strong> Tipo de solicitud: "Excluir turno" o "Exclude shift type"<br>
-<strong>Paso 2:</strong> Selecciona fecha: 20 de mayo<br>
-<strong>Paso 3:</strong> Tipo de turno a excluir: URGENCES<br>
-<strong>Paso 4:</strong> Motivo (opcional): "Cita médica ese día"<br>
-<strong>Paso 5:</strong> Haz clic "Enviar Solicitud"<br>
-<strong>Resultado:</strong> Admin recibe tu solicitud. Estado cambia a "Pendiente".
+<strong>EJEMPLO REAL EN ZENOVA:</strong> pedir CA para el 20 de mayo<br><br>
+<strong>Paso 1:</strong> En fila del día 20, escribe en tu celda: "CA" o "Vacaciones".<br>
+<strong>Paso 2:</strong> Si quieres marcarlo como turno estructurado, abre los 3 puntos verticales y elige <strong>CA</strong>.<br>
+<strong>Paso 3:</strong> Haz clic fuera de la celda para guardar (blur automático).<br>
+<strong>Resultado:</strong> Tu wish queda guardada y visible para validación de admin.
 </div>
 
 <h3>7.3 Estados de Wish</h3>
 <ul>
-  <li>⏳ <strong>Pendiente:</strong> Admin la está revisando. Espera.</li>
-  <li>✅ <strong>Aprobada:</strong> Admin dijo que sí. Tu calendario se actualiza automáticamente.</li>
-  <li>❌ <strong>Rechazada:</strong> Admin dijo que no (mínimas rotaciones necesarias). Verás motivo.</li>
-  <li>🔄 <strong>Auto-aplicada:</strong> Sistema automático la aplicó tras aprobación.</li>
+  <li>⏳ <strong>Pendiente:</strong> wish guardada pero no validada (icono reloj ámbar).</li>
+  <li>✅ <strong>Validada:</strong> admin la valida (icono check verde).</li>
+  <li>🗑️ <strong>Eliminada:</strong> se borra la wish de la celda (por usuario si no validada, o por admin).</li>
 </ul>
 
 <div class="tip">
@@ -259,59 +262,56 @@
 
 <h3>8.1 Iniciar un Swap</h3>
 <div class="step">
-<strong>EJEMPLO:</strong> Tú trabajas el 12 de mayo (TRAVAIL) pero Juan trabaja ese día (URGENCES). Quieres cambiar.<br><br>
-<strong>Paso 1:</strong> Ve a "Wish" o "Personal Agenda".<br>
-<strong>Paso 2:</strong> Haz clic en tu turno del 12 mayo.<br>
-<strong>Paso 3:</strong> Se abre menú: busca "Intercambiar" o "Swap".<br>
-<strong>Paso 4:</strong> Se abrirá modal "Proponer intercambio".<br>
-<strong>Paso 5:</strong> Selecciona: "Intercambio con Juan", "Tu turno 12 (TRAVAIL) por su turno 12 (URGENCES)".<br>
-<strong>Paso 6:</strong> Escribe motivo si quieres (ej: "Tengo cita ese día").<br>
-<strong>Paso 7:</strong> Haz clic "Enviar propuesta".
+<strong>EJEMPLO:</strong> Quieres intercambiar tu turno del 12 de mayo con otra persona.<br><br>
+<strong>Paso 1:</strong> Ve al calendario general.<br>
+<strong>Paso 2:</strong> Haz <strong>doble clic</strong> en la celda del turno que quieres intercambiar.<br>
+<strong>Paso 3:</strong> Se abre el panel de intercambio (Swap).<br>
+<strong>Paso 4:</strong> En "Nurse 2", elige la persona con la que quieres intercambiar.<br>
+<strong>Paso 5:</strong> Revisa la previsualización de cómo quedarán ambos turnos.<br>
+<strong>Paso 6:</strong> Haz clic en "Confirm Swap".
 </div>
 
 <h3>8.2 Estados del Swap</h3>
-<ul>
-  <li>⏳ <strong>Pendiente:</strong> Juan tiene propuesta. Puede aceptar/rechazar.</li>
-  <li>✅ <strong>Aceptado:</strong> Juan dijo que sí. Ambos ven evento de swap confirmado.</li>
-  <li>❌ <strong>Rechazado:</strong> Juan dijo que no.</li>
-  <li>⚡ <strong>Confirmado por Admin:</strong> Admin validó el swap. Ya está en calendario oficial.</li>
-</ul>
+<p>En la app actual no hay flujo de estados (pendiente/aceptado/rechazado) para swaps. El intercambio se aplica cuando confirmas en el panel.</p>
 
 <h3>8.3 Ver mis swaps</h3>
 <div class="step">
-<strong>Paso 1:</strong> En menú, busca "Mis Intercambios" o "My Swaps".<br>
-<strong>Paso 2:</strong> Ves lista de todos tus swaps (pendientes, confirmados, rechazados).<br>
-<strong>Paso 3:</strong> Haz clic en uno para ver detalles (compañero, fechas, estado).
+<strong>Paso 1:</strong> Revisa el <strong>Histórico</strong> de la agenda general para ver los intercambios guardados.<br>
+<strong>Paso 2:</strong> También puedes verlo en tu agenda personal, en el bloque de cambios manuales del mes.
 </div>
 
 <div class="section-break"></div>
 
 <h2>9. BALANCE & HOURS: ¿Cuántas Horas He Trabajado?</h2>
-<p>Tu contrato especifica cuántas horas DEBES trabajar (ej: 80%, 90%, 100%). Esta sección muestra si estás dentro, por encima, o por debajo.</p>
+<p>En Zenova, el seguimiento fino de horas está en tu Agenda Personal: balance semanal, diferencia del mes y total mensual.</p>
+
+<h3>9.0 Indicador "R" amarillo en celdas</h3>
+<div class="step">
+Si ves una <strong>R amarilla</strong> en la esquina de la celda de un día, significa que ese día está bajo una <strong>reducción de jornada activa</strong> (80%/90%).<br>
+Puedes pasar el ratón por la "R" para ver el detalle de la regla aplicada.
+</div>
 
 <h3>9.1 Acceder a Balance</h3>
 <div class="step">
-<strong>Paso 1:</strong> En menú, busca "Balance" o "Horas Trabajadas".<br>
-<strong>Paso 2:</strong> Verás tabla con todos los meses del año.<br>
-<strong>Paso 3:</strong> Cada fila es un mes. Columnas: mes, horas requeridas, horas trabajadas, diferencia, tu porcentaje.
+<strong>Paso 1:</strong> Abre tu Agenda Personal (clic en tu agenda desde Balance o desde tu acceso personal).<br>
+<strong>Paso 2:</strong> Verás el calendario del mes y, a la derecha, el resumen de balance.<br>
+<strong>Paso 3:</strong> Cada semana muestra: horas planificadas, horas manuales y balance semanal.
 </div>
 
 <h3>9.2 Interpretar la tabla</h3>
 <div class="step">
-<strong>EJEMPLO:</strong> Si tu contrato es 80%:<br><br>
-<strong>Mayo 2026:</strong><br>
-- Requerido: 160 horas (80% de 160)<br>
-- Trabajadas: 158 horas<br>
-- Diferencia: -2 horas (<strong>DEFICIT</strong>). Te faltan 2 horas este mes.<br>
-- Porcentaje: 98.75% (casi completo pero no del todo)<br><br>
-<strong>Si viera SUPERÁVIT (+ horas):</strong> Trabajaste MÁS de lo requerido. Eso se suma para próximos meses.
+<strong>Cómo leer los datos reales:</strong><br><br>
+<strong>Balance semanal:</strong> diferencia entre horas reales de la semana y objetivo semanal según tu jornada (40/36/32).<br>
+<strong>Mes anterior:</strong> campo editable para arrastrar saldo del mes previo.<br>
+<strong>Diferencia:</strong> suma de balances semanales del mes actual.<br>
+<strong>Total mes:</strong> Diferencia + Mes anterior.<br><br>
+<strong>Interpretación:</strong> valor en verde = superávit; valor en rojo = déficit.
 </div>
 
 <h3>9.3 Exportar balance</h3>
 <div class="step">
-<strong>Paso 1:</strong> En vista Balance, busca botón "Exportar" o "Export to Excel".<br>
-<strong>Paso 2:</strong> Se descargará Excel con toda la tabla para guardar/analizar.<br>
-<strong>Paso 3:</strong> Puedes comparar con tus registros personales.
+<strong>Paso 1:</strong> En Agenda Personal, usa los botones de exportación (PDF mes, PDF año o Copy).<br>
+<strong>Paso 2:</strong> Usa esos exportes para revisar y compartir tus horas y tu planificación.
 </div>
 
 <div class="warning">
@@ -325,8 +325,8 @@
 
 <h3>10.1 Cambiar idioma</h3>
 <div class="step">
-<strong>Paso 1:</strong> Busca ícono 🌐 (globo terráqueo) en esquina superior derecha.<br>
-<strong>Paso 2:</strong> Haz clic. Se abre menú desplegable con idiomas: Español, English, Français.<br>
+<strong>Paso 1:</strong> Busca el botón de idioma en la cabecera (muestra <strong>bandera + nombre del idioma</strong> actual).<br>
+<strong>Paso 2:</strong> Haz clic para abrir el desplegable con Español, English y Français.<br>
 <strong>Paso 3:</strong> Haz clic en el que quieras.<br>
 <strong>Resultado:</strong> Toda interfaz cambia inmediatamente. Se guarda tu preferencia.
 </div>
@@ -346,9 +346,9 @@
 
 <h3>11.2 Exportar Balance</h3>
 <div class="step">
-<strong>Paso 1:</strong> Ve a "Balance".<br>
-<strong>Paso 2:</strong> Haz clic "Exportar a Excel".<br>
-<strong>Resultado:</strong> Descargas hoja de cálculo con todos tus meses.
+<strong>Paso 1:</strong> Ve a "Wishes".<br>
+<strong>Paso 2:</strong> Usa los botones de exportación disponibles: <strong>CSV</strong>, <strong>Copy</strong> (portapapeles para Sheets/Excel) y <strong>PDF</strong> (impresión/exportación).<br>
+<strong>Resultado:</strong> Puedes compartir o archivar tus deseos/solicitudes por periodo.
 </div>
 
 <h3>11.3 Dónde se descargan</h3>
@@ -394,10 +394,7 @@
 <h3>Problema 3: "Olvidé mi contraseña"</h3>
 <div class="step">
 <strong>Solución:</strong><br>
-1. En pantalla login, busca "¿Olvidaste tu contraseña?" o "Forgot Password?".<br>
-2. Haz clic. Escribe tu usuario/email.<br>
-3. Recibirás email con link para reset. Abre email, haz clic link, estableece contraseña nueva.<br>
-4. Si no recibes email en 5 minutos: revisa SPAM y contacta admin.
+Contacta con administración para que gestionen el restablecimiento de contraseña.
 </div>
 
 <h3>Problema 4: "Mi wish fue rechazada sin motivo"</h3>
@@ -411,11 +408,7 @@
 
 <h3>Problema 5: "No puedo hacer swap con Juan"</h3>
 <div class="step">
-<strong>Razones comunes:</strong><br>
-1. Juan ya tiene propuesta pendiente con otro compañero.<br>
-2. Uno de los dos turnos es de cobertura obligatoria (no intercambiable).<br>
-3. Horarios no compatible (turnos diferentes, tipos diferentes).<br>
-4. Habla con Juan directamente o contacta admin.
+Contacta con admin.
 </div>
 
 <div class="section-break"></div>
