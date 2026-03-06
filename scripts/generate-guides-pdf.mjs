@@ -548,8 +548,276 @@ const writeAdminGuide = () => {
   return fullPath;
 };
 
-const userPdf = writeUserGuide();
-const adminPdf = writeAdminGuide();
+const writeAdminGuideEN = () => {
+  const { doc, fullPath } = createDoc('Admin_Guide_Zenova_EN.pdf');
 
-console.log('PDF generado:', userPdf);
-console.log('PDF generado:', adminPdf);
+  addTitle(
+    doc,
+    'Zenova — Complete Administrator Guide',
+    'Version 2026 · Advanced operation, data governance and notifications'
+  );
+
+  addSection(doc, '1. Administrator role: scope and responsibility');
+  addParagraph(
+    doc,
+    'The administrator role has full control over planning, month lockdowns, users, validation of wishes and maintenance of operational consistency. Additionally, they are responsible for ensuring that clinical coverage rules are met daily and that notification communication is reliable.'
+  );
+
+  addSection(doc, '2. Functional architecture summary');
+  addBullets(doc, [
+    'React + TypeScript frontend with main logic in App.tsx.',
+    'Collaborative persistence in Supabase (app_state + users + shifts per flow).',
+    'Real-time synchronization via Supabase channels with polling fallback.',
+    'Session/role control from UserContext.',
+    'Shift engine with clinical rules, work schedules and weekly restrictions.',
+  ]);
+
+  addSection(doc, '3. User management and permissions');
+  addParagraph(
+    doc,
+    'From the users module you can create, edit and delete accounts, assign roles and associate nurseId when appropriate. It is recommended to maintain consistent naming and avoid duplicate emails to minimize login and notification errors.'
+  );
+  addBullets(doc, [
+    'Available roles: admin, nurse, viewer.',
+    'View permissions and real action permissions are separate layers.',
+    'Impersonation for support/diagnostics without losing admin control.',
+  ]);
+
+  addSection(doc, '4. Calendar configuration and operation');
+  addNumbered(doc, [
+    'Select work month.',
+    'Verify month status (editable or locked).',
+    'Apply manual changes when necessary.',
+    'Use recalculation with correct scope (day/week/rest of month) to avoid overwriting valid work.',
+    'Review clinical coverage rules after each structural change.',
+  ]);
+
+  addSection(doc, '5. Mandatory clinical coverage and quality control');
+  addParagraph(
+    doc,
+    'Planning must ensure daily clinical minimums on workdays, including morning and afternoon according to shift type and weekly context. After mass changes, especially review critical days (Monday and Friday) and SESSION weeks to confirm no gaps exist.'
+  );
+  addBullets(doc, [
+    'Validate URGENCES and TRAVAIL quotas per time slot.',
+    'Confirm impact of 80%/90% journeys before closing month.',
+    'Check that holidays, closures and exceptions do not break minimum coverage.',
+  ]);
+
+  addSection(doc, '6. Work schedules (80/90/100)');
+  addParagraph(
+    doc,
+    'Work schedules directly influence actual staff availability. They must be configured correctly to avoid impossible assignments and load imbalances.'
+  );
+  addBullets(doc, [
+    '100%: full schedule without reduction.',
+    '90%: reduction by early exit or specific block.',
+    '80%: full free day or Friday + extra reduction.',
+    'Recommendation: review schedule consistency before generating annual planning.',
+  ]);
+
+  addSection(doc, '7. Manual changes, swaps and history');
+  addParagraph(
+    doc,
+    'All manual intervention must be recorded for traceability. Use edit modals with care and avoid uncoordinated simultaneous changes when multiple administrators are connected.'
+  );
+  addBullets(doc, [
+    'Manual change per day/range.',
+    'Swap between professionals.',
+    'Recording in history for operational audit.',
+    'Hour editing with explanatory note in exceptional cases.',
+  ]);
+
+  addSection(doc, '8. Wishes: recommended validation workflow');
+  addNumbered(doc, [
+    'Review requests by date and service criticality.',
+    'Approve/reject with consistent criteria across the team.',
+    'Apply in planning without compromising mandatory coverage.',
+    'Communicate changes through notifications for transparency.',
+  ]);
+
+  addSection(doc, '9. Notifications and email: production operation');
+  addParagraph(
+    doc,
+    'The notification system combines in-app notification and email sending. For production operation, the Edge Function must be deployed and with valid secrets in Supabase.'
+  );
+  addBullets(doc, [
+    'Edge Function: send-notification-email deployed without errors.',
+    'Secrets configured: RESEND_API_KEY, RESEND_FROM_EMAIL, RESEND_FROM_NAME.',
+    'Users with valid email saved in their profile.',
+    'Test email filter active to avoid sending to placeholder addresses.',
+  ]);
+
+  addSection(doc, '10. Month closure and governance best practices');
+  addNumbered(doc, [
+    'Before locking month: review coverage, schedules and pending notifications.',
+    'Lock month only when no operational corrections remain.',
+    'Avoid multiple sources of truth for manual shifts without reconciliation.',
+    'Maintain periodic backup and control of critical changes.',
+  ]);
+
+  addSection(doc, '11. Daily administration checklist');
+  addBullets(doc, [
+    'Review unread notifications and daily changes.',
+    'Validate no gaps in critical clinical shifts.',
+    'Confirm new user additions have correct role and email.',
+    'Verify collaborative synchronization reflects latest changes.',
+    'Record incidents and corrective actions for traceability.',
+  ]);
+
+  addSection(doc, '12. Common incidents and resolution');
+  addBullets(doc, [
+    'Email sending error: review secrets and Edge Function logs.',
+    'User not receiving notifications: confirm saved email and no duplicates.',
+    'Differences between views: refresh session and validate state updatedAt.',
+    'Unexpected behavior after mass changes: recalculate with controlled scope and review history.',
+  ]);
+
+  doc.end();
+  return fullPath;
+};
+
+const writeAdminGuideFR = () => {
+  const { doc, fullPath } = createDoc('Guide_Administrateur_Zenova_FR.pdf');
+
+  addTitle(
+    doc,
+    'Zenova — Guide Complet pour Administrateur',
+    'Version 2026 · Opération avancée, gouvernance des données et notifications'
+  );
+
+  addSection(doc, '1. Rôle administrateur : portée et responsabilité');
+  addParagraph(
+    doc,
+    'Le rôle administrateur a le contrôle total sur la planification, les verrouillages de mois, les utilisateurs, la validation des souhaits et la maintenance de la cohérence opérationnelle. De plus, il est responsable de s\'assurer que les règles de couverture clinique sont respectées quotidiennement et que la communication par notification est fiable.'
+  );
+
+  addSection(doc, '2. Résumé de l\'architecture fonctionnelle');
+  addBullets(doc, [
+    'Frontend React + TypeScript avec logique principale dans App.tsx.',
+    'Persistance collaborative dans Supabase (app_state + users + shifts selon flux).',
+    'Synchronisation en temps réel via canaux Supabase avec fallback de polling.',
+    'Contrôle de session/rôles depuis UserContext.',
+    'Moteur de postes avec règles cliniques, horaires de travail et restrictions hebdomadaires.',
+  ]);
+
+  addSection(doc, '3. Gestion des utilisateurs et des permissions');
+  addParagraph(
+    doc,
+    'À partir du module utilisateurs, vous pouvez créer, modifier et supprimer des comptes, attribuer des rôles et associer nurseId le cas échéant. Il est recommandé de maintenir une dénomination cohérente et d\'éviter les emails en double pour minimiser les erreurs de connexion et de notification.'
+  );
+  addBullets(doc, [
+    'Rôles disponibles : admin, nurse, viewer.',
+    'Les permissions d\'affichage et les permissions d\'action réelles sont sur des couches distinctes.',
+    'Usurpation d\'identité pour le support/diagnostic sans perdre le contrôle admin.',
+  ]);
+
+  addSection(doc, '4. Configuration et exploitation du calendrier');
+  addNumbered(doc, [
+    'Sélectionnez le mois de travail.',
+    'Vérifiez l\'état du mois (modifiable ou verrouillé).',
+    'Appliquez les modifications manuelles si nécessaire.',
+    'Utilisez le recalcul avec la portée correcte (jour/semaine/reste du mois) pour ne pas écraser le travail valide.',
+    'Révisez les règles de couverture clinique après chaque modification structurelle.',
+  ]);
+
+  addSection(doc, '5. Couverture clinique obligatoire et contrôle de la qualité');
+  addParagraph(
+    doc,
+    'La planification doit assurer les minima cliniques quotidiens en jours ouvrables, y compris matin et après-midi selon le type de poste et le contexte hebdomadaire. Après les changements massifs, examinez particulièrement les jours critiques (lundi et vendredi) et les semaines SESSION pour confirmer qu\'aucun trou n\'existe.'
+  );
+  addBullets(doc, [
+    'Validez les quotas URGENCES et TRAVAIL par créneau horaire.',
+    'Confirmez l\'impact des horaires 80%/90% avant la fermeture du mois.',
+    'Vérifiez que les jours fériés, fermetures et exceptions ne rompent pas la couverture minimale.',
+  ]);
+
+  addSection(doc, '6. Horaires de travail (80/90/100)');
+  addParagraph(
+    doc,
+    'Les horaires de travail influencent directement la disponibilité réelle du personnel. Ils doivent être configurés correctement pour éviter les affectations impossibles et les déséquilibres de charge.'
+  );
+  addBullets(doc, [
+    '100% : horaire complet sans réduction.',
+    '90% : réduction par sortie anticipée ou bloc spécifique.',
+    '80% : jour complètement libre ou vendredi + réduction supplémentaire.',
+    'Recommandation : vérifiez la cohérence du planning avant de générer la planification annuelle.',
+  ]);
+
+  addSection(doc, '7. Modifications manuelles, échanges et historique');
+  addParagraph(
+    doc,
+    'Toute intervention manuelle doit être enregistrée pour la traçabilité. Utilisez les modales d\'édition avec discernement et évitez les changements simultanés non coordonnés quand plusieurs administrateurs sont connectés.'
+  );
+  addBullets(doc, [
+    'Modification manuelle par jour/plage.',
+    'Échange entre professionnels.',
+    'Enregistrement en historique pour l\'audit opérationnel.',
+    'Édition des heures avec note explicative dans les cas exceptionnels.',
+  ]);
+
+  addSection(doc, '8. Souhaits : flux de validation recommandé');
+  addNumbered(doc, [
+    'Examinez les demandes par date et criticité du service.',
+    'Approuvez/rejetez avec des critères cohérents dans toute l\'équipe.',
+    'Appliquez dans la planification sans compromettre la couverture obligatoire.',
+    'Communiquez les modifications via notifications pour la transparence.',
+  ]);
+
+  addSection(doc, '9. Notifications et email : Opération en production');
+  addParagraph(
+    doc,
+    'Le système de notification combine la notification in-app et l\'envoi par email. Pour un fonctionnement en production, la fonction Edge doit être déployée et avoir des secrets valides dans Supabase.'
+  );
+  addBullets(doc, [
+    'Fonction Edge : send-notification-email déployée sans erreur.',
+    'Secrets configurés : RESEND_API_KEY, RESEND_FROM_EMAIL, RESEND_FROM_NAME.',
+    'Utilisateurs ayant un email valide enregistré dans leur profil.',
+    'Filtre d\'email de test actif pour éviter d\'envoyer à des adresses placeholder.',
+  ]);
+
+  addSection(doc, '10. Fermeture de mois et bonnes pratiques de gouvernance');
+  addNumbered(doc, [
+    'Avant le verrouillage du mois : examinez la couverture, les horaires et les notifications en attente.',
+    'Verrouillez le mois seulement quand aucune correction opérationnelle n\'est nécessaire.',
+    'Évitez les sources multiples de vérité pour les postes manuels sans réconciliation.',
+    'Maintenez une sauvegarde périodique et le contrôle des modifications critiques.',
+  ]);
+
+  addSection(doc, '11. Checklist d\'administration quotidienne');
+  addBullets(doc, [
+    'Examinez les notifications non lues et les modifications du jour.',
+    'Validez qu\'il n\'y ait pas de lacunes dans les postes cliniques critiques.',
+    'Confirmez que les nouveaux ajouts d\'utilisateurs ont le rôle et l\'email corrects.',
+    'Vérifiez que la synchronisation collaborative reflète les dernières modifications.',
+    'Enregistrez les incidents et les mesures correctives pour la traçabilité.',
+  ]);
+
+  addSection(doc, '12. Incidents courants et résolution');
+  addBullets(doc, [
+    'Erreur d\'envoi d\'email : révisez les secrets et les journaux de la fonction Edge.',
+    'Utilisateur ne reçoit pas de notifications : confirmez email enregistré et pas de doublons.',
+    'Différences entre les vues : actualisez la session et validez le updatedAt de l\'état.',
+    'Comportement inattendu après les modifications massives : recalculez avec portée contrôlée et révisez l\'historique.',
+  ]);
+
+  doc.end();
+  return fullPath;
+};
+
+const userPdfES = writeUserGuide();
+const adminPdfES = writeAdminGuide();
+const userPdfEN = writeUserGuideEN();
+const adminPdfEN = writeAdminGuideEN();
+const userPdfFR = writeUserGuideFR();
+const adminPdfFR = writeAdminGuideFR();
+
+console.log('✅ Guías generadas (Guides generated):');
+console.log('📄 Español (Spanish):');
+console.log('  - Usuario:', userPdfES);
+console.log('  - Administrador:', adminPdfES);
+console.log('📄 English:');
+console.log('  - User:', userPdfEN);
+console.log('  - Admin:', adminPdfEN);
+console.log('📄 Français:');
+console.log('  - Utilisateur:', userPdfFR);
+console.log('  - Administrateur:', adminPdfFR);
