@@ -4,6 +4,14 @@ import { createNotification, sendNotificationEmail } from '../utils/notification
 import { NotificationType, User, Nurse } from '../types';
 import { supabase } from '../firebase/supabase-config';
 
+const isDeliverableEmail = (email: string): boolean => {
+  if (!email) return false;
+  const normalized = email.trim().toLowerCase();
+  const isFormatOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+  const isPlaceholder = normalized.endsWith('@example.com') || normalized.includes('yourdomain.com');
+  return isFormatOk && !isPlaceholder;
+};
+
 interface TriggerNotificationOptions {
   type: NotificationType;
   title: string;
@@ -47,7 +55,7 @@ export const useNotificationTrigger = () => {
       addToast({
         type: 'info',
         message: options.toastMessage || options.message,
-        duration: 5000,
+        duration: 7000,
       });
     }
 
@@ -78,7 +86,7 @@ export const useNotificationTrigger = () => {
           }
 
           // Send email if we found the recipient's email
-          if (recipientEmail) {
+          if (isDeliverableEmail(recipientEmail)) {
             await sendNotificationEmail(
               notification,
               recipientEmail,
@@ -86,7 +94,7 @@ export const useNotificationTrigger = () => {
               supabase
             );
           } else {
-            console.warn(`No email found for recipient ID: ${recipientId}`);
+            console.warn(`No valid deliverable email found for recipient ID: ${recipientId}`);
           }
         })
       ).catch((error) => {

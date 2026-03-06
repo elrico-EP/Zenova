@@ -19,6 +19,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev'
+const RESEND_FROM_NAME = Deno.env.get('RESEND_FROM_NAME') || 'Zenova Notifications'
+
+const isValidEmail = (value: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
 
 interface EmailPayload {
   to: string
@@ -47,6 +53,16 @@ serve(async (req: Request) => {
       )
     }
 
+    if (!isValidEmail(to)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid recipient email' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     // Check if API key is configured
     if (!RESEND_API_KEY) {
       console.error('RESEND_API_KEY is not configured')
@@ -68,7 +84,7 @@ serve(async (req: Request) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Zenova Notifications <noreply@yourdomain.com>', // Change to your verified domain
+        from: `${RESEND_FROM_NAME} <${RESEND_FROM_EMAIL}>`,
         to: [to],
         subject: subject,
         html: html,

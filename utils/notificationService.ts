@@ -7,7 +7,7 @@ export interface Toast {
   id: string;
   type: 'success' | 'error' | 'info' | 'warning';
   message: string;
-  duration?: number; // ms, default 5000
+  duration?: number; // ms, default 7000
 }
 
 /**
@@ -67,7 +67,7 @@ export const createShiftChangeToast = (nurseName: string, actionType: 'change' |
     id: `toast_${Date.now()}`,
     type: 'info',
     message: `Turno de ${nurseName} ha sido ${actionText}`,
-    duration: 5000,
+    duration: 7000,
   };
 };
 

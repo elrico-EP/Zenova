@@ -15,6 +15,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY')
+const SENDGRID_FROM_EMAIL = Deno.env.get('SENDGRID_FROM_EMAIL') || 'noreply@example.com'
+const SENDGRID_FROM_NAME = Deno.env.get('SENDGRID_FROM_NAME') || 'Zenova Notifications'
+
+const isValidEmail = (value: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
 
 interface EmailPayload {
   to: string
@@ -33,6 +39,16 @@ serve(async (req: Request) => {
     if (!to || !subject || !html) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (!isValidEmail(to)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid recipient email' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -65,8 +81,8 @@ serve(async (req: Request) => {
           },
         ],
         from: {
-          email: 'noreply@yourdomain.com', // Change to your verified email
-          name: 'Zenova Notifications',
+          email: SENDGRID_FROM_EMAIL,
+          name: SENDGRID_FROM_NAME,
         },
         subject: subject,
         content: [

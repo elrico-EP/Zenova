@@ -95,7 +95,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     dispatch({ type: 'ADD_TOAST', toast: toastWithId });
 
     // Auto-remove toast after duration
-    const duration = toast.duration || 5000;
+    const duration = toast.duration || 7000;
     setTimeout(() => {
       dispatch({ type: 'REMOVE_TOAST', id: toastWithId.id });
     }, duration);
