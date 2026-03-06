@@ -1,0 +1,476 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía de Administración - Zenova</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
+    h1 { color: #0f172a; border-bottom: 3px solid #8b0000; padding-bottom: 10px; font-size: 28px; }
+    h2 { color: #111827; margin-top: 30px; font-size: 20px; border-left: 4px solid #dc2626; padding-left: 10px; }
+    h3 { color: #334155; font-size: 16px; margin-top: 20px; }
+    .intro { background: #fef2f2; padding: 15px; border-left: 4px solid #dc2626; margin: 20px 0; }
+    .tip { background: #fef3c7; padding: 10px 15px; border-left: 4px solid #f59e0b; margin: 15px 0; }
+    .warning { background: #fee2e2; padding: 10px 15px; border-left: 4px solid #dc2626; margin: 15px 0; }
+    .critical { background: #7f1d1d; padding: 10px 15px; border-left: 4px solid #dc2626; margin: 15px 0; color: #fff; }
+    .step { margin: 15px 0; padding: 10px; background: #f9fafb; border-left: 4px solid #6b7280; }
+    .checklist { background: #f0fdf4; padding: 15px; border-left: 4px solid #16a34a; margin: 15px 0; }
+    ol, ul { margin: 10px 0; padding-left: 25px; }
+    li { margin: 8px 0; }
+    strong { color: #111827; }
+    .checkbox { display: inline-block; width: 16px; height: 16px; border: 1px solid #ccc; margin-right: 8px; }
+    .section-break { page-break-after: always; }
+  </style>
+</head>
+<body>
+
+<h1>Zenova — Guía Completa de Administración</h1>
+<p style="color: #666; font-style: italic;">Versión 2026 · Manual operacional para gestores de turno</p>
+
+<div class="intro">
+<strong>A quién va dirigida:</strong> Jefes de turno, coordinadores, responsables de planificación. Si tienes acceso "Admin" en Zenova, esta guía es para ti. Aprenderás a gestionar calendario, usuarios, cobertura, validaciones y soluciones prácticas a problemas diarios.
+</div>
+
+<h2>1. RESPONSABILIDADES DEL ADMIN</h2>
+<p>Como administrador, tu rol es CRÍTICO. El sistema depende de ti para:</p>
+
+<ol>
+  <li><strong>Creación/Mantenimiento usuarios:</strong> Alta de nuevos enfermeros, cambio de roles, bajas temporales/definitivas.</li>
+  <li><strong>Planificación mes:</strong> Crear/editar calendario mensual respetando covertura obligatoria.</li>
+  <li><strong>Validación cobertura:</strong> Garantizar mínimos requeridos cada día (2x URGENCES, 2x TRAVAIL, etc.).</li>
+  <li><strong>Gestión jornadas:</strong> Aplicar reducciones contractuales (80%, 90%, 100%) correctamente.</li>
+  <li><strong>Aprobación wishes:</strong> Revisar y aprobar/rechazar solicitudes con coherencia contractual.</li>
+  <li><strong>Control swaps:</strong> Validar intercambios entre compañeros.</li>
+  <li><strong>Monitoreo notificaciones:</strong> Garantizar que email/SMS funciona correctamente.</li>
+  <li><strong>Auditoría histórica:</strong> Investigar cambios anómalos, rastrear quién cambió qué cuándo.</li>
+  <li><strong>Resolución problemas:</strong> Congelados datos, errores cálculo horas, conflictos.</li>
+  <li><strong>Reporting:</strong> Informes mensuales de cobertura, horas, etc. para dirección.</li>
+</ol>
+
+<div class="warning">
+⚠️ Un error tuyo afecta a 50+ enfermeros. <strong>SIEMPRE verifica dos veces antes de confirmar.</strong>
+</div>
+
+<h2>2. ARQUITECTURA: Cómo Funciona Zenova</h2>
+<p>Para ser admin efectivo, debes entender la estructura:</p>
+
+<div class="step">
+<strong>Frontend (Lo que ven usuarios):</strong> React/TypeScript. Cada usuario ve su calendar, wishes, balance, etc.
+</div>
+
+<div class="step">
+<strong>Backend (Donde ocurre la magia):</strong> Supabase. Base de datos real-time que sincroniza todo.
+</div>
+
+<div class="step">
+<strong>Motores especiales:</strong><br>
+- <strong>Schedule Engine:</strong> Genera turnos respetando jornadas (80%/90%/100%) y cobertura mínima.<br>
+- <strong>Jornada Logic:</strong> Aplica reducciones contractuales ANTES de asignación, no después.<br>
+- <strong>Cobertura Validation:</strong> Valida que cada día tenga mínimos requeridos. Si no: ALERTA ROJA.
+</div>
+
+<div class="step">
+<strong>Notificación Engine:</strong> Cuando tú cambias algo, Zenova automáticamente: 1) notifica por pantalla (7s), 2) envía email (Resend API), 3) actualiza histórico.
+</div>
+
+<h2>3. GESTIÓN DE USUARIOS</h2>
+
+<h3>3.1 Crear Nuevo Usuario</h3>
+<div class="step">
+<strong>Paso 1:</strong> Ve a menú principal → "Administración" o "Admin Panel".<br>
+<strong>Paso 2:</strong> Busca sección "Usuarios" o "User Management".<br>
+<strong>Paso 3:</strong> Botón "+ Crear Usuario" o "+ New User".<br>
+<strong>Paso 4:</strong> Se abre formulario con campos:
+<ul>
+  <li><strong>Nombre:</strong> Nombre completo (ej: Ana García López)</li>
+  <li><strong>Email:</strong> Email corporativo único (ej: ana.garcia@hospital.es)</li>
+  <li><strong>Rol:</strong> Admin / Enfermero / Visualizador</li>
+  <li><strong>Jornada:</strong> 80% / 90% / 100% (contrato laboral)</li>
+  <li><strong>Departamento:</strong> Urgencias, General, Cuidados Intensivos, etc.</li>
+</ul>
+<strong>Paso 5:</strong> Haz clic "Crear Cuenta".<br>
+<strong>Resultado:</strong> Usuario creado. Se envía email automático con contraseña temporal. Usuario DEBE cambiarla en primer login (es obligatorio).
+</div>
+
+<h3>3.2 Editar Usuario</h3>
+<div class="step">
+<strong>Paso 1:</strong> Ve a "Usuarios".<br>
+<strong>Paso 2:</strong> Busca usuario en lista (puedes buscar por nombre).<br>
+<strong>Paso 3:</strong> Haz clic en fila o botón "Editar".<br>
+<strong>Paso 4:</strong> Se abren campos editables: nombre, email, rol, jornada, departamento.<br>
+<strong>Paso 5:</strong> Cambia lo que necesites.<br>
+<strong>Paso 6:</strong> Haz clic "Guardar".<br>
+<strong>Resultado:</strong> Cambios aplicados inmediatamente. Usuario VERÁ cambios en su próximo refresh.
+</div>
+
+<h3>3.3 Reset de Contraseña de Usuario</h3>
+<div class="step">
+Si usuario olvida contraseña o está bloqueado:<br>
+<strong>Paso 1:</strong> En "Usuarios", encuentra al usuario.<br>
+<strong>Paso 2:</strong> Haz clic botón "Reset Contraseña" o "Reset Password".<br>
+<strong>Paso 3:</strong> Sistema genera contraseña temporal y envía por email a usuario.<br>
+<strong>Resultado:</strong> Usuario recibe email con instrucciones. En próximo login, DEBE cambiarla.
+</div>
+
+<h3>3.4 Dar de Baja Usuario</h3>
+<div class="step">
+<strong>Paso 1:</strong> En "Usuarios", encuentra al usuario que se va/jubila.<br>
+<strong>Paso 2:</strong> Haz clic botón "Desactivar" o "Archive".<br>
+<strong>Paso 3:</strong> Sistema pregunta: "¿Seguro? No se podrá recuperar."<br>
+<strong>Paso 4:</strong> Confirmación: usuario desactivado. Sus datos quedan en histórico pero NO aparece en listas activas.
+</div>
+
+<div class="section-break"></div>
+
+<h2>4. CALENDARIO & PLANIFICACIÓN</h2>
+
+<h3>4.1 Editar Turno Individual</h3>
+<div class="step">
+<strong>Escenario:</strong> Ana está asignada a URGENCES el 15/5 pero se enferma. Necesitas cambiarla a ADMIN ese día.<br>
+<strong>Paso 1:</strong> Ve a vista "Calendario General".<br>
+<strong>Paso 2:</strong> Localiza celda de Ana, 15 mayo (intersección fila+columna).<br>
+<strong>Paso 3:</strong> Haz clic en celda. Se abre modal "Editar Turno".<br>
+<strong>Paso 4:</strong> Desplegable: cambia de URGENCES a ADMIN.<br>
+<strong>Paso 5:</strong> Haz clic "Guardar".<br>
+<strong>Resultado:</strong> Turno cambió. Ana ve notificación "Tu turno 15/5 cambió de URGENCES a ADMIN" + email.<br>
+<strong>CRÍTICO:</strong> El sistema automáticamente valida cobertura. Si Ana era ÚNICA en URGENCES ese día, sistema avisa: "⚠️ URGENCES baja a 1. Mínimo requerido: 2".
+</div>
+
+<h3>4.2 Cambios en Rango (Semana o Múltiples Días)</h3>
+<div class="step">
+<strong>Escenario:</strong> Juan pide vacaciones semana 15-21 mayo. Necesitas marcar esos 7 días como CA (Congé/Vacaciones).<br>
+<strong>Paso 1:</strong> Ve a "Calendario General".<br>
+<strong>Paso 2:</strong> Busca nombre Juan en columna izquierda.<br>
+<strong>Paso 3:</strong> Haz clic PRIMERA celda del rango (15 mayo).<br>
+<strong>Paso 4:</strong> Mantén clic y arrastra hasta ÚLTIMA celda (21 mayo). Se destacan celdas azul-claras.<br>
+<strong>Paso 5:</strong> Suelta clic. Se abre modal "Asignar a Rango".<br>
+<strong>Paso 6:</strong> Selecciona turno: CA (Congé Annuel).<br>
+<strong>Paso 7:</strong> Haz clic "Aplicar a Rango".<br>
+<strong>Resultado:</strong> Todos los 7 días de Juan cambian a CA. Sistema valida cobertura cada día. Si algún día baja de mínimo: aviso individual.
+</div>
+
+<h3>4.3 Cambio Día Completo (Todos los Turnos ese Día)</h3>
+<div class="step">
+<strong>Escenario:</strong> 20 de mayo es festivo municipal NO previsto. Nadie trabaja ese día. Necesitas marcar todo el día 20 como F (Festivo).<br>
+<strong>Paso 1:</strong> Ve a "Calendario General".<br>
+<strong>Paso 2:</strong> Busca número de columna "20".<br>
+<strong>Paso 3:</strong> Haz clic en ENCABEZADO columna 20 (número en azul arriba).<br>
+<strong>Paso 4:</strong> Se abre modal "Editar Día Completo".<br>
+<strong>Paso 5:</strong> Selecciona turno: F (Festivo) o HOLIDAY.<br>
+<strong>Paso 6:</strong> Haz clic "Aplicar a Todos".<br>
+<strong>Resultado:</strong> TODOS los enfermeros el 20 ven turno F ese día. Cobertura = 0 (pero permitida porque es festivo). Sistema automáticamente rebaja requisito mínimo.
+</div>
+
+<h3>4.4 Calcular/Recalcular Calendario</h3>
+<div class="step">
+<strong>Escenario:</strong> Hiciste muchos cambios manuales al calendario. Necesitas validar si la cobertura sigue siendo válida.<br>
+<strong>Paso 1:</strong> En "Calendario General", busca botón "Recalcular" o "Recalculate Coverage".<br>
+<strong>Paso 2:</strong> Se abre modal "Scope de Recálculo". Opciones:
+<ul>
+  <li><strong>Solo este mes:</strong> Valida cobertura actual mes solamente.</li>
+  <li><strong>Mes + próximo:</strong> Valida mes actual y próximo (seguridad de transición).</li>
+  <li><strong>Año completo:</strong> Auditoría completa (lento, úsalo 1x por trimestre).</li>
+</ul>
+<strong>Paso 3:</strong> Selecciona scope.<br>
+<strong>Paso 4:</strong> Haz clic "Recalcular".<br>
+<strong>Resultado:</strong> Sistema ejecuta validación. Si hay problema: muestra lista de "Días con baja cobertura: [listado]". Puedes arreglar uno por uno o decir "Aceptar estado actual".
+</div>
+
+<div class="warning">
+⚠️ Si NO validas regularmente: conflictos acumulan. Al final de mes será caos.
+</div>
+
+<div class="section-break"></div>
+
+<h2>5. COBERTURA CLÍNICA: Garantizar Mínimos</h2>
+<p>ESTO ES LO MÁS CRÍTICO. Sin cobertura válida: hospital no puede operar.</p>
+
+<h3>5.1 Mínimos Requeridos</h3>
+<p><strong>CADA DÍA DEBE TENER:</strong></p>
+<ul>
+  <li>🔴 Mínimo 2 URGENCES (Urgencias)</li>
+  <li>🔵 Mínimo 2 TRAVAIL (Turno general)</li>
+  <li>🟣 1 TW (Teletrabajo) - flexible, si es posible</li>
+  <li>⚪ 1 ADMIN - puede ser 0 si nadie disponible</li>
+</ul>
+
+<h3>5.2 Detección de Violación de Cobertura</h3>
+<div class="step">
+<strong>Paso 1:</strong> Sistema automáticamente monitorea. Si detecta que día 15 solo tiene 1 URGENCES (debería 2):<br>
+<strong>Paso 2:</strong> Muestra ALERTA ROJA: "⚠️ 15/5: URGENCES insuficiente (1/2). Acción requerida."<br>
+<strong>Paso 3:</strong> Como admin, DEBES resolver. Opciones:
+<ul>
+  <li><strong>Opción A:</strong> Asignar otro enfermero a URGENCES ese día (cambiar su turno).</li>
+  <li><strong>Opción B:</strong> Si no hay disponibilidad: justificar en nota (ej: "3 bajas sin previo aviso, justificado").</li>
+  <li><strong>Opción C:</strong> Cambiar un TRAVAIL a temporalmente a URGENCES (redistribución).</li>
+</ul>
+</div>
+
+<h3>5.3 Dashboard de Violations</h3>
+<div class="step">
+<strong>Paso 1:</strong> Ve a "Admin Panel" → "Cobertura" o "Coverage Violations".<br>
+<strong>Paso 2:</strong> Sistema lista TODOS los días/tipos con cobertura insuficiente.<br>
+<strong>Paso 3:</strong> Puedes filtrar por mes, tipo turno, severidad.<br>
+<strong>Paso 4:</strong> Haz clic en violación para resolverla directamente.<br>
+<strong>Resultado:</strong> Se abre editor de turno para ese día.
+</div>
+
+<div class="critical">
+🚨 CRÍTICO: Si pasa 3 días sin resolver un violation = escalada automática a dirección. No permitas.
+</div>
+
+<div class="section-break"></div>
+
+<h2>6. JORNADAS: 80%, 90%, 100%</h2>
+<p>Cada enfermero tiene contrato % (jornada). Zenova respeta esto automáticamente. Tu trabajo es configurarlo correctamente.</p>
+
+<h3>6.1 ¿Qué Significa 80%, 90%, 100%?</h3>
+<ul>
+  <li><strong>100%:</strong> 40 horas/semana, trabajas TODOS los días (sin días completos libres).</li>
+  <li><strong>90%:</strong> 36 horas/semana. Tienes aproximadamente 4 horas libres/semana (ej: 1 día + medio, o medio día 2x).</li>
+  <li><strong>80%:</strong> 32 horas/semana. Tienes aproximadamente 8 horas libres/semana (ej: 1 día completo + 4 horas, o 2 medios días).</li>
+</ul>
+
+<h3>6.2 Configurar Jornada de Usuario</h3>
+<div class="step">
+<strong>En creación usuario (sección 3.1),</strong> estableces jornada. Luego:<br>
+<strong>Paso 1:</strong> Ve a "Usuarios".<br>
+<strong>Paso 2:</strong> Busca y edita usuario.<br>
+<strong>Paso 3:</strong> Campo "Jornada": 80% / 90% / 100%.<br>
+<strong>Paso 4:</strong> Haz clic "Guardar".<br>
+<strong>Resultado:</strong> Próximo cálculo de calendario respeta esa jornada. Usuario automáticamente verá más días libres.
+</div>
+
+<h3>6.3 Aplicación Masiva de Jornada</h3>
+<div class="step">
+<strong>Escenario:</strong> Dirección decide: "Todos los enfermeros deben pasar de 100% a 90% este año".<br>
+<strong>Paso 1:</strong> Ve a "Admin Panel" → "Jornadas" o "Bulk Jornada".<br>
+<strong>Paso 2:</strong> Modal: "Aplicar cambio jornada masivo".<br>
+<strong>Paso 3:</strong> Selecciona "De 100% a 90%".<br>
+<strong>Paso 4:</strong> Selecciona rango de fechas (ej: 1/6/2026 en adelante).<br>
+<strong>Paso 5:</strong> Haz clic "Aplicar".<br>
+<strong>Resultado:</strong> TODOS los usuarios 100% se convierten a 90%. Calendario automáticamente recalcula próximos meses.
+</div>
+
+<div class="section-break"></div>
+
+<h2>7. WISHES: Validación y Aprobación</h2>
+<p>Los usuarios solicitan "wishes" (preferencias). Tú decides si se cumplen.</p>
+
+<h3>7.1 Ver Wishes Pendientes</h3>
+<div class="step">
+<strong>Paso 1:</strong> Ve a "Admin Panel" → "Wishes Pendientes" o "Pending Wishes".<br>
+<strong>Paso 2:</strong> Verás lista de TODAS las wishes que usuarios solicitaron.<br>
+<strong>Paso 3:</strong> Filtros: usuario, tipo (excluir, solicitar, etc.), estado (pendiente, aprobada, rechazada).<br>
+<strong>Paso 4:</strong> Haz clic en una wish para ver detalles.
+</div>
+
+<h3>7.2 Aprobar Wish</h3>
+<div class="step">
+<strong>EJEMPLO:</strong> Ana solicita "Excluir URGENCES el 20/5" (cita médica ese día).<br>
+<strong>Paso 1:</strong> Abriste detalles de wish.<br>
+<strong>Paso 2:</strong> Verifica lógica: ¿puedo hacer esto sin violar cobertura?<br>
+  - 20/5 tiene 2 URGENCES programadas: Ana + Juan.<br>
+  - Si quito Ana: solo Juan. Baja a 1. PROBLEMA.<br>
+<strong>Paso 3:</strong> Dos opciones:<br>
+  - <strong>A) Buscar solución:</strong> Asignar otro URGENCES el 20. Luego aprobar wish de Ana.<br>
+  - <strong>B) Rechazar:</strong> Si no hay disponibilidad, rechaza con nota "No es posible sin bajar cobertura".<br>
+<strong>Paso 4:</strong> Si approves: haz clic "Aprobar" botón verde.<br>
+<strong>Resultado:</strong> Sistema automáticamente: 1) marca wish aprobada, 2) aplica cambio (Ana → día libre), 3) notifica a Ana por email + pantalla.
+</div>
+
+<h3>7.3 Rechazar Wish</h3>
+<div class="step">
+<strong>Paso 1:</strong> Si no puedes aprobar wish: haz clic "Rechazar" botón rojo.<br>
+<strong>Paso 2:</strong> Campo "Motivo": siempre EXPLICA. Ejemplo: "Ese día URGENCES mínimo (2), no podemos bajar. Propón otro día."<br>
+<strong>Paso 3:</strong> Haz clic "Rechazar".<br>
+<strong>Resultado:</strong> Usuario VE rechazo + tu motivo. Puede resubmit con otro día/razón.
+</div>
+
+<div class="tip">
+💡 Mejor admin: siempre ofrece alternativa. "No puedo 20/5, pero ¿21/5?" = usuario feliz.
+</div>
+
+<div class="section-break"></div>
+
+<h2>8. NOTIFICACIONES POR EMAIL: Configuración</h2>
+<p>El sistema envía emails automáticamente cuando cambios ocurren. Debes garantizar que funciona.</p>
+
+<h3>8.1 Requisitos Previos</h3>
+<div class="checklist">
+<strong>CHECKLIST - Necesario para emails funcionar:</strong><br>
+<span class="checkbox"></span> Supabase Edge Function "send-notification-email" está DEPLOYADA<br>
+<span class="checkbox"></span> Variables de entorno configuradas: RESEND_API_KEY, RESEND_FROM_EMAIL, RESEND_FROM_NAME<br>
+<span class="checkbox"></span> Cada usuario tiene email válido en su perfil (sección "Email para notificaciones")<br>
+<span class="checkbox"></span> Usuario recibe email de confirmación (test)
+</div>
+
+<h3>8.2 Testear Email</h3>
+<div class="step">
+<strong>Paso 1:</strong> Ve a "Admin Panel" → "Notificaciones" → "Test Email".<br>
+<strong>Paso 2:</strong> Escribe email de prueba (tu email o de alguien confiable).<br>
+<strong>Paso 3:</strong> Haz clic "Enviar Test Email".<br>
+<strong>Resultado:</strong> Deberías recibir email en 3-10 segundos. Si no llega:
+<ul>
+  <li>Revisa carpeta SPAM.</li>
+  <li>Si tampoco: comprueba Edge Function está deployada (contacta tech).</li>
+  <li>Si sigue: variable de entorno incompleta.</li>
+</ul>
+</div>
+
+<h3>8.3 Troubleshoot Emails No Enviados</h3>
+<div class="step">
+<strong>Síntoma:</strong> Admin cambió turno de Ana pero Ana NO recibió email.<br>
+<strong>Paso 1:</strong> Pregunta a Ana: "¿Guardaste tu email en 'Mi Perfil'?"<br>
+<strong>Paso 2:</strong> Si dice no: manda a sección 3.2 inmediatamente. Ella guarda, problema resuelto.<br>
+<strong>Paso 3:</strong> Si ella dijo que sí: verifica en "Usuarios" -&gt; edita Ana → revisa "Email de Notificación". ¿Es válido? ¿No tiene typos?<br>
+<strong>Paso 4:</strong> Si email está mal: corrígelo ahí (sección 3.2 o admin edit).<br>
+<strong>Paso 5:</strong> Si email es OK: test email (sección 8.2). Si test falla → problema servidor. Si test OK pero Ana no recibe → edge case raro, contacta tech.
+</div>
+
+<div class="section-break"></div>
+
+<h2>9. HISTORIAL & AUDITORÍA</h2>
+<p>¿Quién cambió qué y cuándo? Zenova guarda TODO.</p>
+
+<h3>9.1 Acceder a Historial</h3>
+<div class="step">
+<strong>Paso 1:</strong> Ve a "Admin Panel" → "Historial" o "Change Log".<br>
+<strong>Paso 2:</strong> Verás tabla de TODOS los cambios hechos en sistema (última semana/mes/año según filtro).<br>
+<strong>Paso 3:</strong> Columnas: Fecha, Admin que cambió, Enfermero afectado, Tipo cambio, Detalles antes/después.
+</div>
+
+<h3>9.2 Investigar Cambio Anómalo</h3>
+<div class="step">
+<strong>Escenario:</strong> Ana dice: "El 15/5 estaba URGENCES pero ahora es ADMIN. Yo no solicité eso. ¿Qué pasó?"<br>
+<strong>Paso 1:</strong> Ve a Historial.<br>
+<strong>Paso 2:</strong> Busca: Usuario = Ana, Fecha = alrededor 15/5.<br>
+<strong>Paso 3:</strong> Verás: "15/5 - Admin 'Pedro' cambió de URGENCES a ADMIN - motivo: baja médica".<br>
+<strong>Paso 4:</strong> Ahora sabes: Pedro cambió por motivo médico. Puedes investigar si fue error o intención.<br>
+<strong>Resultado:</strong> Si fue error: revertir cambio. Si fue intención: contacta Pedro para aclarar.
+</div>
+
+<h3>9.3 Revertir Cambio</h3>
+<div class="step">
+<strong>Si encontraste error en histórico:</strong><br>
+<strong>Paso 1:</strong> Haz clic en entrada histórico problemática.<br>
+<strong>Paso 2:</strong> Modal: ve estado "antes" (cómo fue antes del cambio).<br>
+<strong>Paso 3:</strong> Botón "Revertir a Estado Anterior".<br>
+<strong>Resultado:</strong> Cambio deshecho. Calendario vuelve a como era. Usuario notificado "Tu turno fue revertido".
+</div>
+
+<div class="section-break"></div>
+
+<h2>10. CHECKLISTS OPERACIONALES DIARIOS</h2>
+
+<h3>Checklist Mañana (7:00 - 8:00 AM)</h3>
+<div class="checklist">
+<span class="checkbox"></span> Abrir Zenova, ver si hay alertas ROJAS (cobertura violations).<br>
+<span class="checkbox"></span> Si hay violation: resolver antes de que equipo llegue (cambiar turno, notificar afectado).<br>
+<span class="checkbox"></span> Revisar notificaciones de usuario (alguien solicita swap, wish, cambio).<br>
+<span class="checkbox"></span> Scan rápido calendario día actual: ¿alguien no llegó? ¿necesita cambio emergente?<br>
+</div>
+
+<h3>Checklist Medio Día (13:00 - 14:00)</h3>
+<div class="checklist">
+<span class="checkbox"></span> Revisar si hay nuevas wishes de usuarios.<br>
+<span class="checkbox"></span> Tomar decisiones RÁPIDO (aprobar/rechazar) - delays = frustración usuario.<br>
+<span class="checkbox"></span> Si hay cambios: notificar a afectados personalmente si es urgente (no solo por email).<br>
+</div>
+
+<h3>Checklist Fin de Día (18:00 - 19:00)</h3>
+<div class="checklist">
+<span class="checkbox"></span> Scan de todo lo que cambió hoy en histórico.<br>
+<span class="checkbox"></span> Si ves anomalía: investigar.<br>
+<span class="checkbox"></span> Tomorrow morning: revisar preview próximos 3 días (¿hay riesgos cobertura?).<br>
+</div>
+
+<h2>11. CHECKLISTS MES-FINAL (Últimos 3 días)</h2>
+
+<div class="checklist">
+<strong>Día 28 del mes:</strong><br>
+<span class="checkbox"></span> Congelar calendario mes actual (no más cambios manuales).<br>
+<span class="checkbox"></span> Ejecutar recálculo año completo para validación final.<br>
+<span class="checkbox"></span> Resolver TODAS violations pendientes. Si hay 3+ sin resolver: escalar a dirección con informe.<br>
+<span class="checkbox"></span> Validar horas de todos (<strong>nadie puede tener > 20% de déficit</strong>).<br>
+<span class="checkbox"></span> Si usuario tiene deficit: investigar si error o realmente rindió poco. Documentar.<br>
+</div>
+
+<div class="checklist">
+<strong>Día 29 del mes:</strong><br>
+<span class="checkbox"></span> Generar reportes: cobertura mes, horas vs contrato, wishes aprobadas/rechazadas.<br>
+<span class="checkbox"></span> Archivar mes (backup histórico).<br>
+<span class="checkbox"></span> Confirmar que próximo mes calendario está pre-generado OK (sin violation rojo).<br>
+</div>
+
+<div class="checklist">
+<strong>1º del mes (Nuevo mes iniciado):</strong><br>
+<span class="checkbox"></span> Anunciar a equipo: nuevo mes disponible en Zenova.<br>
+<span class="checkbox"></span> Recordar: "Wishes para cambios habituales: enviad antes del día 5".<br>
+<span class="checkbox"></span> Monitor diario: mañana, mediodía, fin de día (checklists anteriores).<br>
+</div>
+
+<div class="section-break"></div>
+
+<h2>12. PROBLEMAS COMUNES & SOLUCIONES</h2>
+
+<h3>Problema: "Calendario congelado. No puedo editar turnos"</h3>
+<div class="step">
+<strong>Causa:</strong> Calendario mes pasado/futuros está "locked" para evitar cambios no autorizados.<br>
+<strong>Solución:</strong> Ve a "Admin Panel" → "Calendario Settings" → cambia lock dates. Desbloquea mes que necesitas editar.
+</div>
+
+<h3>Problema: "Usuario no ve sus cambios aunque cambié el turno"</h3>
+<div class="step">
+<strong>Causa:</strong> Cache de navegador. Usuario tiene página vieja en memoria.<br>
+<strong>Solución:</strong> Pide al usuario: presione Ctrl+F5 (hard refresh) o cierre/reabra navegador completamente. Verá cambios.
+</div>
+
+<h3>Problema: "Violation de cobertura pero no puedo resolverla sin quebrar otro día"</h3>
+<div class="step">
+<strong>Causa:</strong> Situación circular. 3+ bajas simultáneas sin sustitutos disponibles.<br>
+<strong>Solución:</strong> 1) Documenta en nota "3 bajas imprevistas sin sustitutos disponibles - JUSTIFICADO". 2) Escala a dirección. 3) Contacta hospital/agencia para enfermeros temporales. 4) Mientras: marca como "Excepción documentada".
+</div>
+
+<h3>Problema: "Admin anterior hizo cambios raros. No sé qué pasó"</h3>
+<div class="step">
+<strong>Solución:</strong> Ve a Historial, filtra por ese admin. Busca patrones extraños. Cuando encuentres: investiga si fue error intencial o desconocimiento. Documenta hallazgo.
+</div>
+
+<h3>Problema: "Usuario reclama que wish fue aprobada pero no se aplicó"</h3>
+<div class="step">
+<strong>Causa:</strong> Wish aprobada pero cambio no fue persistente (error de sincronización).<br>
+<strong>Solución:</strong> Ve a historial, busca wish. ¿Aprobada? Sí. ¿Cambio aplicado en calendario? Mira. Si NO: click "Aplicar Cambio de Wish Manual". Listo.
+</div>
+
+<div class="section-break"></div>
+
+<h2>13. MEJORES PRÁCTICAS DE GOBERNANZA</h2>
+
+<ol>
+  <li><strong>Validar Siempre Dos Veces:</strong> Cada cambio crítico: repite. Cambios masivos: preview primero.</li>
+  <li><strong>Comunicar Rápido:</strong> Usuario espera noticia. 24 horas máximo. Rechazos: siempre con alternativa.</li>
+  <li><strong>Documentar Excepciones:</strong> Si quebrantas cobertura por razón legítima: escribe NOTA clara para auditoría.</li>
+  <li><strong>Consistencia Contractual:</strong> La jornada NO es flexible. 80% = 80% siempre. Sin excepciones sin documentación.</li>
+  <li><strong>Escalamiento a Tiempo:</strong> Si ves conflict irresoluible: habla con jefe inmediato. No lo ignores hasta que explote.</li>
+</ol>
+
+<div class="section-break"></div>
+
+<h2>14. CONTACTO Y SOPORTE TÉCNICO</h2>
+<p><strong>Si encuentras bug, inconsistencia, o necesitas help:</strong></p>
+
+<ul>
+  <li>📧 Contacta equipo de desarrollo Zenova.</li>
+  <li>📋 Proporciona: qué paso, cuándo, usuario/turno afectado, screenshot de error si es posible.</li>
+  <li>⏰ Respuesta: 24 horas hábiles.</li>
+  <li>🔄 Workflow: bug confirmado → se crea ticket → se asigna developer → se fija en próxima release.</li>
+</ul>
+
+<p style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #ccc; color: #666; font-style: italic;">
+— Versión 2026 · Guía Zenova Administración · Última actualización: Marzo 2026 —
+</p>
+
+</body>
+</html>
