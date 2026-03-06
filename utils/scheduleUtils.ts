@@ -215,6 +215,35 @@ export const getClinicalNeedsForDay = (date: Date, agenda: Agenda, vaccinationPe
     return { 'URGENCES': 2, 'TRAVAIL': 2, 'URGENCES_TARDE': 1, 'TRAVAIL_TARDE': 1 };
 };
 
+/**
+ * Converts clinical needs to an array of shifts in PRIORITY ORDER.
+ * Nueva regla: turnos de tarde (PM) tienen prioridad sobre turnos de mañana (AM)
+ * cuando hay enfermeros limitados.
+ * Priority: URGENCES_TARDE > TRAVAIL_TARDE > URGENCES > TRAVAIL > others
+ */
+const getNeededShiftsInPriorityOrder = (needs: Record<string, number>): WorkZone[] => {
+    const priorityOrder: WorkZone[] = ['URGENCES_TARDE', 'TRAVAIL_TARDE', 'URGENCES', 'TRAVAIL', 'VACCIN', 'LIBERO'];
+    const result: WorkZone[] = [];
+    
+    priorityOrder.forEach(shift => {
+        const count = needs[shift] || 0;
+        for (let i = 0; i < count; i++) {
+            result.push(shift);
+        }
+    });
+    
+    // Add any remaining shifts not in priority order
+    Object.entries(needs).forEach(([shift, count]) => {
+        if (!priorityOrder.includes(shift as WorkZone)) {
+            for (let i = 0; i < count; i++) {
+                result.push(shift as WorkZone);
+            }
+        }
+    });
+    
+    return result;
+};
+
 const applyJornadaModification = (
     cell: ScheduleCell | undefined,
     nurse: Nurse,
@@ -488,21 +517,35 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     }
                 }
                 
-                clinicalPool.forEach(nurse => { if (!dailyAssignments[nurse.id] && nurse.id !== 'nurse-11') dailyAssignments[nurse.id] = 'ADMIN'; });
+                // Contar enfermeros cubriendo turnos obligatorios
+                const mandatoryShiftTypes = ['URGENCES', 'TRAVAIL', 'URGENCES_TARDE', 'TRAVAIL_TARDE'];
+                const nursesOnMandatoryShifts = Object.values(dailyAssignments).filter(cell => {
+                    const shifts = getShiftsFromCell(cell);
+                    return shifts.some(s => mandatoryShiftTypes.includes(s));
+                }).length;
                 
-                const adminCount = Object.values(dailyAssignments).filter(c => getShiftsFromCell(c).includes('ADMIN')).length;
-                if (adminCount >= 2) {
-                    const twCandidates = clinicalPool.filter(n => n.id !== 'nurse-1' && n.id !== 'nurse-2' && n.id !== 'nurse-11' && nurseStats[n.id].tw_weekly < 1 && dailyAssignments[n.id] === 'ADMIN');
-                    const priorityCandidates: Nurse[] = [], secondaryCandidates: Nurse[] = [];
-                    twCandidates.forEach(n => { (getShiftsFromCell(schedule[n.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s))) ? secondaryCandidates.push(n) : priorityCandidates.push(n) });
-                    let twRecipient = findBestCandidate(priorityCandidates, nurseStats, 'tw') || findBestCandidate(secondaryCandidates, nurseStats, 'tw');
-                    if (twRecipient) {
-                        dailyAssignments[twRecipient.id] = 'TW';
+                // Solo asignar ADMIN si ya hay 6+ enfermeros cubriendo turnos obligatorios
+                const remainingNurses = clinicalPool.filter(n => !dailyAssignments[n.id] && n.id !== 'nurse-11');
+                let adminAssigned = 0;
+                
+                for (const nurse of remainingNurses) {
+                    if (nursesOnMandatoryShifts >= 6 && adminAssigned < 2) {
+                        // Enfermeros 7 y 8: asignar ADMIN
+                        dailyAssignments[nurse.id] = 'ADMIN';
+                        adminAssigned++;
+                    } else if (nursesOnMandatoryShifts >= 6 && adminAssigned >= 2) {
+                        // A partir del 9º: intentar TW, si no → ADMIN
+                        const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && 
+                                       nurseStats[nurse.id].tw_weekly < 1 &&
+                                       !getShiftsFromCell(schedule[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
+                        dailyAssignments[nurse.id] = canGetTW ? 'TW' : 'ADMIN';
                     }
+                    // Si no hay 6 enfermeros en obligatorios, no asignar nada aún
+                    // La lógica de reasignación más abajo se encargará
                 }
 
             } else {
-                let neededShifts = Object.entries(getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod)).flatMap(([s, c]) => Array(c).fill(s)) as WorkZone[];
+                let neededShifts = getNeededShiftsInPriorityOrder(getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod));
                 let localUnassignedPool = [...dutyPool];
                 
                 const internInPool = localUnassignedPool.find(n => n.id === 'nurse-11');
@@ -526,22 +569,37 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     if (candidate) { dailyAssignments[candidate.id] = need; localUnassignedPool = localUnassignedPool.filter(n => n.id !== candidate.id); }
                 }
                 
-                localUnassignedPool.forEach(nurse => { if (!dailyAssignments[nurse.id] && nurse.id !== 'nurse-11') dailyAssignments[nurse.id] = 'ADMIN'; });
-
-                const adminCount = Object.values(dailyAssignments).filter(c => getShiftsFromCell(c).includes('ADMIN')).length;
-                if (adminCount >= 2) {
-                    const twCandidates = localUnassignedPool.filter(n => n.id !== 'nurse-1' && n.id !== 'nurse-2' && n.id !== 'nurse-11' && nurseStats[n.id].tw_weekly < 1 && dailyAssignments[n.id] === 'ADMIN');
-                    const priorityCandidates: Nurse[] = [], secondaryCandidates: Nurse[] = [];
-                    twCandidates.forEach(n => { (getShiftsFromCell(schedule[n.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s))) ? secondaryCandidates.push(n) : priorityCandidates.push(n) });
-                    let twRecipient = findBestCandidate(priorityCandidates, nurseStats, 'tw') || findBestCandidate(secondaryCandidates, nurseStats, 'tw');
-                    if (twRecipient) {
-                        dailyAssignments[twRecipient.id] = 'TW';
+                // Contar enfermeros cubriendo turnos obligatorios
+                const mandatoryShiftTypes = ['URGENCES', 'TRAVAIL', 'URGENCES_TARDE', 'TRAVAIL_TARDE'];
+                const nursesOnMandatoryShifts = Object.values(dailyAssignments).filter(cell => {
+                    const shifts = getShiftsFromCell(cell);
+                    return shifts.some(s => mandatoryShiftTypes.includes(s));
+                }).length;
+                
+                // Solo asignar ADMIN si ya hay 6+ enfermeros cubriendo turnos obligatorios
+                const remainingNurses = localUnassignedPool.filter(n => !dailyAssignments[n.id] && n.id !== 'nurse-11');
+                let adminAssigned = 0;
+                
+                for (const nurse of remainingNurses) {
+                    if (nursesOnMandatoryShifts >= 6 && adminAssigned < 2) {
+                        // Enfermeros 7 y 8: asignar ADMIN
+                        dailyAssignments[nurse.id] = 'ADMIN';
+                        adminAssigned++;
+                    } else if (nursesOnMandatoryShifts >= 6 && adminAssigned >= 2) {
+                        // A partir del 9º: intentar TW, si no → ADMIN
+                        const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && 
+                                       nurseStats[nurse.id].tw_weekly < 1 &&
+                                       !getShiftsFromCell(schedule[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
+                        dailyAssignments[nurse.id] = canGetTW ? 'TW' : 'ADMIN';
                     }
+                    // Si no hay 6 enfermeros en obligatorios, no asignar nada aún
+                    // La lógica de reasignación más abajo se encargará
                 }
             }
 
             const mandatoryShiftNeeds = getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod);
-            const mandatoryShiftKeys: WorkZone[] = ['URGENCES', 'TRAVAIL', 'URGENCES_TARDE', 'TRAVAIL_TARDE'];
+            // Nueva regla: turnos de tarde tienen prioridad sobre mañana cuando faltan enfermeros
+            const mandatoryShiftKeys: WorkZone[] = ['URGENCES_TARDE', 'TRAVAIL_TARDE', 'URGENCES', 'TRAVAIL'];
 
             mandatoryShiftKeys.forEach((mandatoryShift) => {
                 const requiredCount = mandatoryShiftNeeds[mandatoryShift] || 0;
@@ -670,7 +728,7 @@ export const generateAndBalanceGaps = (
             let dutyPool = nurses.filter(n => !dailyAssignments[n.id]);
 
             if (dutyPool.length > 0) {
-                let neededShifts = Object.entries(getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod)).flatMap(([s, c]) => Array(c).fill(s)) as WorkZone[];
+                let neededShifts = getNeededShiftsInPriorityOrder(getClinicalNeedsForDay(currentDate, agenda, vaccinationPeriod));
                 
                 Object.values(dailyAssignments).forEach(cell => {
                     getShiftsFromCell(cell).forEach(shift => {
