@@ -157,6 +157,7 @@ interface PersonalAgendaModalProps {
   history: HistoryEntry[];
   onExportAnnual: (nurse: Nurse, useOriginal: boolean) => Promise<void>;
     onSavePersonalHours: (payload: PersonalHoursChangePayload) => Promise<void>;
+    onClearMonthlyManualLog: (nurseId: string, year: number, month: number) => Promise<void>;
   jornadasLaborales: JornadaLaboral[];
 }
 
@@ -248,6 +249,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   history,
   onExportAnnual,
     onSavePersonalHours,
+    onClearMonthlyManualLog,
   jornadasLaborales,
 }) => {
   const t = useTranslations();
@@ -270,6 +272,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
   const monthPickerRef = useRef<HTMLDivElement>(null);
   const [isExportingMonth, setIsExportingMonth] = useState(false);
   const [isExportingYear, setIsExportingYear] = useState(false);
+    const [isClearingManualLog, setIsClearingManualLog] = useState(false);
   const modalContentRef = useRef<HTMLDivElement>(null);
   
   const isYearLocked = currentDate.getFullYear() < 2026;
@@ -543,6 +546,25 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
       .filter(log => log.nurseId === nurse.id && log.dateKey.startsWith(monthPrefix))
       .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
   }, [manualChangeLog, nurse.id, currentDate]);
+
+    const handleClearMonthlyManualLog = async () => {
+        if (manualChangesForMonth.length === 0 || isClearingManualLog) {
+            return;
+        }
+
+        const monthLabel = currentDate.toLocaleString(language, { month: 'long', year: 'numeric' });
+        const confirmed = window.confirm(`¿Borrar historial de cambios manuales de ${nurse.name} en ${monthLabel}?\n\nEsto solo borra el historial, NO cambia turnos.`);
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setIsClearingManualLog(true);
+            await onClearMonthlyManualLog(nurse.id, currentDate.getFullYear(), currentDate.getMonth());
+        } finally {
+            setIsClearingManualLog(false);
+        }
+    };
   
   const handleExportMonthPdf = async () => {
     setIsExportingMonth(true);
@@ -879,6 +901,16 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                     <div className="bg-white p-4 rounded-lg text-sm space-y-2 shadow-sm border">
                         <div className="flex justify-between items-center">
                             <h4 className="font-semibold text-gray-700">{t.individual_manual_changes_month}</h4>
+                            {permissions.isViewingAsAdmin && manualChangesForMonth.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={handleClearMonthlyManualLog}
+                                    disabled={isClearingManualLog}
+                                    className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase tracking-widest disabled:opacity-50"
+                                >
+                                    {isClearingManualLog ? '...' : 'Limpiar historial'}
+                                </button>
+                            )}
                         </div>
                         {manualChangesForMonth.length === 0 ? (
                             <p className="text-xs text-slate-500 italic text-center py-2">{t.individual_no_manual_changes}</p>
