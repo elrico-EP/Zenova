@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local manual backups (do not track)
+backups/manual-backup-*/
