@@ -141,9 +141,9 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                  if (!morningCustom.trim()) { setError(t.error_morningCustomEmpty); setIsLoading(false); return; }
                  part1 = { custom: morningCustom.trim(), time: (morningStart && morningEnd) ? `${morningStart} - ${morningEnd}` : undefined, manualSplit: true };
              } else {
-                 const isMorningWork = !absenceShifts.has(morningShift);
-                 if (isMorningWork && (!morningStart || !morningEnd)) { setError(t.error_morningTimeRequired); setIsLoading(false); return; }
-                 part1 = isMorningWork ? { custom: SHIFTS[morningShift].label, type: morningShift, time: `${morningStart} - ${morningEnd}`, manualSplit: true } : morningShift;
+                 part1 = (morningStart && morningEnd)
+                    ? { custom: SHIFTS[morningShift].label, type: morningShift, time: `${morningStart} - ${morningEnd}`, manualSplit: true }
+                    : morningShift;
              }
 
              let part2: WorkZone | CustomShift;
@@ -151,9 +151,9 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                  if (!afternoonCustom.trim()) { setError(t.error_afternoonCustomEmpty); setIsLoading(false); return; }
                  part2 = { custom: afternoonCustom.trim(), time: (afternoonStart && afternoonEnd) ? `${afternoonStart} - ${afternoonEnd}` : undefined, manualSplit: true };
              } else {
-                 const isAfternoonWork = !absenceShifts.has(afternoonShift);
-                 if (isAfternoonWork && (!afternoonStart || !afternoonEnd)) { setError(t.error_afternoonTimeRequired); setIsLoading(false); return; }
-                 part2 = isAfternoonWork ? { custom: SHIFTS[afternoonShift].label, type: afternoonShift, time: `${afternoonStart} - ${afternoonEnd}`, manualSplit: true } : afternoonShift;
+                 part2 = (afternoonStart && afternoonEnd)
+                    ? { custom: SHIFTS[afternoonShift].label, type: afternoonShift, time: `${afternoonStart} - ${afternoonEnd}`, manualSplit: true }
+                    : afternoonShift;
              }
              
             shiftPayload = { split: [part1, part2] };
@@ -233,11 +233,11 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                            {morningShift === 'CUSTOM' && (
                                 <input type="text" value={morningCustom} onChange={e => setMorningCustom(e.target.value)} placeholder={t.manualSplit_placeholder_morning} className="mt-1 w-full p-2 border-slate-300 rounded-md"/>
                            )}
-                           {morningShift !== 'CUSTOM' && !absenceShifts.has(morningShift) && (
+                           {morningShift !== 'CUSTOM' && (
                                <div className="flex items-center gap-2">
-                                   <input type="time" value={morningStart} onChange={e => setMorningStart(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_startTime}/>
+                                   <input type="time" value={morningStart} onChange={e => setMorningStart(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_startTimeOptional}/>
                                    <span>-</span>
-                                   <input type="time" value={morningEnd} onChange={e => setMorningEnd(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_endTime}/>
+                                   <input type="time" value={morningEnd} onChange={e => setMorningEnd(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_endTimeOptional}/>
                                </div>
                            )}
                            {morningShift === 'CUSTOM' && (
@@ -261,11 +261,11 @@ export const ManualChangeModal: React.FC<ManualChangeModalProps> = ({ nurses, sc
                             {afternoonShift === 'CUSTOM' && (
                                 <input type="text" value={afternoonCustom} onChange={e => setAfternoonCustom(e.target.value)} placeholder={t.manualSplit_placeholder_afternoon} className="mt-1 w-full p-2 border-slate-300 rounded-md"/>
                            )}
-                           {afternoonShift !== 'CUSTOM' && !absenceShifts.has(afternoonShift) && (
+                           {afternoonShift !== 'CUSTOM' && (
                                <div className="flex items-center gap-2">
-                                   <input type="time" value={afternoonStart} onChange={e => setAfternoonStart(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_startTime}/>
+                                   <input type="time" value={afternoonStart} onChange={e => setAfternoonStart(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_startTimeOptional}/>
                                    <span>-</span>
-                                   <input type="time" value={afternoonEnd} onChange={e => setAfternoonEnd(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_endTime}/>
+                                   <input type="time" value={afternoonEnd} onChange={e => setAfternoonEnd(e.target.value)} className="w-full p-2 border-slate-300 rounded-md" placeholder={t.manualSplit_endTimeOptional}/>
                                </div>
                            )}
                            {afternoonShift === 'CUSTOM' && (
