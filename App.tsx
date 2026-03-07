@@ -251,6 +251,10 @@ const AppContent: React.FC = () => {
     return date.getFullYear() === FROZEN_START_YEAR && date.getMonth() >= FROZEN_START_MONTH_INDEX;
   }, []);
 
+  const shouldEnforceCoverageForMonth = useCallback((targetYear: number, targetMonth: number) => {
+    return isFrozenGenerationMonth(new Date(targetYear, targetMonth, 1));
+  }, [isFrozenGenerationMonth]);
+
   const effectiveAgenda = useMemo(() => (year === 2026 ? agenda2026Data : agenda), [year, agenda]);
   const [schedule, setSchedule] = useState<Schedule>({});
 
@@ -498,8 +502,9 @@ const AppContent: React.FC = () => {
       originalSchedules.push(original);
       const withWishes = applyManualOverrides(original, wishOverrides);
       const withManual = applyManualOverrides(withWishes, manualOverrides);
-      // Ensure mandatory coverage for each month
-      const withCoverage = ensureMandatoryCoverage(withManual, nurses, date.getFullYear(), date.getMonth(), effectiveAgenda, vaccinationPeriod, jornadasLaborales);
+      const withCoverage = shouldEnforceCoverageForMonth(date.getFullYear(), date.getMonth())
+        ? ensureMandatoryCoverage(withManual, nurses, date.getFullYear(), date.getMonth(), effectiveAgenda, vaccinationPeriod, jornadasLaborales)
+        : withManual;
       currentSchedules.push(withCoverage);
     });
     
@@ -518,7 +523,7 @@ const AppContent: React.FC = () => {
         fullOriginalSchedule: mergeSchedules(originalSchedules),
         fullCurrentSchedule: mergeSchedules(currentSchedules)
     };
-}, [currentDate, baseOverrides, manualOverrides, wishOverrides, applyManualOverrides, getFrozenOrAutoBaseScheduleForMonth, nurses, effectiveAgenda, vaccinationPeriod, jornadasLaborales]);
+}, [currentDate, baseOverrides, manualOverrides, wishOverrides, applyManualOverrides, getFrozenOrAutoBaseScheduleForMonth, nurses, effectiveAgenda, vaccinationPeriod, jornadasLaborales, shouldEnforceCoverageForMonth]);
   
   const autoCurrentSchedule = useMemo(() => {
     return getFrozenOrAutoBaseScheduleForMonth(currentDate);
@@ -528,9 +533,10 @@ const AppContent: React.FC = () => {
   const withStrasbourg = applyManualOverrides(autoCurrentSchedule, baseOverrides);
   const withWishes = applyManualOverrides(withStrasbourg, wishOverrides);
   const withManual = applyManualOverrides(withWishes, manualOverrides);
-  // Ensure mandatory coverage after applying all overrides
-  return ensureMandatoryCoverage(withManual, nurses, currentDate.getFullYear(), currentDate.getMonth(), effectiveAgenda, vaccinationPeriod, jornadasLaborales);
-}, [autoCurrentSchedule, manualOverrides, wishOverrides, baseOverrides, applyManualOverrides, nurses, currentDate, effectiveAgenda, vaccinationPeriod, jornadasLaborales]);
+  return shouldEnforceCoverageForMonth(currentDate.getFullYear(), currentDate.getMonth())
+    ? ensureMandatoryCoverage(withManual, nurses, currentDate.getFullYear(), currentDate.getMonth(), effectiveAgenda, vaccinationPeriod, jornadasLaborales)
+    : withManual;
+}, [autoCurrentSchedule, manualOverrides, wishOverrides, baseOverrides, applyManualOverrides, nurses, currentDate, effectiveAgenda, vaccinationPeriod, jornadasLaborales, shouldEnforceCoverageForMonth]);
 
   const violations = useMemo<RuleViolation[]>(() => {
     return validateSchedule(currentSchedule, nurses, currentDate, effectiveAgenda, t);
@@ -602,8 +608,9 @@ useEffect(() => {
       const baseSchedule = applyManualOverrides(getFrozenOrAutoBaseScheduleForMonth(monthDate), baseOverrides);
       const withWishes = applyManualOverrides(baseSchedule, wishOverrides);
       const withManual = applyManualOverrides(withWishes, manualOverrides);
-      // Ensure mandatory coverage for balance calculations
-      annualSchedules[m] = ensureMandatoryCoverage(withManual, nurses, year, m, effectiveAgenda, vaccinationPeriod, jornadasLaborales);
+      annualSchedules[m] = shouldEnforceCoverageForMonth(year, m)
+        ? ensureMandatoryCoverage(withManual, nurses, year, m, effectiveAgenda, vaccinationPeriod, jornadasLaborales)
+        : withManual;
     }
     return nurses.map(nurse => {
       const emptyCounts = (): ShiftCounts => ({ 
@@ -646,7 +653,7 @@ useEffect(() => {
         monthlyTargetHours: 0, annualTargetHours: 0, monthlyBalance: monthlyWorkedHours, annualBalance: annualWorkedHours, hasConsecutiveAdmTw: false,
       };
     });
-  }, [nurses, currentDate, effectiveAgenda, baseOverrides, manualOverrides, wishOverrides, applyManualOverrides, year, specialStrasbourgEvents, view, selectedNurseForAgenda, getFrozenOrAutoBaseScheduleForMonth, vaccinationPeriod, jornadasLaborales, strasbourgAssignments]);
+  }, [nurses, currentDate, effectiveAgenda, baseOverrides, manualOverrides, wishOverrides, applyManualOverrides, year, specialStrasbourgEvents, view, selectedNurseForAgenda, getFrozenOrAutoBaseScheduleForMonth, vaccinationPeriod, jornadasLaborales, strasbourgAssignments, shouldEnforceCoverageForMonth]);
   
   const updateDataWithUndo = useCallback(async (updates: Partial<AppState>) => {
       if (sharedData) {
@@ -1132,8 +1139,11 @@ const handleAddNurse = useCallback((name: string) => {
         const baseSchedule = applyManualOverrides(getFrozenOrAutoBaseScheduleForMonth(monthDate), baseOverrides);
         const withWishes = applyManualOverrides(baseSchedule, wishOverrides);
         const withManual = applyManualOverrides(withWishes, manualOverrides);
-        // Ensure mandatory coverage for PDF export
-        const finalSchedule = useOriginal ? baseSchedule : ensureMandatoryCoverage(withManual, nurses, year, month, effectiveAgenda, vaccinationPeriod, jornadasLaborales);
+        const finalSchedule = useOriginal
+          ? baseSchedule
+          : (shouldEnforceCoverageForMonth(year, month)
+            ? ensureMandatoryCoverage(withManual, nurses, year, month, effectiveAgenda, vaccinationPeriod, jornadasLaborales)
+            : withManual);
         allSchedules[month] = finalSchedule[nurse.id] || {};
     }
     
@@ -1156,7 +1166,7 @@ const handleAddNurse = useCallback((name: string) => {
     if (!printWindow) {
       alert('Please allow popups for this site to print PDF');
     }
-  }, [currentDate, effectiveAgenda, baseOverrides, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, manualOverrides, wishOverrides, applyManualOverrides, getFrozenOrAutoBaseScheduleForMonth, nurses, vaccinationPeriod]);
+  }, [currentDate, effectiveAgenda, baseOverrides, strasbourgAssignments, jornadasLaborales, specialStrasbourgEvents, manualOverrides, wishOverrides, applyManualOverrides, getFrozenOrAutoBaseScheduleForMonth, nurses, vaccinationPeriod, shouldEnforceCoverageForMonth]);
 
   const monthsWithOverrides = useMemo(() => {
     const months = new Set<number>();
