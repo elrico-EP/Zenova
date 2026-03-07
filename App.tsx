@@ -96,6 +96,21 @@ const AppContent: React.FC = () => {
         // No hacemos nada más aquí, solo verificamos que existe
     }
   }, []);
+
+  const formatShiftForNotification = useCallback((shift: ScheduleCell | 'DELETE') => {
+    if (shift === 'DELETE') return 'eliminado';
+    if (typeof shift === 'string') return `cambiado a ${shift}`;
+    if (shift && typeof shift === 'object') {
+      if ('custom' in shift && shift.custom) {
+        return `cambiado a ${shift.custom}`;
+      }
+      if ('type' in shift && shift.type) {
+        return `cambiado a ${shift.type}`;
+      }
+    }
+    return 'actualizado';
+  }, []);
+
   const permissions = usePermissions();
   const { data: sharedData, loading: isStateLoading, updateData } = useSupabaseState();
   
@@ -802,7 +817,7 @@ useEffect(() => {
     await updateDataWithUndo(updates);
 
     // Trigger notifications for affected nurses
-    const shiftDescription = payload.shift === 'DELETE' ? 'eliminado' : `cambiado a ${payload.shift}`;
+    const shiftDescription = formatShiftForNotification(payload.shift);
     const dateRange = startDate === endDate ? new Date(startDate).toLocaleDateString('es-ES') : `${new Date(startDate).toLocaleDateString('es-ES')} a ${new Date(endDate).toLocaleDateString('es-ES')}`;
     
     for (const nurseId of nurseIds) {
@@ -826,7 +841,7 @@ useEffect(() => {
 
     // Ya no recargamos, los cambios se ven en tiempo real
     console.log(t.log_changesSaved)
-  }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildDateRangeKeys, buildFrozenSchedulesForScope, updateDataWithUndo, triggerNotification]);
+  }, [askRecalcScopeForManualChanges, nurses, addHistoryEntry, t, manualOverrides, manualChangeLog, currentSchedule, user, buildDateRangeKeys, buildFrozenSchedulesForScope, updateDataWithUndo, triggerNotification, formatShiftForNotification]);
   
   const handleBulkUpdate = useCallback(async (updatedOverrides: Schedule) => {
     addHistoryEntry(t.history_bulk_edit, t.history_bulk_edit_details);
@@ -838,7 +853,36 @@ useEffect(() => {
         Object.assign(newOverrides[nurseId], updatedOverrides[nurseId]);
     }
     await updateData({ manualOverrides: newOverrides });
-  }, [manualOverrides, updateData, addHistoryEntry, t]);
+
+    for (const nurseId of Object.keys(updatedOverrides)) {
+      const nurseChanges = updatedOverrides[nurseId] || {};
+      const changedDates = Object.keys(nurseChanges);
+      if (changedDates.length === 0) continue;
+
+      const sortedDates = [...changedDates].sort();
+      const firstDate = sortedDates[0];
+      const lastDate = sortedDates[sortedDates.length - 1];
+      const nurseName = nurses.find(n => n.id === nurseId)?.name || 'Unknown';
+
+      const dateRange = firstDate === lastDate
+        ? new Date(firstDate).toLocaleDateString('es-ES')
+        : `${new Date(firstDate).toLocaleDateString('es-ES')} a ${new Date(lastDate).toLocaleDateString('es-ES')}`;
+
+      triggerNotification({
+        type: 'schedule_update',
+        title: 'Planificación Actualizada',
+        message: `Se han actualizado ${changedDates.length} turnos (${dateRange}).`,
+        recipientIds: [nurseId],
+        senderId: user?.id || 'system',
+        senderName: user?.name || 'Sistema',
+        relatedDate: firstDate,
+        relatedNurseId: nurseId,
+        relatedNurseName: nurseName,
+        showToast: false,
+        sendEmail: false,
+      });
+    }
+  }, [manualOverrides, updateData, addHistoryEntry, t, nurses, triggerNotification, user]);
 
   const handleGenerateRestOfYear = useCallback(async () => {
     if (!window.confirm(t['planner.generate_rest_year_confirm_intelligent'])) return;
