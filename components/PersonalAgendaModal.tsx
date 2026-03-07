@@ -553,7 +553,10 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
         }
 
         const monthLabel = currentDate.toLocaleString(language, { month: 'long', year: 'numeric' });
-        const confirmed = window.confirm(`¿Borrar historial de cambios manuales de ${nurse.name} en ${monthLabel}?\n\nEsto solo borra el historial, NO cambia turnos.`);
+        const confirmTitle = t.individual_confirm_clear_history_for_month
+            .replace('{name}', nurse.name)
+            .replace('{month}', monthLabel);
+        const confirmed = window.confirm(`${confirmTitle}\n\n${t.individual_clear_history_note_no_shift_change}`);
         if (!confirmed) {
             return;
         }
@@ -908,7 +911,7 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                                     disabled={isClearingManualLog}
                                     className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase tracking-widest disabled:opacity-50"
                                 >
-                                    {isClearingManualLog ? '...' : 'Limpiar historial'}
+                                    {isClearingManualLog ? '...' : t.individual_clear_history}
                                 </button>
                             )}
                         </div>
