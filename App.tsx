@@ -712,10 +712,14 @@ useEffect(() => {
     }
 
     const nurseName = nurses.find(n => n.id === nurseId)?.name || nurseId;
-    addHistoryEntry('Limpieza historial individual', `Se borraron ${removedCount} cambios manuales de ${nurseName} (${monthPrefix}).`);
+    const details = t.history_clear_personal_month_log_details
+      .replace('{count}', String(removedCount))
+      .replace('{nurse}', nurseName)
+      .replace('{month}', monthPrefix);
+    addHistoryEntry(t.history_clear_personal_month_log, details);
 
     await updateDataWithUndo({ manualChangeLog: nextLog });
-  }, [manualChangeLog, nurses, addHistoryEntry, updateDataWithUndo]);
+  }, [manualChangeLog, nurses, addHistoryEntry, updateDataWithUndo, t]);
 
   const handleManualChange = useCallback(async (payload: ManualChangePayload) => {
     const { nurseIds, startDate, endDate } = payload;
