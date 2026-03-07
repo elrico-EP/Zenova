@@ -240,7 +240,7 @@ const AppContent: React.FC = () => {
   const monthKey = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
   const isMonthClosed = !!closedMonths[monthKey];
   const FROZEN_START_YEAR = 2026;
-  const FROZEN_START_MONTH_INDEX = 3; // April
+  const FROZEN_START_MONTH_INDEX = 0; // January - Now protecting Jan-Feb from auto-regeneration
 
   const getMonthKeyFromDate = useCallback((date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
