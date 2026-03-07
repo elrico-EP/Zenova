@@ -1,11 +1,15 @@
 // Script to read and compare Excel schedules
-const XLSX = require('xlsx');
-const fs = require('fs');
-const path = require('path');
+import XLSX from 'xlsx';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Read both Excel files
-const currentFile = path.join(__dirname, '../docs/Turnos aplicacion Enero y Febrero.xlsx');
-const correctFile = path.join(__dirname, '../docs/Turnos reales enero y febrero.xlsx');
+const currentFile = join(__dirname, '../docs/Turnos aplicacion Enero y Febrero.xlsx');
+const correctFile = join(__dirname, '../docs/Turnos reales enero y febrero.xlsx');
 
 console.log('Reading current schedule from app...');
 const currentWorkbook = XLSX.readFile(currentFile);
