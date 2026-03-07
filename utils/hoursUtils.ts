@@ -119,18 +119,30 @@ export const calculateHoursForDay = (
         const isManualSplit = (typeof part1 === 'object' && 'manualSplit' in part1 && (part1 as CustomShift).manualSplit === true);
 
         if (isManualSplit) {
-            const time1 = (part1 as CustomShift).time;
-            const time2 = (part2 as CustomShift).time;
-            if (!time1 || !time2) return 0;
+            const customPart1 = typeof part1 === 'object' && 'manualSplit' in part1 && (part1 as CustomShift).manualSplit === true ? (part1 as CustomShift) : undefined;
+            const customPart2 = typeof part2 === 'object' && 'manualSplit' in part2 && (part2 as CustomShift).manualSplit === true ? (part2 as CustomShift) : undefined;
+            const time1 = customPart1?.time;
+            const time2 = customPart2?.time;
 
-            const [start1, end1] = time1.split(' - ');
-            const [start2, end2] = time2.split(' - ');
+            // If both parts have explicit times, use those exact times.
+            if (time1 && time2) {
+                const [start1, end1] = time1.split(' - ');
+                const [start2, end2] = time2.split(' - ');
 
-            const grossHours1 = calculateSimpleHoursDifference(start1, end1);
-            const grossHours2 = calculateSimpleHoursDifference(start2, end2);
-            const totalGross = grossHours1 + grossHours2;
-            
-            return totalGross >= 6 ? totalGross - 0.5 : totalGross;
+                const grossHours1 = calculateSimpleHoursDifference(start1, end1);
+                const grossHours2 = calculateSimpleHoursDifference(start2, end2);
+                const totalGross = grossHours1 + grossHours2;
+                
+                return totalGross >= 6 ? totalGross - 0.5 : totalGross;
+            }
+
+            // Mixed optional case: fallback to standard recursive behavior so partial times
+            // do not force the whole split to 0.
+            let fallbackTotal = 0;
+            for (const part of scheduleCell.split) {
+                fallbackTotal += calculateHoursForDay(nurse, part, date, agenda, strasbourgAssignments, undefined, jornadasLaborales);
+            }
+            return fallbackTotal;
         }
         
         // For non-manual splits: sum all hours (RECUP will be negative and subtract)
