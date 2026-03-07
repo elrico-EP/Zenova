@@ -438,10 +438,10 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
         }
 
         const activeJornada = getActiveJornada(nurse.id, firstDayOfWeek, jornadasLaborales);
-        let weekTheoreticalFixed = 40;
+        let weekTheoreticalBase = 40;
         if (activeJornada) {
-            if (activeJornada.porcentaje === 90) weekTheoreticalFixed = 36;
-            else if (activeJornada.porcentaje === 80) weekTheoreticalFixed = 32;
+            if (activeJornada.porcentaje === 90) weekTheoreticalBase = 36;
+            else if (activeJornada.porcentaje === 80) weekTheoreticalBase = 32;
         }
 
         const inMonthWeekDates = weekDates.filter((d): d is Date => !!d && d.getUTCMonth() === month);
@@ -457,8 +457,20 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
             return isDateInWorkPeriod(nurse, date) && activityLevel !== 'CLOSED' && !isHoliday;
         });
 
+        // Count weekdays (Mon-Fri) that are actually in this month
+        const weekdaysInMonth = inMonthWeekDates.filter(date => {
+            const dayOfWeek = date.getUTCDay();
+            return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday = 1, Friday = 5
+        }).length;
+
+        // Prorate theoretical hours based on weekdays actually in the month
+        let weekTheoreticalFixed = 0;
         if (!hasPlannableWeekday) {
             weekTheoreticalFixed = 0;
+        } else if (weekdaysInMonth > 0) {
+            // Standard week: Mon-Thu = 8.5h, Fri = 6h = 40h total
+            // Proportional calculation: (weekdaysInMonth / 5) * weekTheoreticalBase
+            weekTheoreticalFixed = (weekdaysInMonth / 5) * weekTheoreticalBase;
         }
         
         let weekManual = 0;
