@@ -421,6 +421,8 @@
                 </li>
                 <li><strong>Editar nombre:</strong> Haz clic en nombre, escribe el nuevo</li>
                 <li><strong>Ver agenda personal:</strong> Click en icono "calendario" (abre personal agenda de esa enfermera)</li>
+                <li><strong>Limpiar historial mensual en agenda personal:</strong> Dentro de la agenda individual, botón "Limpiar historial" para borrar el log mensual de cambios manuales de ese enfermero</li>
+                <li><strong>Importante:</strong> Esta limpieza borra solo historial (manualChangeLog), NO modifica turnos ni cobertura</li>
                 <li><strong>Resetear mes:</strong> Click en icono "flechas circulares" → Borra TODOS los cambios manuales de esa enfermera para este mes (vuelve al auto-generado)</li>
                 <li><strong>Eliminar enfermera:</strong> Click en "X" rojo → Pide confirmación → BORRA así sea que tenga turnos asignados</li>
             </ul>
@@ -847,10 +849,11 @@
             <ul>
                 <li>Puedes ver logs dentro del sidebar (en algún módulo)</li>
                 <li>O revisar directamente en Supabase si tienes acceso</li>
+                <li>En agenda individual, puedes limpiar historial mensual del enfermero visible (botón <strong>Limpiar historial</strong>)</li>
             </ul>
 
             <div class="feature-box warning">
-                <strong>⚠️ LIMITACIÓN:</strong> No hay interfaz cómoda de admin para "buscar cambios de [usuario] en [fecha]". Necesitarías acceso Supabase directamente.
+                <strong>⚠️ LIMITACIÓN:</strong> Sigue sin existir una interfaz global cómoda para buscar cambios por usuario/fecha en todo el sistema. Para auditoría completa, necesitas Supabase.
             </div>
 
             <div class="separator"></div>
@@ -891,10 +894,11 @@
                     <li><strong>NO hay "Recalcular todo el mes" con un botón</strong>
                         <ul><li>Sistema recalcula automático, tu NO tienes botón de "Recalculate Coverage"</li></ul>
                     </li>
-                    <li><strong>Historial no es cómodo</strong>
+                    <li><strong>Historial sigue limitado</strong>
                         <ul>
-                            <li>No es Panel bonito de admin</li>
-                            <li>Necesitas Supabase acceso directo para auditoría completa</li>
+                            <li>Ahora sí existe limpieza mensual por enfermero en agenda individual</li>
+                            <li>Pero no hay panel global avanzado de auditoría</li>
+                            <li>Para auditoría completa y búsquedas complejas, necesitas acceso Supabase</li>
                         </ul>
                     </li>
                     <li><strong>NO hay "Preview" antes de cambios masivos</strong>
