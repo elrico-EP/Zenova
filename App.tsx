@@ -702,6 +702,21 @@ useEffect(() => {
     }
   }, [user, t]);
 
+  const handleClearPersonalAgendaMonthlyLog = useCallback(async (nurseId: string, yearToClear: number, monthToClear: number) => {
+    const monthPrefix = `${yearToClear}-${String(monthToClear + 1).padStart(2, '0')}`;
+    const nextLog = manualChangeLog.filter(log => !(log.nurseId === nurseId && log.dateKey.startsWith(monthPrefix)));
+    const removedCount = manualChangeLog.length - nextLog.length;
+
+    if (removedCount === 0) {
+      return;
+    }
+
+    const nurseName = nurses.find(n => n.id === nurseId)?.name || nurseId;
+    addHistoryEntry('Limpieza historial individual', `Se borraron ${removedCount} cambios manuales de ${nurseName} (${monthPrefix}).`);
+
+    await updateDataWithUndo({ manualChangeLog: nextLog });
+  }, [manualChangeLog, nurses, addHistoryEntry, updateDataWithUndo]);
+
   const handleManualChange = useCallback(async (payload: ManualChangePayload) => {
     const { nurseIds, startDate, endDate } = payload;
     const recalcScope = payload.recalcScope || (await askRecalcScopeForManualChanges('manual'));
@@ -1418,6 +1433,7 @@ const handleAddNurse = useCallback((name: string) => {
               history={history} 
               onExportAnnual={handleExportAnnualAgenda} 
                 onSavePersonalHours={handlePersonalHoursChange}
+              onClearMonthlyManualLog={handleClearPersonalAgendaMonthlyLog}
               jornadasLaborales={jornadasLaborales}
           /> 
       )}
