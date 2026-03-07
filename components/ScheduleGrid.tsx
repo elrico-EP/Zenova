@@ -56,6 +56,7 @@ export const ShiftCell: React.FC<{
 }> = ({ shiftCell, hours, hasManualHours, violation, isWeekend, isClosingDay, nurseId, weekId, activityLevel, strasbourgAssignments, dayOfWeek, isShortFriday, onOpenManualHoursModal, dateKey, manualNote }) => {
     const t = useTranslations();
     const permissions = usePermissions();
+    const canEditHours = permissions.isViewingAsAdmin && !!onOpenManualHoursModal;
     const attendees = strasbourgAssignments[weekId] || [];
     const title = violation?.message || (typeof shiftCell === 'string' ? t[SHIFTS[shiftCell]?.description as keyof Locale] as string : '');
     const hasMultipleHourLines = Array.isArray(hours) && hours.length > 1;
@@ -77,7 +78,21 @@ export const ShiftCell: React.FC<{
     if (activityLevel === 'SESSION' && dayOfWeek >= 1 && dayOfWeek <= 4 && attendees.includes(nurseId)) {
         const shift = SHIFTS['STRASBOURG'];
         return (
-            <div className={`w-full h-full p-1 flex items-center justify-center relative`} title={t[shift.description as keyof Locale] as string}>
+            <div className={`w-full h-full p-1 flex items-center justify-center relative group`} title={t[shift.description as keyof Locale] as string}>
+                {canEditHours && (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenManualHoursModal?.(dateKey, nurseId);
+                        }}
+                        className="absolute top-0.5 right-0.5 p-0.5 text-slate-400 hover:text-zen-600 z-10 bg-white/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={t.changeShiftHours}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                )}
                 <div className={`w-full h-full p-1 flex flex-col items-center justify-center rounded-md shadow-sm ${shift.color} ${shift.textColor}`}>
                     <span className="font-bold text-base">{shift.label}</span>
                 </div>
@@ -118,12 +133,12 @@ export const ShiftCell: React.FC<{
         const [mainLabel, ...notes] = customShift.custom.split('\n');
 
         return (
-            <div className={`w-full h-full flex flex-col items-center justify-center text-center p-1 ${bgColor} ${textColor} font-medium text-xs rounded-md shadow-sm relative`} title={customShift.custom}>
-                {permissions.isViewingAsAdmin && onOpenManualHoursModal && customShift.type === 'ADMIN' && (
+            <div className={`w-full h-full flex flex-col items-center justify-center text-center p-1 ${bgColor} ${textColor} font-medium text-xs rounded-md shadow-sm relative group`} title={customShift.custom}>
+                {canEditHours && (
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
-                            onOpenManualHoursModal(dateKey, nurseId);
+                            onOpenManualHoursModal?.(dateKey, nurseId);
                         }}
                         className="absolute top-0.5 right-0.5 p-0.5 text-slate-400 hover:text-zen-600 z-10 bg-white/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         title={t.changeShiftHours}
@@ -143,7 +158,21 @@ export const ShiftCell: React.FC<{
     if (typeof shiftCell === 'object' && 'split' in shiftCell) {
         if (typeof hours === 'string' || Array.isArray(hours)) { 
              return (
-                <div className={`w-full h-full p-1 flex items-center justify-center relative`} title={title}>
+                <div className={`w-full h-full p-1 flex items-center justify-center relative group`} title={title}>
+                    {canEditHours && (
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenManualHoursModal?.(dateKey, nurseId);
+                            }}
+                            className="absolute top-0.5 right-0.5 p-0.5 text-slate-400 hover:text-zen-600 z-10 bg-white/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            title={t.changeShiftHours}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                    )}
                     <div className={`w-full h-full p-1 flex flex-col items-center justify-center gap-0.5 rounded-md shadow-sm bg-purple-200 text-purple-800 ${violation ? 'ring-2 ring-red-500 ring-offset-1' : ''}`}>
                         <span className="font-bold text-base">Split</span>
                         {renderHours()}
@@ -173,7 +202,21 @@ export const ShiftCell: React.FC<{
 
 
         return (
-            <div className="w-full h-full flex flex-col gap-0.5 p-0.5 relative" title={title}>
+            <div className="w-full h-full flex flex-col gap-0.5 p-0.5 relative group" title={title}>
+                {canEditHours && (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenManualHoursModal?.(dateKey, nurseId);
+                        }}
+                        className="absolute top-0.5 right-0.5 p-0.5 text-slate-400 hover:text-zen-600 z-10 bg-white/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={t.changeShiftHours}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                )}
                 {morningDisplayInfo && (
                     <div className={`flex-grow min-h-0 flex flex-col items-center justify-center rounded-sm text-center p-1 ${morningDisplayInfo.color} ${morningDisplayInfo.textColor}`}>
                         <span className="font-semibold text-xs leading-tight">{morningDisplayInfo.label}</span>
@@ -199,12 +242,12 @@ export const ShiftCell: React.FC<{
     }
 
     return (
-        <div className={`w-full h-full p-1 flex items-center justify-center relative`} title={title}>
-            {permissions.isViewingAsAdmin && onOpenManualHoursModal && (
+        <div className={`w-full h-full p-1 flex items-center justify-center relative group`} title={title}>
+            {canEditHours && (
                 <button 
                     onClick={(e) => {
                         e.stopPropagation();
-                        onOpenManualHoursModal(dateKey, nurseId);
+                        onOpenManualHoursModal?.(dateKey, nurseId);
                     }}
                     className="absolute top-0.5 right-0.5 p-0.5 text-slate-400 hover:text-zen-600 z-10 bg-white/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     title={t.changeShiftHours}
