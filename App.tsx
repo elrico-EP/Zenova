@@ -263,7 +263,7 @@ const AppContent: React.FC = () => {
       const lastPastMonth = y === now.getFullYear() ? now.getMonth() - 1 : 11;
       for (let m = 0; m <= lastPastMonth; m++) {
         const key = `${y}-${String(m + 1).padStart(2, '0')}`;
-        if (!closedMonths[key]) {
+        if (!(key in closedMonths)) {
           updates[key] = true;
           changed = true;
         }
