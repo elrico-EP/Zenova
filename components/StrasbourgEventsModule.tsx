@@ -238,7 +238,8 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
     const handleAddNew = () => { setView('selectType'); };
     const handleEdit = (event: SpecialStrasbourgEvent) => { setEditingEvent(event); setView('form'); };
     const handleDelete = (event: SpecialStrasbourgEvent) => {
-        if (window.confirm(`¿Eliminar el evento "${event.name}"?`)) {
+        const deleteConfirmText = t.strasbourg_delete_event_confirm_named.replace('{event}', event.name);
+        if (window.confirm(deleteConfirmText)) {
             onEventsChange(events.filter(e => e.id !== event.id));
         }
     };
@@ -277,20 +278,20 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
                 <header className="flex items-center justify-between">
                     <button onClick={() => setView('list')} className="text-sm font-bold text-zen-600 hover:underline flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                        Volver
+                        {t.back}
                     </button>
                     {isAdmin && log.length > 0 && (
                         <button 
-                            onClick={() => { if(window.confirm('¿Borrar historial de eventos?')) onClearLog(); }}
+                            onClick={() => { if(window.confirm(t.strasbourg_clear_history_confirm)) onClearLog(); }}
                             className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase tracking-widest"
                         >
-                            Limpiar Historial
+                            {t.strasbourg_clear_history}
                         </button>
                     )}
                 </header>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                     {log.length === 0 ? (
-                        <p className="text-slate-500 italic text-center py-8">No hay registros.</p>
+                        <p className="text-slate-500 italic text-center py-8">{t.strasbourg_history_empty}</p>
                     ) : (
                         log.map(entry => (
                             <div key={entry.id} className="text-[10px] p-2 bg-slate-50 rounded border border-slate-200">
@@ -319,7 +320,7 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
                     onClick={() => setIsEventsExpanded(prev => !prev)}
                     className="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
                 >
-                    <span className="font-semibold text-slate-700">Eventos creados ({filteredEvents.length})</span>
+                    <span className="font-semibold text-slate-700">{t.strasbourg_created_events} ({filteredEvents.length})</span>
                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-slate-500 transition-transform ${isEventsExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                 </button>
 
