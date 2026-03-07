@@ -30,7 +30,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ userId }) 
     };
   }, [isOpen]);
 
-  const userNotifications = notifications.filter((n) => n.recipientIds.includes(userId));
+  const userNotifications = notifications.filter((n) => Array.isArray(n.recipientIds) && n.recipientIds.includes(userId));
 
   const handleNotificationClick = (notificationId: string) => {
     markAsRead(notificationId, userId);
@@ -89,7 +89,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ userId }) 
             <div className="divide-y divide-gray-200">
               {userNotifications.map((notification) => {
                 const display = getNotificationDisplay(notification);
-                const isRead = notification.isRead[userId];
+                const isRead = Boolean(notification.isRead?.[userId]);
 
                 return (
                   <div
