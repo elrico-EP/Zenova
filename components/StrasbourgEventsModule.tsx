@@ -227,9 +227,7 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
     const t = useTranslations();
     const [view, setView] = useState<'list' | 'selectType' | 'form' | 'history'>('list');
     const [editingEvent, setEditingEvent] = useState<Partial<SpecialStrasbourgEvent> | null>(null);
-    const [isDeleteUnlocked, setIsDeleteUnlocked] = useState(false);
-    const [pendingDeleteEvent, setPendingDeleteEvent] = useState<SpecialStrasbourgEvent | null>(null);
-    const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+    const [isEventsExpanded, setIsEventsExpanded] = useState(false);
 
     const filteredEvents = useMemo(() => {
         if (isAdmin) return events.sort((a,b) => a.startDate.localeCompare(b.startDate));
@@ -237,29 +235,12 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
         return events.filter(e => e.nurseIds.includes(userId || '')).sort((a,b) => a.startDate.localeCompare(b.startDate));
     }, [events, isAdmin, effectiveUser]);
     
-    useEffect(() => {
-        if (!isDeleteUnlocked) return;
-        const timer = window.setTimeout(() => setIsDeleteUnlocked(false), 20000);
-        return () => window.clearTimeout(timer);
-    }, [isDeleteUnlocked]);
-
     const handleAddNew = () => { setView('selectType'); };
     const handleEdit = (event: SpecialStrasbourgEvent) => { setEditingEvent(event); setView('form'); };
-    const openDeleteDialog = (event: SpecialStrasbourgEvent) => {
-        if (!isDeleteUnlocked) return;
-        setPendingDeleteEvent(event);
-        setDeleteConfirmationText('');
-    };
-    const closeDeleteDialog = () => {
-        setPendingDeleteEvent(null);
-        setDeleteConfirmationText('');
-    };
-    const confirmDeleteEvent = () => {
-        if (!pendingDeleteEvent) return;
-        if (deleteConfirmationText.trim().toUpperCase() !== 'BORRAR') return;
-        onEventsChange(events.filter(e => e.id !== pendingDeleteEvent.id));
-        closeDeleteDialog();
-        setIsDeleteUnlocked(false);
+    const handleDelete = (event: SpecialStrasbourgEvent) => {
+        if (window.confirm(`¿Eliminar el evento "${event.name}"?`)) {
+            onEventsChange(events.filter(e => e.id !== event.id));
+        }
     };
     const handleCancel = () => { setView('list'); setEditingEvent(null); };
 
@@ -325,93 +306,57 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
     }
 
     return (
-        <>
         <div className="space-y-4 text-sm">
             <div className="flex gap-2">
                 {isAdmin && <button onClick={handleAddNew} className="flex-grow px-4 py-2 bg-zen-700 text-white font-semibold rounded-md hover:bg-zen-600">+ {t.createEvent}</button>}
-                {isAdmin && (
-                    <button
-                        onClick={() => setIsDeleteUnlocked(prev => !prev)}
-                        className={`px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wider ${isDeleteUnlocked ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                        title={isDeleteUnlocked ? 'Borrado habilitado durante 20 segundos' : 'Habilitar borrado seguro'}
-                    >
-                        {isDeleteUnlocked ? 'Borrado activo (20s)' : 'Desbloquear borrado'}
-                    </button>
-                )}
                 <button onClick={() => setView('history')} className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200" title="Ver Historial">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </button>
             </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                {filteredEvents.length === 0 && <p className="text-slate-500 italic text-center p-4">{t.noEventsToShow}</p>}
-                {filteredEvents.map(event => {
-                    const assignedNurses = nurses.filter(n => event.nurseIds.includes(n.id)).map(n => n.name).join(', ');
-                    const typeKey = `event_type_${event.type}` as keyof Locale;
-                    // FIX: Ensure translation result is a string before rendering.
-                    const translation = event.type && event.type !== 'other' && t[typeKey] ? t[typeKey] : null;
-                    const typeLabel = typeof translation === 'string' ? translation : null;
+            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => setIsEventsExpanded(prev => !prev)}
+                    className="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
+                >
+                    <span className="font-semibold text-slate-700">Eventos creados ({filteredEvents.length})</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-slate-500 transition-transform ${isEventsExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
 
-                    return (
-                        <div key={event.id} className="p-3 bg-rose-50 rounded-lg border border-rose-200">
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    {typeLabel && <span className="text-xs font-semibold bg-rose-200 text-rose-700 px-1.5 py-0.5 rounded-full">{typeLabel}</span>}
-                                    <p className="font-semibold text-rose-800">{event.name}</p>
-                                    <p className="text-xs text-rose-600">({event.startDate} to {event.endDate})</p>
-                                </div>
-                                {isAdmin && (
-                                    <div className="flex gap-2 flex-shrink-0">
-                                        <button onClick={() => handleEdit(event)} className="p-1 text-blue-600">✏️</button>
-                                        <button
-                                            onClick={() => openDeleteDialog(event)}
-                                            disabled={!isDeleteUnlocked}
-                                            title={isDeleteUnlocked ? 'Eliminar evento (requiere confirmación escrita)' : 'Primero pulsa "Desbloquear borrado"'}
-                                            className={`p-1 ${isDeleteUnlocked ? 'text-red-600 hover:text-red-700' : 'text-slate-300 cursor-not-allowed'}`}
-                                        >
-                                            🗑️
-                                        </button>
+                {isEventsExpanded && (
+                    <div className="space-y-2 max-h-96 overflow-y-auto p-3">
+                        {filteredEvents.length === 0 && <p className="text-slate-500 italic text-center p-4">{t.noEventsToShow}</p>}
+                        {filteredEvents.map(event => {
+                            const assignedNurses = nurses.filter(n => event.nurseIds.includes(n.id)).map(n => n.name).join(', ');
+                            const typeKey = `event_type_${event.type}` as keyof Locale;
+                            const translation = event.type && event.type !== 'other' && t[typeKey] ? t[typeKey] : null;
+                            const typeLabel = typeof translation === 'string' ? translation : null;
+
+                            return (
+                                <div key={event.id} className="p-3 bg-rose-50 rounded-lg border border-rose-200">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {typeLabel && <span className="text-xs font-semibold bg-rose-200 text-rose-700 px-1.5 py-0.5 rounded-full">{typeLabel}</span>}
+                                            <p className="font-semibold text-rose-800">{event.name}</p>
+                                            <p className="text-xs text-rose-600">({event.startDate} to {event.endDate})</p>
+                                        </div>
+                                        {isAdmin && (
+                                            <div className="flex gap-2 flex-shrink-0">
+                                                <button onClick={() => handleEdit(event)} className="p-1 text-blue-600">✏️</button>
+                                                <button onClick={() => handleDelete(event)} className="p-1 text-red-600">🗑️</button>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                            <div className="mt-2 text-xs">
-                                <p><strong>{t.assignedNurses}:</strong> {assignedNurses}</p>
-                                {event.notes && <p className="mt-1 pt-1 border-t border-rose-200/50"><strong>{t.notes}:</strong> {event.notes}</p>}
-                            </div>
-                        </div>
-                    );
-                })}
+                                    <div className="mt-2 text-xs">
+                                        <p><strong>{t.assignedNurses}:</strong> {assignedNurses}</p>
+                                        {event.notes && <p className="mt-1 pt-1 border-t border-rose-200/50"><strong>{t.notes}:</strong> {event.notes}</p>}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
-        {pendingDeleteEvent && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-white rounded-lg shadow-xl border border-slate-200 p-5 space-y-4">
-                    <h3 className="text-lg font-bold text-slate-800">Confirmar borrado de evento</h3>
-                    <p className="text-sm text-slate-600">
-                        Vas a borrar el evento <strong>{pendingDeleteEvent.name}</strong> ({pendingDeleteEvent.startDate} → {pendingDeleteEvent.endDate}).
-                    </p>
-                    <p className="text-sm text-slate-600">
-                        Para confirmar, escribe <strong>BORRAR</strong> en el campo.
-                    </p>
-                    <input
-                        type="text"
-                        value={deleteConfirmationText}
-                        onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                        placeholder="Escribe BORRAR"
-                        className="w-full p-2 border border-slate-300 rounded-md"
-                    />
-                    <div className="flex justify-end gap-2">
-                        <button onClick={closeDeleteDialog} className="px-3 py-2 text-sm bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200">Cancelar</button>
-                        <button
-                            onClick={confirmDeleteEvent}
-                            disabled={deleteConfirmationText.trim().toUpperCase() !== 'BORRAR'}
-                            className="px-3 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Borrar evento
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )}
-        </>
     );
 };
