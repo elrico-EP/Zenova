@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { Notification } from '../types';
 import { Toast } from '../utils/notificationService';
 
@@ -22,7 +22,8 @@ type Action =
   | { type: 'ADD_NOTIFICATION'; notification: Notification }
   | { type: 'MARK_AS_READ'; notificationId: string; userId: string }
   | { type: 'REMOVE_NOTIFICATION'; id: string }
-  | { type: 'CLEAR_NOTIFICATIONS' };
+  | { type: 'CLEAR_NOTIFICATIONS' }
+  | { type: 'LOAD_NOTIFICATIONS'; notifications: Notification[] };
 
 interface State {
   toasts: Toast[];
@@ -34,28 +35,56 @@ const initialState: State = {
   notifications: [],
 };
 
+// Load notifications from localStorage
+const loadNotificationsFromStorage = (): Notification[] => {
+  try {
+    const stored = localStorage.getItem('nursingAppNotifications');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Failed to load notifications from localStorage:', error);
+  }
+  return [];
+};
+
+// Save notifications to localStorage
+const saveNotificationsToStorage = (notifications: Notification[]) => {
+  try {
+    localStorage.setItem('nursingAppNotifications', JSON.stringify(notifications));
+  } catch (error) {
+    console.error('Failed to save notifications to localStorage:', error);
+  }
+};
+
 const notificationReducer = (state: State, action: Action): State => {
+  let newState = state;
+  
   switch (action.type) {
     case 'ADD_TOAST':
-      return {
+      newState = {
         ...state,
         toasts: [...state.toasts, action.toast],
       };
+      break;
 
     case 'REMOVE_TOAST':
-      return {
+      newState = {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.id),
       };
+      break;
 
     case 'ADD_NOTIFICATION':
-      return {
+      newState = {
         ...state,
         notifications: [action.notification, ...state.notifications].slice(0, 50), // Keep last 50
       };
+      saveNotificationsToStorage(newState.notifications);
+      break;
 
     case 'MARK_AS_READ':
-      return {
+      newState = {
         ...state,
         notifications: state.notifications.map((n) =>
           n.id === action.notificationId
@@ -66,26 +95,49 @@ const notificationReducer = (state: State, action: Action): State => {
             : n
         ),
       };
+      saveNotificationsToStorage(newState.notifications);
+      break;
 
     case 'REMOVE_NOTIFICATION':
-      return {
+      newState = {
         ...state,
         notifications: state.notifications.filter((n) => n.id !== action.id),
       };
+      saveNotificationsToStorage(newState.notifications);
+      break;
 
     case 'CLEAR_NOTIFICATIONS':
-      return {
+      newState = {
         ...state,
         notifications: [],
       };
+      saveNotificationsToStorage(newState.notifications);
+      break;
+      
+    case 'LOAD_NOTIFICATIONS':
+      newState = {
+        ...state,
+        notifications: action.notifications,
+      };
+      break;
 
     default:
-      return state;
+      newState = state;
   }
+  
+  return newState;
 };
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(notificationReducer, initialState);
+
+  // Load notifications from localStorage on mount
+  useEffect(() => {
+    const storedNotifications = loadNotificationsFromStorage();
+    if (storedNotifications.length > 0) {
+      dispatch({ type: 'LOAD_NOTIFICATIONS', notifications: storedNotifications });
+    }
+  }, []);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const toastWithId: Toast = {
