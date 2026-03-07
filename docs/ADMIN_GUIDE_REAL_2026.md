@@ -95,6 +95,8 @@ El Sidebar tiene varios módulos colapsibles. **Solo verás los que tu rol permi
   - **Editar nombre:** Haz clic en nombre, escribe el nuevo
   
   - **Ver agenda personal:** Click en icono "calendario" (abre personal agenda de esa enfermera)
+    - Dentro de agenda personal, como admin, puedes usar **"Limpiar historial"** para borrar el log de cambios manuales de ese enfermero en el mes visible
+    - **Importante:** Esto borra solo historial (manualChangeLog), NO modifica turnos ni cobertura
   
   - **Resetear mes:** Click en icono "flechas circulares" → Borra TODOS los cambios manuales de esa enfermera para este mes (vuelve al auto-generado)
   
@@ -410,8 +412,9 @@ Pero cada cambio se registra en:
 **Como Admin:**
 - Puedes ver logs dentro del sidebar (en algún módulo)
 - O revisar directamente en Supabase si tienes acceso
+- En agenda individual, puedes limpiar historial mensual del enfermero visible (botón **Limpiar historial**)
 
-**⚠️ LIMITACIÓN:** No hay interfaz cómoda de admin para "buscar cambios de [usuario] en [fecha]". Necesitarías acceso Supabase directamente.
+**⚠️ LIMITACIÓN:** Sigue sin existir una interfaz global cómoda para buscar cambios por usuario/fecha en todo el sistema. Para auditoría completa, necesitas Supabase.
 
 ---
 
@@ -445,9 +448,10 @@ No sé exactamente (revisar Sidebar, probablemente en header o "Advanced Setting
 4. **NO hay "Recalcular todo el mes" con un botón**
    - Sistema recalcula automático, tu NO tienes botón de "Recalculate Coverage"
 
-5. **Historial no es cómodo**
-   - No es Panel bonito de admin
-   - Necesitas Supabase acceso directo para auditoría completa
+5. **Historial sigue limitado**
+  - Ahora sí existe limpieza mensual por enfermero en agenda individual
+  - Pero no hay panel global avanzado de auditoría
+  - Para auditoría completa y búsquedas complejas, necesitas acceso Supabase
 
 6. **NO hay "Preview" antes de cambios masivos**
    - Si asignas SICK_LEAVE a 5 enfermeros, se aplica inmediatamente
