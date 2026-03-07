@@ -35,12 +35,45 @@ const initialState: State = {
   notifications: [],
 };
 
+const normalizeNotification = (raw: any): Notification | null => {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const recipientIds = Array.isArray(raw.recipientIds)
+    ? raw.recipientIds.filter((id: unknown) => typeof id === 'string')
+    : [];
+
+  if (!raw.id || recipientIds.length === 0) return null;
+
+  const isReadRecord = raw.isRead && typeof raw.isRead === 'object' ? raw.isRead : {};
+
+  return {
+    id: String(raw.id),
+    type: raw.type || 'general',
+    recipientIds,
+    senderId: String(raw.senderId || 'system'),
+    senderName: String(raw.senderName || 'Sistema'),
+    title: String(raw.title || 'Notificación'),
+    message: String(raw.message || ''),
+    relatedDate: raw.relatedDate,
+    relatedNurseId: raw.relatedNurseId,
+    relatedNurseName: raw.relatedNurseName,
+    timestamp: String(raw.timestamp || new Date().toISOString()),
+    isRead: isReadRecord,
+    emailSent: raw.emailSent,
+    createdAt: raw.createdAt,
+  };
+};
+
 // Load notifications from localStorage
 const loadNotificationsFromStorage = (): Notification[] => {
   try {
     const stored = localStorage.getItem('nursingAppNotifications');
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((item) => normalizeNotification(item))
+        .filter((item): item is Notification => Boolean(item));
     }
   } catch (error) {
     console.error('Failed to load notifications from localStorage:', error);
@@ -90,7 +123,7 @@ const notificationReducer = (state: State, action: Action): State => {
           n.id === action.notificationId
             ? {
                 ...n,
-                isRead: { ...n.isRead, [action.userId]: true },
+                isRead: { ...(n.isRead || {}), [action.userId]: true },
               }
             : n
         ),
@@ -175,7 +208,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const getUnreadCount = useCallback(
     (userId: string) => {
-      return state.notifications.filter((n) => !n.isRead[userId]).length;
+      return state.notifications.filter((n) => n.recipientIds.includes(userId) && !(n.isRead?.[userId] ?? false)).length;
     },
     [state.notifications]
   );
