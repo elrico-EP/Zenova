@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Administrador Zenova - VERSIÓN REAL 2026.3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header .version {
+            font-size: 1.2em;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 20px 40px;
+            border-radius: 5px;
+        }
+
+        .warning strong {
+            color: #856404;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            font-size: 1.8em;
+        }
+
+        h3 {
+            color: #764ba2;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        h4 {
+            color: #555;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .feature-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .feature-box.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .feature-box.danger {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .feature-box.info {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+
+        .feature-box.warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+
+        .feature-box h4 {
+            margin-top: 0;
+            color: inherit;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+
+        .example {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #6c757d;
+        }
+
+        .example h4 {
+            margin-top: 0;
+            color: #343a40;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .badge.new {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge.updated {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .quick-links {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .quick-links h3 {
+            margin-top: 0;
+        }
+
+        .quick-links ul {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .quick-links li a {
+            color: #667eea;
+            text-decoration: none;
+            display: block;
+            padding: 5px 0;
+        }
+
+        .quick-links li a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+
+        .separator {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #667eea, transparent);
+            margin: 40px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .workflow-step {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            position: relative;
+            padding-left: 60px;
+        }
+
+        .workflow-step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Guía de Administrador Zenova</h1>
+            <div class="version">VERSIÓN REAL 2026.3</div>
+        </header>
+
+        <div class="warning">
+            <strong>⚠️ IMPORTANTE:</strong> Esta guía describe EXACTAMENTE qué funciones existen en la aplicación. Sin inventos, sin menús fantasmas.
+        </div>
+
+        <div class="content">
+            <div class="quick-links">
+                <h3>Índice Rápido</h3>
+                <ul>
+                    <li><a href="#login">1. Inicio de Sesión</a></li>
+                    <li><a href="#vistas">2. Vistas Principales</a></li>
+                    <li><a href="#sidebar">3. Sidebar - Módulos de Admin</a></li>
+                    <li><a href="#edicion">4. Edición de Turnos</a></li>
+                    <li><a href="#cobertura">5. Sistema de Cobertura 🆕</a></li>
+                    <li><a href="#wishes">6. Wishes (Deseos)</a></li>
+                    <li><a href="#usuarios">7. Gestión de Usuarios</a></li>
+                    <li><a href="#historial">8. Historial / Auditoría</a></li>
+                    <li><a href="#troubleshooting">12. Troubleshooting</a></li>
+                    <li><a href="#resumen">13. Resumen Final</a></li>
+                </ul>
+            </div>
+
+            <div class="separator"></div>
+
+            <h2 id="login">1. INICIO DE SESIÓN COMO ADMIN</h2>
+            <p>Para ser administrador, tu usuario debe tener:</p>
+            <ul>
+                <li><strong>Rol:</strong> Admin</li>
+                <li><strong>Email válido</strong> en el sistema</li>
+            </ul>
+            <p>Una vez logueado, verás:</p>
+            <ul>
+                <li>Acceso a todas las vistas</li>
+                <li>Botones especiales en el Sidebar (izquierda) para funciones de admin</li>
+            </ul>
+
+            <div class="separator"></div>
+
+            <h2 id="vistas">2. VISTAS PRINCIPALES (Lo que ves arriba)</h2>
+            <p>La aplicación tiene <strong>4 vistas principales</strong>:</p>
+
+            <h3>2.1 Schedule (Calendario)</h3>
+            <div class="feature-box">
+                <p><strong>Dónde:</strong> Click "Schedule" en el menú superior</p>
+                <p><strong>Qué ves:</strong> Tabla grande con:</p>
+                <ul>
+                    <li>Columnas = Días del mes</li>
+                    <li>Filas = Enfermeros</li>
+                    <li>Celdas = Turnos asignados</li>
+                </ul>
+            </div>
+            <p><strong>COMO ADMIN, PUEDES:</strong></p>
+            <ul>
+                <li>Hacer doble-click en celda → Se abre modal para cambiar turno</li>
+                <li>Ver TODO el calendario sin restricciones</li>
+                <li>Editar turnos de cualquier enfermero cualquier día (si mes no está cerrado)</li>
+            </ul>
+
+            <h3>2.2 Balance (Balance de Horas)</h3>
+            <div class="feature-box">
+                <p><strong>Dónde:</strong> Click "Balance" en menú superior</p>
+                <p><strong>Qué ves:</strong> Tabla con horas por enfermero:</p>
+                <ul>
+                    <li>Horas trabajadas este mes</li>
+                    <li>Balance (horas - contrato)</li>
+                    <li>Tipo de turno (cuántos URGENCES, TRAVAIL, etc.)</li>
+                </ul>
+            </div>
+            <p><strong>COMO ADMIN:</strong></p>
+            <ul>
+                <li>Puedes ver balance de TODOS (no solo el tuyo)</li>
+                <li>Es de <strong>solo lectura</strong> (no editas directamente aquí)</li>
+                <li>Sirve para auditar si alguien tiene muchas horas o pocas</li>
+            </ul>
+
+            <h3>2.3 Wishes (Deseos)</h3>
+            <div class="feature-box">
+                <p><strong>Dónde:</strong> Click "Wishes" en menú superior</p>
+                <p><strong>Qué ves:</strong> Tabla de deseos (solicitudes) que han hecho los enfermeros</p>
+                <ul>
+                    <li>Nombre enfermero</li>
+                    <li>Fecha solicitada</li>
+                    <li>Tipo solicitud (excluir turno, solicitar turno, etc.)</li>
+                    <li><strong>Estado:</strong> Verde = Validado, Naranja = Pendiente</li>
+                </ul>
+            </div>
+            <p><strong>COMO ADMIN, PUEDES:</strong></p>
+            <ul>
+                <li><strong>Validar un deseo:</strong> Click en botón (reloj naranja/check verde) junto a la solicitud
+                    <ul>
+                        <li>Un click = Cambiar estado pendiente ↔ validado</li>
+                        <li>Eso es TODO. No hay "aprobar con motivo" ni "rechazar"</li>
+                    </ul>
+                </li>
+                <li>Ver deseos de TODOS los enfermeros</li>
+                <li>Editar texto de deseos</li>
+            </ul>
+            <div class="feature-box warning">
+                <strong>⚠️ IMPORTANTE:</strong> Una vez validado, el sistema automáticamente aplica el cambio en el calendario.
+            </div>
+
+            <h3>2.4 User Management (Gestión de Usuarios)</h3>
+            <div class="feature-box">
+                <p><strong>Dónde:</strong> Click "Users" en menú superior</p>
+                <p><strong>Qué ves:</strong> Lista de usuarios del sistema</p>
+            </div>
+            <p><strong>COMO ADMIN, PUEDES:</strong></p>
+            <ul>
+                <li><strong>Crear usuario:</strong> Botón "+ New User" → Se abre formulario:
+                    <ul>
+                        <li>Nombre</li>
+                        <li>Email (username para login)</li>
+                        <li>Rol (admin/nurse/viewer)</li>
+                        <li>Contraseña (temporal, usuario DEBE cambiarla en primer login)</li>
+                        <li>Si es "nurse" = Asociar a un enfermero de la lista</li>
+                    </ul>
+                </li>
+                <li><strong>Editar usuario:</strong> Click en fila → Modal con campos editables</li>
+                <li><strong>Resetear contraseña:</strong> Botón "Reset Password" → Sistema genera contraseña temporal y la envía por email</li>
+                <li><strong>Eliminar usuario:</strong> Botón "Delete" → Aviso de confirmación</li>
+            </ul>
+
+            <div class="separator"></div>
+
+            <h2 id="sidebar">3. SIDEBAR (PANEL IZQUIERDO) - MÓDULOS DE ADMIN</h2>
+            <p>El Sidebar tiene varios módulos colapsibles. <strong>Solo verás los que tu rol permite.</strong></p>
+
+            <h3>3.1 Manage Team</h3>
+            <p><strong>Qué es:</strong> Lista de enfermeros del sistema</p>
+            <p><strong>Como Admin, puedes:</strong></p>
+            <ul>
+                <li><strong>Agregar enfermero:</strong> Campo de texto + botón "Add"
+                    <ul>
+                        <li>Crea nueva "enfermera" en la lista (no confundir con "usuario")</li>
+                        <li>Los enfermeros ≠ Usuarios. Ejemplo: Ana García es enfermera. Luego creas usuario "ana@hospital.es" que apunta a Ana García</li>
+                    </ul>
+                </li>
+                <li><strong>Editar nombre:</strong> Haz clic en nombre, escribe el nuevo</li>
+                <li><strong>Ver agenda personal:</strong> Click en icono "calendario" (abre personal agenda de esa enfermera)</li>
+                <li><strong>Resetear mes:</strong> Click en icono "flechas circulares" → Borra TODOS los cambios manuales de esa enfermera para este mes (vuelve al auto-generado)</li>
+                <li><strong>Eliminar enfermera:</strong> Click en "X" rojo → Pide confirmación → BORRA así sea que tenga turnos asignados</li>
+            </ul>
+            <div class="feature-box danger">
+                <strong>⚠️ OJO:</strong> Eliminar una enfermera puede dejar el calendario sin cobertura algunos días.
+            </div>
+
+            <h3>3.2 Manual Change <span class="badge updated">ACTUALIZADO 2026.3</span></h3>
+            <p><strong>Qué es:</strong> Herramienta para cambiar turnos manualmente</p>
+            <p><strong>Cómo usarla:</strong></p>
+            <ol>
+                <li>Selecciona enfermero (dropdown)</li>
+                <li>Selecciona fecha</li>
+                <li>Selecciona nuevo turno (URGENCES, TRAVAIL, URGENCES_TARDE, TRAVAIL_TARDE, ADMIN, TW, CA, F, SICK_LEAVE, etc.)</li>
+                <li>Click "Apply Change" o similar</li>
+            </ol>
+            <p><strong>Resultado:</strong></p>
+            <ul>
+                <li>Turno se actualiza en calendario</li>
+                <li>Enfermero recibe notificación donde dice: "Tu turno [fecha] cambió a [nuevo turno]"</li>
+            </ul>
+
+            <div class="feature-box success">
+                <h4>AUTOMÁTICO 2026.3 (<code>ensureMandatoryCoverage</code>):</h4>
+                <p>Después de hacer el cambio, sistema automáticamente:</p>
+                <ol>
+                    <li>Verifica si quedan turnos obligatorios sin cubrir (URGENCES, TRAVAIL, URGENCES_TARDE, TRAVAIL_TARDE)</li>
+                    <li>Si falta algo → busca enfermeros con ADMIN ese día</li>
+                    <li>Reasigna automáticamente: ADMIN → turno obligatorio faltante</li>
+                    <li>Notifica a reasignados</li>
+                    <li>TÚ no tienes que intervenir ni verificar manualmente</li>
+                </ol>
+            </div>
+
+            <div class="example">
+                <h4>Ejemplo:</h4>
+                <ul>
+                    <li>Cambias a Carlos: TRAVAIL → SICK_LEAVE (el 10/4)</li>
+                    <li>Sistema detecta: "Falta 1 TRAVAIL ese día"</li>
+                    <li>Ve que Elena tiene ADMIN</li>
+                    <li>Reasigna: Elena ADMIN → TRAVAIL</li>
+                    <li>Notifica a ambos</li>
+                    <li>¡Listo!</li>
+                </ul>
+            </div>
+
+            <h3>3.3 Mass Assign Absence <span class="badge updated">ACTUALIZADO 2026.3</span></h3>
+            <p><strong>Qué es:</strong> Asignar MÚLTIPLES enfermeros a ausencias (CA, SICK_LEAVE, FP, CS) en rango de fechas</p>
+            <p><strong>Cómo usarla:</strong></p>
+            <ol>
+                <li>Checkbox cada enfermero que quieres</li>
+                <li>Selecciona tipo ausencia (CA/SICK_LEAVE/FP/CS)</li>
+                <li>Selecciona fecha de inicio y fin</li>
+                <li>Click "Apply"</li>
+            </ol>
+            <p><strong>Resultado:</strong></p>
+            <ul>
+                <li>TODOS esos enfermeros esos días reciben esa ausencia</li>
+                <li>Útil para: "5 enfermeros se enferman, asigno SICK_LEAVE a todos en un click"</li>
+            </ul>
+
+            <div class="feature-box success">
+                <h4>AUTOMÁTICO 2026.3 (<code>ensureMandatoryCoverage</code>):</h4>
+                <p>Después de aplicar ausencias masivas, sistema automáticamente:</p>
+                <ul>
+                    <li>Para CADA DÍA en el rango: verifica si quedan turnos obligatorios sin cubrir</li>
+                    <li>Si falta algo → reasigna automáticamente ADMIN → turno obligatorio faltante</li>
+                    <li>En casos complejos (muchos ADMIN limitados): muestra alerta roja con días sin cobertura</li>
+                    <li>TÚ no tienes que revisar manualmente cada día</li>
+                </ul>
+                <p><strong>Ventaja:</strong> Asignas 5 SICK_LEAVE, sistema automáticamente reorganiza coberturas. Mucho más rápido.</p>
+            </div>
+
+            <h3>3.4 Strasbourg Events (si aplica)</h3>
+            <p><strong>Qué es:</strong> Gestión de sesiones de Estrasburgo</p>
+            <p><strong>Cómo usarla:</strong></p>
+            <ul>
+                <li>Selector de mes (colapsible)</li>
+                <li>Por cada semana con SESSION:
+                    <ul>
+                        <li>Verás lista de enfermeros asignados</li>
+                        <li>Puedes agregar/quitar enfermeros</li>
+                        <li>Botón "Edit" para abrir modal de edición masiva</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h3>3.5 Advanced Settings (Expandible)</h3>
+            <p>Aquí hay sub-módulos:</p>
+
+            <h4>A) Jornada (Workload Management)</h4>
+            <ul>
+                <li><strong>Qué es:</strong> Gestión de porcentajes de contrato (80%/90%/100%)</li>
+                <li><strong>Qué puedes hacer:</strong>
+                    <ul>
+                        <li>Click botón "Manage Jornadas" → Se abre ventana</li>
+                        <li>Aquí PUEDES configurar jornadas especiales (reducción horaria, restricciones de días, etc.)</li>
+                        <li>PERO: No está totalmente documentado qué opciones exactas existen (revisar pantalla cuando abras)</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>B) Strasbourg Annual Planner</h4>
+            <ul>
+                <li><strong>Qué es:</strong> Planificar qué enfermeros van a Estrasburgo cada semana del año</li>
+                <li><strong>Cómo usarla:</strong>
+                    <ul>
+                        <li>Es una tabla grande mostrando TODAS las semanas con SESSION</li>
+                        <li>Por cada semana: checkboxes de enfermeros</li>
+                        <li>Click "Add Nurse" o "Edit" para cambiar asignación</li>
+                        <li>Los cambios se guardan inmediatamente</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>C) Vaccination Period</h4>
+            <ul>
+                <li><strong>Qué es:</strong> Definir período de vacunación</li>
+                <li><strong>Cómo usarla:</strong>
+                    <ul>
+                        <li>2 campos: date picker de "Start" y "End"</li>
+                        <li>Sistema automáticamente ajusta calendario durante ese período para incluir turnos VACCIN_AM y VACCIN_PM</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <div class="separator"></div>
+
+            <h2 id="edicion">4. EDICIÓN DE TURNOS (Lo más crucial) <span class="badge updated">ACTUALIZADO 2026.3</span></h2>
+
+            <h3>4.1 Editar UN turno individual</h3>
+            <div class="workflow-step" data-step="1">
+                Ve a vista <strong>Schedule</strong> (calendario)
+            </div>
+            <div class="workflow-step" data-step="2">
+                Localiza celda (enfermero + día)
+            </div>
+            <div class="workflow-step" data-step="3">
+                <strong>Double-click</strong> en la celda
+            </div>
+            <div class="workflow-step" data-step="4">
+                Se abre modal pequeño con dropdown de turnos
+            </div>
+            <div class="workflow-step" data-step="5">
+                Selecciona nuevo turno
+            </div>
+            <div class="workflow-step" data-step="6">
+                Click "Save" o "Guardar"
+            </div>
+            <div class="workflow-step" data-step="7">
+                ¡LISTO! Turno cambió, enfermero notificado
+            </div>
+
+            <div class="feature-box success">
+                <h4>AUTOMÁTICO (NUEVO 2026) - <code>ensureMandatoryCoverage</code>:</h4>
+                <p>Si quitas un turno obligatorio (URG, TRAV, URG_TARDE, TRAV_TARDE), sistema automáticamente:</p>
+                <ol>
+                    <li>Detecta que falta ese turno</li>
+                    <li>Busca enfermeros con ADMIN asignado ese día</li>
+                    <li>Reasigna automáticamente el primero encontrado a ese turno obligatorio</li>
+                    <li>Notifica a ese enfermero del cambio</li>
+                </ol>
+                <p>Si NO hay enfermeros con ADMIN disponibles → muestra <strong>ALERTA ROJA</strong> (tú arreglas manualmente)</p>
+            </div>
+
+            <div class="example">
+                <h4>Ejemplo:</h4>
+                <ul>
+                    <li>Cambias a Ana de URGENCES_TARDE → SICK_LEAVE</li>
+                    <li>Sistema detecta falta URGENCES_TARDE</li>
+                    <li>Ve que Elena tiene ADMIN</li>
+                    <li>Reasigna automáticamente Elena ADMIN → URGENCES_TARDE</li>
+                    <li>Elena recibe notificación del cambio</li>
+                    <li>¡Listo! Cobertura se mantiene</li>
+                </ul>
+            </div>
+
+            <h3>4.2 Editar MÚLTIPLES turnos (rango)</h3>
+            <ol>
+                <li>Ve a <strong>Schedule</strong></li>
+                <li>Click en primera celda que quieres cambiar</li>
+                <li>Arrastra hasta última celda (se destacan en azul)</li>
+                <li>Se abre modal "Assign to Range"</li>
+                <li>Selecciona qué turno asignar a TODOS esos días</li>
+                <li>Click "Apply" o "Aplicar Rango"</li>
+            </ol>
+            <p><strong>Resultado:</strong> Todos los días de ese rango, ese enfermero recibe ese turno.</p>
+            <p><strong>AUTOMÁTICO:</strong> Igual que en 4.1, sistema verifica cobertura y reasigna si falta algo.</p>
+
+            <h3>4.3 Cambiar UN DÍA COMPLETO (todos los enfermeros)</h3>
+            <ol>
+                <li>Ve a <strong>Schedule</strong></li>
+                <li>Click en ENCABEZADO de columna (el número del día en top) - NO en una celda</li>
+                <li>Se abre modal "Edit Day"</li>
+                <li>Selecciona qué turnos:
+                    <ul>
+                        <li>"All same" = Todos los enfermeros ese día reciben mismo turno</li>
+                        <li>O editar individual</li>
+                    </ul>
+                </li>
+                <li>Click "Save"</li>
+            </ol>
+            <p><strong>Resultado:</strong> Todos los enfermeros ese día tienen ese turno.</p>
+            <p><strong>AUTOMÁTICO:</strong> Sistema verifica cobertura después de cambio.</p>
+
+            <div class="separator"></div>
+
+            <h2 id="cobertura">5. SISTEMA DE COBERTURA (LO MÁS IMPORTANTE) <span class="badge new">ACTUALIZADO 2026.3</span></h2>
+
+            <h3>5.1 Turnos Obligatorios (6 Mínimo)</h3>
+            <p>Cada día DEBE tener:</p>
+            <div class="feature-box info">
+                <ul>
+                    <li><strong>2 x URGENCES</strong> (mañana) - OBLIGATORIO</li>
+                    <li><strong>2 x TRAVAIL</strong> (mañana) - OBLIGATORIO</li>
+                    <li><strong>1 x URGENCES_TARDE</strong> (tarde) - OBLIGATORIO</li>
+                    <li><strong>1 x TRAVAIL_TARDE</strong> (tarde) - OBLIGATORIO</li>
+                </ul>
+                <p><strong>= Total: 6 turnos obligatorios mínimo por día</strong></p>
+            </div>
+            <p>Después de estos 6:</p>
+            <ul>
+                <li><strong>Enfermero 7º y 8º:</strong> ADMIN</li>
+                <li><strong>Enfermero 9º en adelante:</strong> TW (si cumple reglas) o ADMIN</li>
+            </ul>
+
+            <h3>5.2 Prioridad de Asignación <span class="badge new">NUEVO 2026</span></h3>
+            <p>Los turnos se asignan en este ORDEN:</p>
+            <div class="feature-box">
+                <ol>
+                    <li><strong>URGENCES_TARDE</strong> (urgencias tarde) - PRIMERO</li>
+                    <li><strong>TRAVAIL_TARDE</strong> (turno general tarde) - SEGUNDO</li>
+                    <li><strong>URGENCES</strong> (urgencias mañana) - TERCERO</li>
+                    <li><strong>TRAVAIL</strong> (turno general mañana) - CUARTO</li>
+                </ol>
+            </div>
+            <p><strong>¿Por qué?</strong> Turnos de TARDE son más críticos. Si hay solo 7 enfermeros disponibles:</p>
+            <ul>
+                <li>Sistema asigna primero URGENCES_TARDE + TRAVAIL_TARDE → garantizadas</li>
+                <li>Luego URGENCES + TRAVAIL → se adaptan al espacio restante</li>
+                <li>Así evita "tardes vacías" que es operacionalmente imposible</li>
+            </ul>
+            <p><strong>Impacto para admin:</strong> Si alguien solicita "excluir turno tarde", es más delicado que excluir mañana.</p>
+
+            <h3>5.3 Reasignación Automática <span class="badge new">NUEVO 2026 - ensureMandatoryCoverage</span></h3>
+            <p><strong>El sistema automáticamente mantiene cobertura.</strong></p>
+            <p>Cuando TÚ haces un cambio que puede quebrar cobertura (ej: cambias a alguien de URGENCES_TARDE a SICK_LEAVE):</p>
+            <div class="feature-box success">
+                <ol>
+                    <li>Sistema detecta: "Falta 1 URGENCES_TARDE"</li>
+                    <li>Busca: "¿Hay alguien con ADMIN asignado ese día?"</li>
+                    <li>Si SÍ → Reasigna automáticamente: ADMIN → URGENCES_TARDE</li>
+                    <li>Notifica: Al enfermero que fue reasignado</li>
+                    <li>¡Cobertura mantiene!</li>
+                </ol>
+            </div>
+            <p><strong>Esto ocurre automáticamente en:</strong></p>
+            <ul>
+                <li>Cambios manuales (sección 4)</li>
+                <li>Validación de wishes (sección 6)</li>
+                <li>Cambios masivos (Mass Assign)</li>
+            </ul>
+
+            <h3>5.4 ¿Qué pasa si sistema NO puede autoarreglar?</h3>
+            <p>Si NO hay enfermeros con ADMIN disponibles para reasignar:</p>
+            <div class="feature-box danger">
+                <p>Sistema muestra <strong>ALERTA ROJA:</strong> "❌ URGENCES_TARDE insuficiente. NO hay ADMIN para reasignar."</p>
+                <p>TÚ debes intervenir:</p>
+                <ul>
+                    <li><strong>Opción A:</strong> Rechazar el cambio que estabas haciendo</li>
+                    <li><strong>Opción B:</strong> Buscar manualmente otro enfermero para cubrir</li>
+                    <li><strong>Opción C:</strong> Contactar dirección si es emergencia</li>
+                </ul>
+            </div>
+
+            <h3>5.5 Ejemplo Práctico (Real)</h3>
+            <div class="example">
+                <h4>Situación: Día 13 abril, 7 enfermeros asignados:</h4>
+                <ul>
+                    <li>URGENCES: Ana, Pedro</li>
+                    <li>TRAVAIL: Juan, Luis</li>
+                    <li>URGENCES_TARDE: María</li>
+                    <li>TRAVAIL_TARDE: Carlos</li>
+                    <li>ADMIN: Elena</li>
+                </ul>
+                <h4>Tú cambias: María (URGENCES_TARDE) → SICK_LEAVE</h4>
+                <h4>Sistema automáticamente:</h4>
+                <ol>
+                    <li>Detecta falta URGENCES_TARDE</li>
+                    <li>Ve que Elena tiene ADMIN</li>
+                    <li>Reasigna: Elena ADMIN → URGENCES_TARDE</li>
+                    <li>Notifica a Elena: "Tu turno 13/4 cambió de ADMIN a URGENCES_TARDE (cobertura baja médica María)"</li>
+                    <li>Notifica a María: "Tu turno 13/4 cambió a SICK_LEAVE"</li>
+                </ol>
+                <p><strong>Resultado:</strong> Cobertura mantenida. TÚ hiciste 1 click, sistema hizo el resto.</p>
+            </div>
+
+            <div class="feature-box info">
+                <h4>SIN esta función (2025): Tenías que:</h4>
+                <ol>
+                    <li>Ver que falta URGENCES_TARDE</li>
+                    <li>Buscar manualmente quién puede cubrirlo</li>
+                    <li>Cambiar manualmente a ese enfermero</li>
+                    <li>Notificar a ambos manualmente</li>
+                    <li>Verificar que no se quebró otro turno</li>
+                </ol>
+                <h4>AHORA (2026): ¡1 click!</h4>
+            </div>
+
+            <div class="separator"></div>
+
+            <h2 id="wishes">6. WISHES (DESEOS) - PROCESO COMPLETO <span class="badge updated">ACTUALIZADO 2026.3</span></h2>
+
+            <h3>6.1 Enfermero solicita want</h3>
+            <p>Ejemplo: María solicita "Excluir URGENCES_TARDE el 15/4"</p>
+
+            <h3>6.2 Como Admin, ves en Wishes:</h3>
+            <p>Row con: "María " | "15/4" | "Exclude URGENCES_TARDE" | <strong>Botón naranja (reloj) = PENDIENTE</strong></p>
+
+            <h3>6.3 ¿Apruebas? <span class="badge new">NUEVO 2026.3 - ensureMandatoryCoverage</span></h3>
+            <ol>
+                <li>Click en botón naranja/verde junto a wish</li>
+                <li>Estado cambia: naranja → VERDE (checkmark)</li>
+                <li>Sistema automáticamente:
+                    <ul>
+                        <li>Cambia turno de María ese día a otra cosa (generalmente un turno menos crítico)</li>
+                        <li><strong>Busca si queda sin cobertura en turno obligatorio</strong></li>
+                        <li><strong>Si falta → automáticamente busca ADMIN disponible y lo reasigna</strong></li>
+                        <li>Notifica a María: "Tu desire fue aprobado. Tu turno 15/4 es ahora ADMIN (cobertura)"</li>
+                        <li>Notifica a quien sea reasignado: "Tu turno 15/4 cambió de ADMIN a URGENCES_TARDE (cobertura médica María)"</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <div class="feature-box success">
+                <h4>IMPORTANTE (NUEVO 2026.3):</h4>
+                <ul>
+                    <li>NO tienes que preocuparte de manualmente verificar y arreglar cobertura cuando apruebas wishes</li>
+                    <li>Sistema lo hace automática y transparentemente</li>
+                    <li>Si NO hay ADMIN disponible para reasignar → alerta roja te lo indica</li>
+                </ul>
+            </div>
+
+            <h3>6.4 ¿No apruebas?</h3>
+            <ol>
+                <li>Click botón de nuevo (cambia de verde → naranja "unvalidate")</li>
+                <li>Deseo permanece pendiente</li>
+                <li>Sistema NO revierte cambios si ya fue aplicado (TÚ reviertes manual si es necesario)</li>
+            </ol>
+
+            <div class="feature-box warning">
+                <p><strong>⚠️ LIMITACIÓN:</strong> NO hay funcionalidad de "Rechazar con motivo". Solo apruebas/rechazas, no hay campo para escribir "Sorry, no puedo porque..."</p>
+                <p><strong>⚠️ VENTAJA 2026.3:</strong> Ya no necesitas revisar manualmente si se quebró cobertura. ensureMandatoryCoverage se encarga.</p>
+            </div>
+
+            <div class="separator"></div>
+
+            <h2 id="usuarios">7. USUARIOS - PROCESO COMPLETO</h2>
+
+            <h3>7.1 Crear Usuario Nuevo</h3>
+            <ol>
+                <li>Ve a vista <strong>Users</strong> (User Management)</li>
+                <li>Click "+New User"</li>
+                <li>Se abre modal con campos:
+                    <ul>
+                        <li><strong>Full Name:</strong> Nombre real (ej: Ana García)</li>
+                        <li><strong>Username (Email):</strong> Email corporativo (ej: ana@hospital.es)</li>
+                        <li><strong>Password:</strong> Contraseña temporal</li>
+                        <li><strong>Role:</strong> admin / nurse / viewer</li>
+                        <li><strong>Si Role = "nurse":</strong> Select "Associated Nurse" (el enfermero Ana García de la lista)</li>
+                    </ul>
+                </li>
+                <li>Click "Save"</li>
+                <li>Sistema crea usuario y envía email con credenciales</li>
+            </ol>
+
+            <div class="feature-box info">
+                <h4>Primer Login del usuario:</h4>
+                <ul>
+                    <li>Usuario recibe email con contraseña temporal</li>
+                    <li>Hace login</li>
+                    <li>Sistema FUERZA cambio de contraseña (mandatorio)</li>
+                    <li>Luego puede usar app</li>
+                </ul>
+            </div>
+
+            <h3>7.2 Editar Usuario</h3>
+            <ol>
+                <li>En Users, click en fila del usuario</li>
+                <li>Se abre modal con campos editables</li>
+                <li>Cambia lo que necesites (nombre, email, rol, etc.)</li>
+                <li>Click "Save"</li>
+            </ol>
+
+            <h3>7.3 Reset de Contraseña</h3>
+            <ol>
+                <li>En Users, busca usuario</li>
+                <li>Click botón "Reset Password"</li>
+                <li>Sistema genera contraseña temporal y envía por email</li>
+                <li>Usuario recibe email, hace login, FUERZA cambio de contraseña</li>
+            </ol>
+
+            <h3>7.4 Eliminar Usuario</h3>
+            <ol>
+                <li>En Users, click "Delete"</li>
+                <li>Aviso: "¿Estás seguro?"</li>
+                <li>Click confirmar</li>
+                <li>Usuario eliminado (no aparece más en lista)</li>
+            </ol>
+
+            <div class="separator"></div>
+
+            <h2 id="historial">8. HISTORIAL / AUDITORÍA</h2>
+
+            <h3>¿Dónde está?</h3>
+            <p><strong>NO hay vista separada llamada "Historial" en menu.</strong></p>
+            <p>Pero cada cambio se registra en:</p>
+            <ul>
+                <li><strong>Manual Change Modal:</strong> Hay un pequeño log de cambios recientes</li>
+                <li><strong>Supabase:</strong> Base de datos guarda LOG con timestamp, qué cambió, quién lo cambió</li>
+            </ul>
+
+            <p><strong>Como Admin:</strong></p>
+            <ul>
+                <li>Puedes ver logs dentro del sidebar (en algún módulo)</li>
+                <li>O revisar directamente en Supabase si tienes acceso</li>
+            </ul>
+
+            <div class="feature-box warning">
+                <strong>⚠️ LIMITACIÓN:</strong> No hay interfaz cómoda de admin para "buscar cambios de [usuario] en [fecha]". Necesitarías acceso Supabase directamente.
+            </div>
+
+            <div class="separator"></div>
+
+            <h2>9. MONTH LOCK (Congelar Mes)</h2>
+
+            <h3>¿Qué es?</h3>
+            <p>Estado que impide cambios al mes (cierra para edición).</p>
+
+            <h3>¿Dónde está?</h3>
+            <p>No sé exactamente (revisar Sidebar, probablemente en header o "Advanced Settings").</p>
+
+            <h3>¿Qué hace?</h3>
+            <ul>
+                <li>Desactiva botones de edición</li>
+                <li>Impide que Admin edite turnos o aplique cambios</li>
+                <li>Protege mes "finalizado" de cambios accidentales</li>
+            </ul>
+
+            <div class="separator"></div>
+
+            <h2>10. LIMITACIONES REALES (Honesto)</h2>
+
+            <div class="feature-box danger">
+                <ol>
+                    <li><strong>NO hay "Aprobar/Rechazar Wishes con motivo"</strong>
+                        <ul><li>Solo puedes validar (sí/no), no escribir por qué rechazas</li></ul>
+                    </li>
+                    <li><strong>NO hay filtro de "Wishes Pendientes"</strong>
+                        <ul><li>Ves TODAS, tienes que filtrar manualmente</li></ul>
+                    </li>
+                    <li><strong>NO hay "Violations Dashboard" centralizado</strong>
+                        <ul>
+                            <li>No hay botón que muestre "Hoy hay 3 días sin cobertura"</li>
+                            <li>Tienes que revisar el calendario y detectarlos manualmente</li>
+                        </ul>
+                    </li>
+                    <li><strong>NO hay "Recalcular todo el mes" con un botón</strong>
+                        <ul><li>Sistema recalcula automático, tu NO tienes botón de "Recalculate Coverage"</li></ul>
+                    </li>
+                    <li><strong>Historial no es cómodo</strong>
+                        <ul>
+                            <li>No es Panel bonito de admin</li>
+                            <li>Necesitas Supabase acceso directo para auditoría completa</li>
+                        </ul>
+                    </li>
+                    <li><strong>NO hay "Preview" antes de cambios masivos</strong>
+                        <ul>
+                            <li>Si asignas SICK_LEAVE a 5 enfermeros, se aplica inmediatamente</li>
+                            <li>No hay "Preview" de impacto</li>
+                        </ul>
+                    </li>
+                    <li><strong>Notificaciones por email DEPENDEN de:</strong>
+                        <ul>
+                            <li>Email configurado en usuario</li>
+                            <li>Supabase Edge Function deployada</li>
+                            <li>RESEND API key válido</li>
+                            <li>Si algo falla → chofer emails pero CAMBIOS se aplicaron igual</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="separator"></div>
+
+            <h2>11. WORKFLOW TÍPICO DE ADMIN (REALISTA)</h2>
+
+            <h3>Cada Mañana:</h3>
+            <div class="feature-box">
+                <ol>
+                    <li>Abres Zenova</li>
+                    <li>Vas a <strong>Schedule</strong> → visual scan para alertas rojas (días sin cobertura)</li>
+                    <li>Si hay alerta → Ve a <strong>Manual Change</strong>, busca enfermero, cambia turno</li>
+                    <li>Vas a <strong>Wishes</strong> → ¿Hay solicitudes pendientes (naranja)?
+                        <ul><li>Si sí → Click en botón naranja para validar (o no validar)</li></ul>
+                    </li>
+                    <li><strong>Listo</strong>, sistema automático maneja el resto</li>
+                </ol>
+            </div>
+
+            <h3>Fin de Mes:</h3>
+            <div class="feature-box">
+                <ol>
+                    <li>Revisa <strong>Balance</strong> → ¿Alguien tiene balance muy negativo? (trabajó menos)</li>
+                    <li>Si hay anomalía → <strong>Manual Change</strong> para arreglar horas (si aplica)</li>
+                    <li>Si todo OK → El sistema está "finished" para mes</li>
+                </ol>
+            </div>
+
+            <div class="feature-box info">
+                <strong>Tiempo promedio:</strong> 10-15 minutos/día
+            </div>
+
+            <div class="separator"></div>
+
+            <h2 id="troubleshooting">12. TROUBLESHOOTING</h2>
+
+            <h3>"No recibí email"</h3>
+            <ul>
+                <li>¿Tu email está en "User Management" > tu usuario > editar > email?</li>
+                <li>Si no → Tú mismo no vas a recibir emails (guardar email primero)</li>
+                <li>Si sí → Problema puede ser:
+                    <ul>
+                        <li>Edge Function no deployada</li>
+                        <li>RESEND API key expirada o inválida</li>
+                        <li>Email en SPAM</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h3>"Un turno que cambié dice que está mal pero no se actualizó"</h3>
+            <ul>
+                <li>Es cache del navegador</li>
+                <li>Haz Ctrl+F5 (hard refresh)</li>
+                <li>O cierra/abre navegador</li>
+            </ul>
+
+            <h3>"Alguien reclamó que yo cambié su turno pero no fui yo"</h3>
+            <ul>
+                <li>Ve a <strong>historial</strong> (si existe) o Supabase</li>
+                <li>Busca cambio de ese usuario, ¿quién lo hizo?</li>
+                <li>Contacta a ese admin</li>
+            </ul>
+
+            <h3>"Falta cobertura pero no sé a quién cambiar"</h3>
+            <ul>
+                <li>Ve <strong>Manual Change</strong> → Busca enfermeros con ADMIN ese día</li>
+                <li>Reasigna uno a turno obligatorio completo</li>
+                <li>Si no hay nadie con ADMIN → busca alguien con "less critical" shift (ej: TW) y muévelo</li>
+            </ul>
+
+            <div class="separator"></div>
+
+            <h2 id="resumen">13. RESUMEN: LO QUE HACE UN ADMIN EN PRÁCTICA</h2>
+
+            <div class="feature-box success">
+                <h3>✅ SÍ puedes:</h3>
+                <ul>
+                    <li>Crear/editar/eliminar usuarios</li>
+                    <li>Crear/editar/eliminar enfermeros</li>
+                    <li>Ver calendario completo</li>
+                    <li>Cambiar turnos manualmente (1 turno o rango)</li>
+                    <li>Cambiar día completo</li>
+                    <li>Validar/no validar wishes</li>
+                    <li>Asignar ausencias en masa</li>
+                    <li>Gestionar Strasbourg y Vacunación</li>
+                    <li>Ver balance de horas de TODOS</li>
+                </ul>
+            </div>
+
+            <div class="feature-box danger">
+                <h3>❌ NO puedes (o no existe):</h3>
+                <ul>
+                    <li>Tener UI bonita para "Aprobar Wishes con motivo"</li>
+                    <li>Dashboard con "Violations Finder"</li>
+                    <li>Botón "Recalculate everything"</li>
+                    <li>Interfaz cómoda de Historial</li>
+                    <li>Preview masivo antes de cambios</li>
+                    <li>"Reportes automáticos" descargables</li>
+                </ul>
+            </div>
+
+        </div>
+
+        <footer>
+            <p><strong>Última actualización:</strong> 7 de Marzo 2026</p>
+            <p><strong>Versión:</strong> REAL 2026.3 (basada en código actual, sin invenciones)</p>
+            <p>Zenova - Sistema de Gestión de Turnos</p>
+        </footer>
+    </div>
+</body>
+</html>
