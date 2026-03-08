@@ -26,7 +26,7 @@ import { validateSchedule } from './utils/ruleValidator';
 import { calculateHoursForMonth, calculateHoursForDay, calculateHoursDifference } from './utils/hoursUtils';
 import { getActiveJornada } from './utils/jornadaUtils';
 import { generateAndDownloadPdf } from './utils/exportUtils';
-import { getWeekIdentifier } from './utils/dateUtils';
+import { getWeekIdentifier, getWeeksForMonth } from './utils/dateUtils';
 import { agenda2026Data, INITIAL_STRASBOURG_ASSIGNMENTS_2026, holidays2026 } from './data/agenda2026';
 import { useLanguage } from './contexts/LanguageContext';
 import { useUser, UserProvider } from './contexts/UserContext';
@@ -39,6 +39,7 @@ import { WorkConditionsBar } from './components/WorkConditionsBar';
 import { AnnualPlannerModal } from './components/AnnualPlannerModal';
 import { ManualHoursModal } from './components/ManualHoursModal';
 import { RecalcScopeModal } from './components/RecalcScopeModal';
+import { WeekViewControls } from './components/WeekViewControls';
 import { MaximizeIcon, RestoreIcon } from './components/Icons';
 import { useSupabaseState } from './hooks/useSupabaseState'
 import { supabase } from './firebase/supabase-config';
@@ -79,6 +80,8 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     setMonth(currentDate.getMonth());
+    // Reset to first week when month changes
+    setSelectedWeekIndex(0);
   }, [currentDate, setMonth]);
   // Guardar usuario para no tener que loguearme cada vez
   useEffect(() => {
@@ -129,6 +132,8 @@ const AppContent: React.FC = () => {
   const [selectedNurseForAgenda, setSelectedNurseForAgenda] = useState<Nurse | null>(null);
   const [isJornadaManagerOpen, setIsJornadaManagerOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(0.4);
+  const [viewMode, setViewMode] = useState<'months' | 'weeks'>('months');
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
   const [manualHoursModalConfig, setManualHoursModalConfig] = useState<{ isOpen: boolean; nurse: Nurse | null; dateKey: string; }>({ isOpen: false, nurse: null, dateKey: '' });
@@ -1162,6 +1167,36 @@ const handleAddNurse = useCallback((name: string) => {
     setSwapPanelConfig({ isOpen: true, initialDate: dateKey, initialNurseId: nurseId });
   };
 
+  const handleViewModeChange = (mode: 'months' | 'weeks') => {
+    setViewMode(mode);
+    setSelectedWeekIndex(0);
+  };
+
+  const handleWeekSelect = (weekIndex: number) => {
+    setSelectedWeekIndex(weekIndex);
+  };
+
+  const handlePreviousWeek = () => {
+    setSelectedWeekIndex(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextWeek = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const allDates = getWeeksForMonth(year, month);
+    const weekMap = new Map<number, Date[]>();
+    allDates.forEach(date => {
+      const weekNum = Math.floor((date.getUTCDate() - 1) / 7);
+      if (!weekMap.has(weekNum)) {
+        weekMap.set(weekNum, []);
+      }
+      weekMap.get(weekNum)!.push(date);
+    });
+    const weeksCount = weekMap.size;
+    setSelectedWeekIndex(prev => Math.min(weeksCount - 1, prev + 1));
+  };
+
+
   const handleOpenMyAgenda = useCallback(() => {
     if (effectiveUser?.role === 'nurse') {
         const nurseIdToOpen = (effectiveUser as User).nurseId ?? effectiveUser.id;
@@ -1331,7 +1366,16 @@ const handleAddNurse = useCallback((name: string) => {
                       <div></div>
                       <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
                     </div>
-                    <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} />
+                    <WeekViewControls
+                      currentDate={currentDate}
+                      selectedWeekIndex={selectedWeekIndex}
+                      viewMode={viewMode}
+                      onViewModeChange={handleViewModeChange}
+                      onWeekSelect={handleWeekSelect}
+                      onPreviousWeek={handlePreviousWeek}
+                      onNextWeek={handleNextWeek}
+                    />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} viewMode={viewMode} selectedWeekIndex={selectedWeekIndex} />
                     </div>
                   
                     <div className="flex-shrink-0 w-36 no-print flex flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
