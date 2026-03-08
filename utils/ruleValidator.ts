@@ -36,7 +36,7 @@ export const validateSchedule = (schedule: Schedule, nurses: Nurse[], currentDat
             // Rule: Check for incomplete split shifts on vaccination days
             if (shifts.includes('VACCIN_AM') || shifts.includes('VACCIN_PM')) {
                 if (!(typeof cell === 'object' && 'split' in cell && cell.split.length === 2)) {
-                    violations.push({ nurseId: nurse.id, dateKey, message: `Turno de vacunación incompleto.`, severity: 'error'});
+                    violations.push({ nurseId: nurse.id, dateKey, message: t.violation_incompleteVaccination, severity: 'error'});
                 }
             }
         });
