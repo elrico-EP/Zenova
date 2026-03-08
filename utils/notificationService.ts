@@ -108,7 +108,7 @@ export const getNotificationIcon = (type: NotificationType): string => {
  */
 export const formatNotificationEmail = (notification: Notification): string => {
   const date = notification.relatedDate
-    ? new Date(notification.relatedDate).toLocaleDateString('es-ES')
+    ? new Date(notification.relatedDate).toLocaleDateString('en-US')
     : '';
 
   return `
@@ -116,16 +116,16 @@ export const formatNotificationEmail = (notification: Notification): string => {
   <body style="font-family: Arial, sans-serif; color: #333;">
     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #2c3e50;">${notification.title}</h2>
-      <p><strong>Acción realizada por:</strong> ${notification.senderName}</p>
-      <p><strong>Fecha:</strong> ${date}</p>
-      <p><strong>Detalles:</strong> ${notification.message}</p>
+      <p><strong>Action performed by:</strong> ${notification.senderName}</p>
+      <p><strong>Date:</strong> ${date}</p>
+      <p><strong>Details:</strong> ${notification.message}</p>
       ${
         notification.relatedNurseName
-          ? `<p><strong>Enfermero afectado:</strong> ${notification.relatedNurseName}</p>`
+          ? `<p><strong>Affected nurse:</strong> ${notification.relatedNurseName}</p>`
           : ''
       }
       <p style="color: #999; font-size: 12px;">
-        Notificación enviada a las ${new Date(notification.timestamp).toLocaleTimeString('es-ES')}
+        Notification sent at ${new Date(notification.timestamp).toLocaleTimeString('en-US')}
       </p>
     </div>
   </body>
