@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opciones de Vista por Semanas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 50px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(700px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .option {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+        }
+        
+        .option-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+        
+        .option-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .option-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a202c;
+        }
+        
+        .option-description {
+            color: #4a5568;
+            font-size: 14px;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .mock-header {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 8px 14px;
+            background: #edf2f7;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.2s ease;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .tab:hover {
+            background: #e2e8f0;
+        }
+        
+        .tab.active:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 8px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+        
+        .btn-nav {
+            padding: 8px 10px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .dropdown {
+            padding: 8px 12px;
+            background: white;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #2d3748;
+        }
+        
+        .grid-mock {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow-x: auto;
+            padding: 10px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+            color: #2d3748;
+        }
+        
+        .grid-cell {
+            display: inline-block;
+            width: 45px;
+            height: 30px;
+            background: white;
+            border: 1px solid #cbd5e0;
+            text-align: center;
+            line-height: 30px;
+            margin: 2px;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+        
+        .grid-cell.header {
+            background: #edf2f7;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .grid-cell.weekend {
+            background: #fed7d7;
+        }
+        
+        .grid-cell.work {
+            background: #c6f6d5;
+        }
+        
+        .grid-header-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .week-label {
+            display: block;
+            background: #edf2f7;
+            color: #667eea;
+            padding: 5px;
+            margin: 10px 0 5px 0;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .toggle-switch {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .switch {
+            width: 50px;
+            height: 28px;
+            background: #cbd5e0;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+        
+        .switch.active {
+            background: #667eea;
+        }
+        
+        .switch-dot {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            position: absolute;
+        }
+        
+        .switch.active .switch-dot {
+            transform: translateX(22px);
+        }
+        
+        .pros {
+            background: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #22543d;
+        }
+        
+        .pros strong {
+            color: #22543d;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .slider-demo {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            overflow-x: auto;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 6px;
+            position: relative;
+        }
+        
+        .week-card {
+            background: white;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 8px;
+            min-width: 120px;
+            text-align: center;
+            font-size: 12px;
+            color: #2d3748;
+            transition: all 0.2s ease;
+        }
+        
+        .week-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .week-card-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .week-card-dates {
+            font-size: 11px;
+            color: #718096;
+        }
+        
+        .nav-arrows {
+            display: flex;
+            gap: 10px;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .arrow-btn {
+            width: 32px;
+            height: 32px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        
+        .arrow-btn:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+        
+        .recommendation {
+            background: linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%);
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            color: #78240f;
+        }
+        
+        .recommendation strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #78240f;
+        }
+        
+        .recommendation-icon {
+            display: inline-block;
+            margin-right: 5px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗓️ Opciones de Vista por Semanas</h1>
+        
+        <div class="options-grid">
+            <!-- OPCIÓN 1: TABS -->
+            <div class="option">
+                <div class="option-header">
+                    <div class="option-number">1️⃣</div>
+                    <div class="option-title">TABS de Semanas</div>
+                </div>
+                
+                <div class="option-description">
+                    Tabs horizontales (Sem 1 | Sem 2 | Sem 3) que filtran la tabla para mostrar solo esos 7 días. Cambias de semana haciendo clic en el tab.
+                </div>
+                
+                <div class="mock-header">
+                    <strong style="display: block; margin-bottom: 10px; color: #2d3748;">Marzo 2026</strong>
+                    <div class="tabs">
+                        <div class="tab active">Sem 1 (1-7)</div>
+                        <div class="tab">Sem 2 (8-14)</div>
+                        <div class="tab">Sem 3 (15-21)</div>
+                        <div class="tab">Sem 4 (22-28)</div>
+                        <div class="tab">Sem 5 (29-31)</div>
+                    </div>
+                </div>
+                
+                <div class="grid-mock">
+                    <div class="week-label">Semana 1 (1-7 Marzo)</div>
+                    <div class="grid-header-row">
+                        <div class="grid-cell header">Dom 1</div>
+                        <div class="grid-cell header">Lun 2</div>
+                        <div class="grid-cell header">Mar 3</div>
+                        <div class="grid-cell header">Mié 4</div>
+                        <div class="grid-cell header">Jue 5</div>
+                        <div class="grid-cell header">Vie 6</div>
+                        <div class="grid-cell header">Sab 7</div>
+                    </div>
+                    <div style="font-size: 10px; color: #718096; margin-top: 5px;">
+                        📍 Enfermera 1: [URGENCIAS | TRAVAIL | ... | REST]<br>
+                        📍 Enfermera 2: [TRAVAIL | RECUP | ... | LIBERO]<br>
+                        📍 Enfermera 3: [... más enfermeras]
+                    </div>
+                </div>
+                
+                <div class="pros">
+                    <strong>✅ Ventajas:</strong>
+                    Ves exactamente una semana • Interfaz clara • Fácil de comparar enfermeras por semana • Mínimo código
+                </div>
+            </div>
+            
+            <!-- OPCIÓN 2: SELECTOR DROPDOWN + BOTONES -->
+            <div class="option">
+                <div class="option-header">
+                    <div class="option-number">2️⃣</div>
+                    <div class="option-title">Dropdown + Botones de Navegación</div>
+                </div>
+                
+                <div class="option-description">
+                    Un dropdown para seleccionar la semana + botones "Anterior" y "Siguiente". Muestra una semana a la vez con navegación rápida.
+                </div>
+                
+                <div class="mock-header">
+                    <strong style="display: block; margin-bottom: 10px; color: #2d3748;">Marzo 2026</strong>
+                    <div class="buttons">
+                        <button class="btn btn-nav">❮</button>
+                        <select class="dropdown">
+                            <option selected>Sem 1 (1-7 Mar)</option>
+                            <option>Sem 2 (8-14 Mar)</option>
+                            <option>Sem 3 (15-21 Mar)</option>
+                            <option>Sem 4 (22-28 Mar)</option>
+                            <option>Sem 5 (29-31 Mar)</option>
+                        </select>
+                        <button class="btn btn-nav">❯</button>
+                    </div>
+                </div>
+                
+                <div class="grid-mock">
+                    <div class="week-label">Semana 2 (8-14 Marzo)</div>
+                    <div class="grid-header-row">
+                        <div class="grid-cell header">Dom 8</div>
+                        <div class="grid-cell header">Lun 9</div>
+                        <div class="grid-cell header">Mar 10</div>
+                        <div class="grid-cell header">Mié 11</div>
+                        <div class="grid-cell header">Jue 12</div>
+                        <div class="grid-cell header">Vie 13</div>
+                        <div class="grid-cell header">Sab 14</div>
+                    </div>
+                    <div style="font-size: 10px; color: #718096; margin-top: 5px;">
+                        📍 Enfermera 1: [TRAVAIL | ADMIN | ... | RECUP]<br>
+                        📍 Enfermera 2: [LIBERO | TRAVAIL | ... | CA]<br>
+                        📍 Enfermera 3: [... más enfermeras]
+                    </div>
+                </div>
+                
+                <div class="pros">
+                    <strong>✅ Ventajas:</strong>
+                    Interfaz compacta • Navegación rápida con botones • Selección directa con dropdown • Una semana clara a la vez
+                </div>
+            </div>
+            
+            <!-- OPCIÓN 3: MODO COMPACTO -->
+            <div class="option">
+                <div class="option-header">
+                    <div class="option-number">3️⃣</div>
+                    <div class="option-title">Modo Compacto Semanal</div>
+                </div>
+                
+                <div class="option-description">
+                    Toggle "Meses / Semanas" que cambia la vista. En modo semanas: todas las semanas del mes visibles pero más compactas, cada una separada.
+                </div>
+                
+                <div class="mock-header">
+                    <strong style="display: block; margin-bottom: 10px; color: #2d3748;">Marzo 2026</strong>
+                    <div class="toggle-switch">
+                        <span style="font-size: 13px; color: #4a5568;">Meses</span>
+                        <div class="switch active">
+                            <div class="switch-dot"></div>
+                        </div>
+                        <span style="font-size: 13px; color: #4a5568; font-weight: 600;">Semanas</span>
+                    </div>
+                </div>
+                
+                <div class="grid-mock" style="font-size: 10px;">
+                    <div class="week-label">Sem 1 (1-7)</div>
+                    <div style="display: flex; gap: 2px; margin-bottom: 8px;">
+                        <span style="flex: 1; background: #fed7d7; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">D1</span>
+                        <span style="flex: 1; background: #c6f6d5; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">L2</span>
+                        <span style="flex: 1; background: #c6f6d5; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">M3</span>
+                        <span style="flex: 1; background: #c6f6d5; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">W4</span>
+                        <span style="flex: 1; background: #c6f6d5; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">J5</span>
+                        <span style="flex: 1; background: #c6f6d5; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">V6</span>
+                        <span style="flex: 1; background: #fed7d7; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">S7</span>
+                    </div>
+                    <div class="week-label">Sem 2 (8-14)</div>
+                    <div style="display: flex; gap: 2px; margin-bottom: 8px;">
+                        <span style="flex: 1; background: #fed7d7; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">D8</span>
+                        <span style="flex: 1; background: #c6f6d5; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">L9</span>
+                        <span style="flex: 1; background: #bee3f8; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">M10</span>
+                        <span style="flex: 1; background: #c6f6d5; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">W11</span>
+                        <span style="flex: 1; background: #c6f6d5; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">J12</span>
+                        <span style="flex: 1; background: #fed7d7; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">V13</span>
+                        <span style="flex: 1; background: #fed7d7; padding: 3px; text-align: center; border-radius: 2px; font-size: 9px;">S14</span>
+                    </div>
+                    <span style="font-size: 9px; color: #718096;">... más semanas del mes en vista compacta</span>
+                </div>
+                
+                <div class="pros">
+                    <strong>✅ Ventajas:</strong>
+                    Ves 4-5 semanas en una pantalla • Visión completa del mes • Separación visual clara por semana • Navegación sin scrolling
+                </div>
+            </div>
+            
+            <!-- OPCIÓN 4: CARRUSEL SLIDER -->
+            <div class="option">
+                <div class="option-header">
+                    <div class="option-number">4️⃣</div>
+                    <div class="option-title">Carrusel de Semanas (Slider)</div>
+                </div>
+                
+                <div class="option-description">
+                    Las semanas están en paralelo, scrolleas horizontalmente o usas flechas. Muestra 1-2 semanas a la vez con transiciones suaves.
+                </div>
+                
+                <div class="mock-header">
+                    <strong style="display: block; margin-bottom: 10px; color: #2d3748;">Marzo 2026 - Scroll Horizontal</strong>
+                </div>
+                
+                <div class="slider-demo">
+                    <div class="week-card">
+                        <div class="week-card-label">Sem 1</div>
+                        <div class="week-card-dates">1-7 Mar</div>
+                    </div>
+                    <div class="week-card">
+                        <div class="week-card-label">Sem 2</div>
+                        <div class="week-card-dates">8-14 Mar</div>
+                    </div>
+                    <div class="week-card" style="border-color: #667eea; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);">
+                        <div class="week-card-label">Sem 3</div>
+                        <div class="week-card-dates">15-21 Mar</div>
+                    </div>
+                    <div class="week-card">
+                        <div class="week-card-label">Sem 4</div>
+                        <div class="week-card-dates">22-28 Mar</div>
+                    </div>
+                    <div class="week-card">
+                        <div class="week-card-label">Sem 5</div>
+                        <div class="week-card-dates">29-31 Mar</div>
+                    </div>
+                    <div class="nav-arrows">
+                        <button class="arrow-btn">❮</button>
+                        <button class="arrow-btn">❯</button>
+                    </div>
+                </div>
+                
+                <div class="grid-mock">
+                    <div class="week-label">Semana 3 (15-21 Marzo)</div>
+                    <div class="grid-header-row">
+                        <div class="grid-cell header">Dom 15</div>
+                        <div class="grid-cell header">Lun 16</div>
+                        <div class="grid-cell header">Mar 17</div>
+                        <div class="grid-cell header">Mié 18</div>
+                        <div class="grid-cell header">Jue 19</div>
+                        <div class="grid-cell header">Vie 20</div>
+                        <div class="grid-cell header">Sab 21</div>
+                    </div>
+                </div>
+                
+                <div class="pros">
+                    <strong>✅ Ventajas:</strong>
+                    Interfaz moderna y visual • Transiciones suaves • Carrusel intuitivo • Ves 1-2 semanas contextuales
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 12px; margin-top: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div class="recommendation">
+                <span class="recommendation-icon">⭐</span>
+                <strong>RECOMENDACIÓN PERSONAL:</strong>
+                <div style="margin-top: 10px;">
+                    <strong style="display: block; color: #78240f; margin-bottom: 8px;">Combinar Opción 1 + Opción 2:</strong>
+                    Tabs (para selección rápida) + Botones Anterior/Siguiente (para navegación fluida)
+                    <br><br>
+                    ✅ Es la más directa, intuitiva y requiere menos cambios en el código<br>
+                    ✅ Los users usan ambas formas: clic en tab O botones para navegar sin pensar<br>
+                    ✅ Combina lo mejor de ambas opciones
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
