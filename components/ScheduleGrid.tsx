@@ -376,6 +376,8 @@ interface ScheduleGridProps {
   jornadasLaborales: JornadaLaboral[];
   onCellDoubleClick: (dateKey: string, nurseId: string) => void;
   onOpenManualHoursModal?: (dateKey: string, nurseId: string) => void;
+  viewMode?: 'months' | 'weeks';
+  selectedWeekIndex?: number;
 }
 
 const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'CS', 'STRASBOURG']);
@@ -385,7 +387,7 @@ export const DAY_COL_WIDTH = 70;  // Reduced from 100 for more space to shifts
 export const PRESENT_COL_WIDTH = 56;
 export const NOTES_COL_WIDTH = 96;
 
-export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, onCellDoubleClick, onOpenManualHoursModal }, ref) => {
+export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, onCellDoubleClick, onOpenManualHoursModal, viewMode = 'months', selectedWeekIndex = 0 }, ref) => {
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
@@ -408,7 +410,28 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const dates = getWeeksForMonth(year, month);
+    
+    // Get all dates and group by week
+    const allDates = useMemo(() => getWeeksForMonth(year, month), [year, month]);
+    
+    const dates = useMemo(() => {
+        if (viewMode === 'months') {
+            return allDates;
+        }
+        
+        // Group dates by week for week view
+        const weekMap = new Map<number, Date[]>();
+        allDates.forEach(date => {
+            const weekNum = Math.floor((date.getUTCDate() - 1) / 7);
+            if (!weekMap.has(weekNum)) {
+                weekMap.set(weekNum, []);
+            }
+            weekMap.get(weekNum)!.push(date);
+        });
+        
+        const weeks = Array.from(weekMap.values());
+        return weeks[selectedWeekIndex] || [];
+    }, [allDates, viewMode, selectedWeekIndex]);
     
     let lastWeekId: string | null = null;
     
