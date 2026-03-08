@@ -34,6 +34,47 @@ export const getDateOfWeek = (weekId: string): Date => {
     return targetDate;
 };
 
+/**
+ * Get Monday of an ISO week in UTC
+ */
+export const getMondayOfWeekUTC = (weekId: string): Date => {
+    const [yearStr, weekStr] = weekId.split('-W');
+    const year = parseInt(yearStr, 10);
+    const weekNumber = parseInt(weekStr, 10);
+
+    // Create a date for Jan 4th of the year (UTC). Jan 4th is always in week 1.
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    // Get the day of the week (0=Sun, 1=Mon...). Adjust Sunday to be 7.
+    const dayOfWeek = jan4.getUTCDay() || 7;
+    // Go back to the previous Monday.
+    jan4.setUTCDate(jan4.getUTCDate() - dayOfWeek + 1);
+    
+    // Add the number of weeks to the first Monday.
+    // (weekNumber - 1) because we're already on week 1.
+    const monday = new Date(jan4.getTime() + (weekNumber - 1) * 7 * 24 * 60 * 60 * 1000);
+
+    return monday;
+};
+
+/**
+ * Get all 7 days of an ISO week (Monday to Sunday) in UTC
+ */
+export const getFullWeekDates = (weekId: string): Date[] => {
+    const monday = getMondayOfWeekUTC(weekId);
+    const dates: Date[] = [];
+    
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(Date.UTC(
+            monday.getUTCFullYear(),
+            monday.getUTCMonth(),
+            monday.getUTCDate() + i
+        ));
+        dates.push(date);
+    }
+    
+    return dates;
+};
+
 
 export interface WeekInfo {
     id: string;
