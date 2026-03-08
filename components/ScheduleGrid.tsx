@@ -1,7 +1,7 @@
 import React, { useRef, useState, useLayoutEffect, useEffect, useMemo } from 'react';
 import type { Nurse, Schedule, WorkZone, RuleViolation, Agenda, ActivityLevel, ScheduleCell, Notes, CustomShift, Hours, JornadaLaboral, SpecialStrasbourgEvent, DailyNote } from '../types';
 import { SHIFTS } from '../constants';
-import { getWeekIdentifier, getWeeksForMonth } from '../utils/dateUtils';
+import { getWeekIdentifier, getWeeksForMonth, getFullWeekDates } from '../utils/dateUtils';
 import { getScheduleCellHours, getShiftsFromCell } from '../utils/scheduleUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -429,10 +429,17 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
             weekMap.get(weekId)!.push(date);
         });
         
-        // Sort dates within each week and get the selected week
-        const weeks = Array.from(weekMap.values());
-        weeks.forEach(weekDates => weekDates.sort((a, b) => a.getTime() - b.getTime()));
-        return weeks[selectedWeekIndex] || [];
+        // Get week IDs in order they appear in the month
+        const weekIds = Array.from(weekMap.keys());
+        
+        // For the selected week, return the FULL week (7 days, Monday-Sunday)
+        // even if some days belong to different months
+        const selectedWeekId = weekIds[selectedWeekIndex];
+        if (selectedWeekId) {
+            return getFullWeekDates(selectedWeekId);
+        }
+        
+        return [];
     }, [allDates, viewMode, selectedWeekIndex]);
     
     let lastWeekId: string | null = null;
