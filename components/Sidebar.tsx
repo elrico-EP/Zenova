@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { Nurse, WorkZone, StrasbourgEvent, HistoryEntry, User, SpecialStrasbourgEvent, Schedule, ManualChangePayload } from '../types';
+import type { Nurse, WorkZone, StrasbourgEvent, HistoryEntry, User, SpecialStrasbourgEvent, Schedule, ManualChangePayload, RuleViolation } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -12,6 +12,7 @@ import { ManualChangeModal } from './ManualChangeModal';
 import { SHIFTS } from '../constants';
 import { getShiftsFromCell } from '../utils/scheduleUtils';
 import { BulkEditModal } from './BulkEditModal';
+import { RuleViolationsPanel } from './RuleViolationsPanel';
 
 const CollapsibleModule: React.FC<{ title: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean; disabled?: boolean; }> = ({ title, children, defaultOpen = false, disabled = false }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -219,6 +220,7 @@ interface SidebarProps {
   isMonthClosed: boolean;
   onOpenJornadaManager: () => void;
   schedule: Schedule;
+    violations: RuleViolation[];
   onManualChange: (payload: ManualChangePayload) => Promise<void>;
   onOpenSwapModal: () => void;
 }
@@ -268,6 +270,13 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
                     onSetPersonalHours={async () => {}}
                     vaccinationPeriod={props.vaccinationPeriod}
                 />
+            </CollapsibleModule>
+        )}
+
+        {/* 2b. Planning Alerts (Read-only) */}
+        {permissions.isViewingAsAdmin && (
+            <CollapsibleModule title={t.planningAlerts} defaultOpen={true}>
+                <RuleViolationsPanel violations={props.violations} nurses={props.nurses} />
             </CollapsibleModule>
         )}
 
