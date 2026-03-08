@@ -615,7 +615,7 @@
                 <div class="feature-card">
                     <span class="feature-icon">📊</span>
                     <h4>Balance de Horas</h4>
-                    <p>Visualiza horas trabajadas vs contrato con desglose por tipo de turno</p>
+                    <p>Visualiza horas trabajadas vs jornada laboral con desglose por tipo de turno</p>
                 </div>
                 <div class="feature-card">
                     <span class="feature-icon">🙏</span>
@@ -650,7 +650,7 @@
                         <ul>
                             <li>Vista mensual completa</li>
                             <li>Vista semanal (lun-dom)</li>
-                            <li>Doble-clic para editar</li>
+                            <li>Doble-clic para abrir intercambio</li>
                             <li>Zoom ajustable</li>
                             <li>Notas por día</li>
                             <li>Indicador de presentes</li>
@@ -661,7 +661,7 @@
                         <h4><span class="icon">⚖️</span> Balance</h4>
                         <ul>
                             <li>Horas por enfermero</li>
-                            <li>Balance vs contrato</li>
+                            <li>Balance vs jornada laboral</li>
                             <li>Desglose por turno</li>
                             <li>Vista mensual/anual</li>
                             <li>Exportar Excel</li>
@@ -694,11 +694,12 @@
                         <h4><span class="icon">⚙️</span> Sidebar (Herramientas)</h4>
                         <ul>
                             <li>Manage Team</li>
-                            <li>Shift Palette</li>
-                            <li>Rule Violations</li>
+                            <li>Manual Edit</li>
+                            <li>Mass Assign Absence</li>
                             <li>Strasbourg Events</li>
+                            <li>Advanced Settings</li>
                             <li>Jornadas Laborales</li>
-                            <li>Annual Planner</li>
+                            <li>Campaña de vacunación</li>
                         </ul>
                     </div>
                     
@@ -786,7 +787,7 @@
                     </div>
                     
                     <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; border: 2px dashed #cbd5e1;">
-                        <strong style="color: #667eea;">💡 Pista:</strong> Haz <strong>doble-clic</strong> en cualquier celda para editar el turno
+                        <strong style="color: #667eea;">💡 Pista:</strong> Haz <strong>doble-clic</strong> en cualquier celda para abrir el panel de <strong>intercambio de turnos</strong>
                     </div>
                 </div>
             </div>
@@ -813,7 +814,13 @@
                         <td class="checkmark">✓</td>
                     </tr>
                     <tr>
-                        <td class="role-name">Editar turnos</td>
+                        <td class="role-name">Abrir panel de intercambio (doble-clic)</td>
+                        <td class="checkmark">✓</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Edición manual global (Manual Edit)</td>
                         <td class="checkmark">✓</td>
                         <td class="crossmark">✗</td>
                         <td class="crossmark">✗</td>
@@ -822,7 +829,7 @@
                         <td class="role-name">Ver balance de todos</td>
                         <td class="checkmark">✓</td>
                         <td class="crossmark">✗</td>
-                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
                     </tr>
                     <tr>
                         <td class="role-name">Crear/Editar deseos propios</td>
@@ -880,29 +887,34 @@
                     <div class="step-number">1</div>
                     <div class="step-icon">🖱️</div>
                     <h5>Doble-clic en celda</h5>
-                    <p>Selecciona la celda del turno a editar</p>
+                    <p>Selecciona la celda del turno a intercambiar</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">2</div>
-                    <div class="step-icon">📝</div>
-                    <h5>Abrir modal</h5>
-                    <p>Se muestra formulario de edición</p>
+                    <div class="step-icon">🔁</div>
+                    <h5>Panel lateral de intercambio</h5>
+                    <p>Se abre el mismo panel de swap (no Manual Edit)</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">3</div>
                     <div class="step-icon">✏️</div>
-                    <h5>Cambiar turno</h5>
-                    <p>Selecciona nuevo turno o elimina</p>
+                    <h5>Elegir segundo enfermero</h5>
+                    <p>Selecciona con quién intercambiar</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">4</div>
                     <div class="step-icon">💾</div>
-                    <h5>Guardar</h5>
-                    <p>Se actualiza automáticamente y recalcula horas</p>
+                    <h5>Confirmar intercambio</h5>
+                    <p>Se aplica el cambio en el calendario</p>
                 </div>
+            </div>
+
+            <div class="tip">
+                <strong>🕒 Reloj en la esquina de la celda (Admin)</strong>
+                En cada celda de la agenda general aparece un <strong>pequeño reloj</strong> en la esquina superior derecha al pasar el ratón. Ese botón abre la edición de <strong>horas de trabajo</strong> de esa celda.
             </div>
             
             <div class="warning">
@@ -991,7 +1003,7 @@
                 </div>
             </div>
             
-            <h3>4. Sidebar - Herramientas Avanzadas</h3>
+            <h3>4. Panel lateral - Herramientas reales</h3>
             
             <div class="feature-cards">
                 <div class="feature-card">
@@ -1001,15 +1013,15 @@
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-icon">🎨</span>
-                    <h4>Shift Palette</h4>
-                    <p><strong>Leyenda de turnos</strong> con colores y descripciones. Referencia visual para identificar cada tipo.</p>
+                    <span class="feature-icon">✏️</span>
+                    <h4>Manual Edit</h4>
+                    <p><strong>Aplicar cambios manuales</strong> por enfermero/rango de fechas con recalculación.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-icon">⚠️</span>
-                    <h4>Rule Violations</h4>
-                    <p><strong>Alertas de violaciones</strong> de reglas (turnos consecutivos, exceso de horas, falta de cobertura).</p>
+                    <span class="feature-icon">🗓️</span>
+                    <h4>Mass Assign Absence</h4>
+                    <p><strong>Asignación masiva de ausencias</strong> para varios enfermeros entre fechas.</p>
                 </div>
                 
                 <div class="feature-card">
@@ -1020,14 +1032,14 @@
                 
                 <div class="feature-card">
                     <span class="feature-icon">⏰</span>
-                    <h4>Jornadas Laborales</h4>
-                    <p><strong>Configurar reducciones de jornada</strong> (80%/90%/100%) con fechas de inicio/fin por enfermero.</p>
+                    <h4>Advanced Settings</h4>
+                    <p><strong>Agrupa configuración avanzada</strong> (jornada laboral, planner de Strasbourg y vacunación).</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-icon">📅</span>
-                    <h4>Annual Planner</h4>
-                    <p><strong>Planificación anual completa.</strong> Editar múltiples meses y generar turnos de forma masiva.</p>
+                    <span class="feature-icon">📉</span>
+                    <h4>Jornada Laboral</h4>
+                    <p><strong>Configurar reducciones de jornada laboral</strong> (80%/90%/100%) con fechas por enfermero.</p>
                 </div>
             </div>
         </div>
@@ -1107,8 +1119,8 @@
                 <strong>⚠️ Limitaciones de Nurse</strong>
                 Como usuario "nurse", NO puedes:
                 <ul style="margin-top: 10px; padding-left: 20px;">
-                    <li>Editar turnos directamente en el calendario (solo admin)</li>
-                    <li>Ver balance de otros enfermeros (solo el tuyo)</li>
+                    <li>Usar módulos de administración (Manual Edit, bloqueos, gestión de usuarios)</li>
+                    <li>Ver el balance global del equipo</li>
                     <li>Validar deseos de otros (solo admin)</li>
                     <li>Gestionar usuarios (solo admin)</li>
                 </ul>
@@ -1128,7 +1140,7 @@
                         </div>
                         
                         <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #10b981;">
-                            <div style="font-size: 0.9em; color: #065f46; font-weight: 600;">Horas Contrato</div>
+                            <div style="font-size: 0.9em; color: #065f46; font-weight: 600;">Horas Jornada Laboral</div>
                             <div style="font-size: 2.2em; font-weight: bold; color: #064e3b; margin-top: 8px;">150.0</div>
                         </div>
                         
@@ -1156,59 +1168,47 @@
         <div class="section" id="flujos">
             <h2>🔄 Flujos de Trabajo Completos</h2>
             
-            <h3>Flujo 1: Edición Manual de Turno (Admin)</h3>
+            <h3>Flujo 1: Intercambio de Turno desde celda (Admin/Nurse)</h3>
             <div class="workflow">
                 <div class="workflow-step">
                     <div class="step-number">1</div>
                     <div class="step-icon">🔍</div>
                     <h5>Identificar celda</h5>
-                    <p>Localiza el turno a cambiar en calendario</p>
+                    <p>Localiza el turno a intercambiar en calendario</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">2</div>
                     <div class="step-icon">🖱️</div>
                     <h5>Doble-clic</h5>
-                    <p>Se abre modal de edición</p>
+                    <p>Se abre panel lateral de intercambio</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">3</div>
                     <div class="step-icon">🎯</div>
-                    <h5>Seleccionar turno</h5>
-                    <p>Elige nuevo turno del dropdown</p>
+                    <h5>Seleccionar enfermero destino</h5>
+                    <p>Elige el segundo enfermero para el swap</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">4</div>
-                    <div class="step-icon">⚡</div>
-                    <h5>Elegir alcance recalc</h5>
-                    <p>Ninguno / Día / Semana / Resto mes</p>
+                    <div class="step-icon">👁️</div>
+                    <h5>Revisar previsualización</h5>
+                    <p>Comprueba cómo quedarán ambos turnos</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">5</div>
                     <div class="step-icon">💾</div>
-                    <h5>Guardar</h5>
-                    <p>Actualización + recalc automático</p>
-                </div>
-                <div class="workflow-arrow">→</div>
-                <div class="workflow-step">
-                    <div class="step-number">6</div>
-                    <div class="step-icon">📊</div>
-                    <h5>Validar balance</h5>
-                    <p>Revisa horas actualizadas en Balance</p>
+                    <h5>Confirmar swap</h5>
+                    <p>Se aplica el intercambio para ese día</p>
                 </div>
             </div>
             
             <div class="danger">
-                <strong>🚨 Importante: Alcance de Recalculación</strong>
-                <ul style="margin-top: 10px; padding-left: 20px;">
-                    <li><strong>Ninguno:</strong> Solo cambia el turno de ese enfermero, no recalcula nada más</li>
-                    <li><strong>Día:</strong> Recalcula ese día para TODOS los enfermeros (rebalancea cobertura)</li>
-                    <li><strong>Semana:</strong> Recalcula toda la semana para TODOS</li>
-                    <li><strong>Resto de mes:</strong> Recalcula desde ese día hasta fin de mes para TODOS</li>
-                </ul>
+                <strong>🚨 Nota importante</strong>
+                El <strong>doble-clic</strong> abre el panel de <strong>intercambio de turnos</strong>. Los cambios manuales avanzados con alcance de recálculo se gestionan en el módulo <strong>Manual Edit</strong> del panel lateral (admin).
             </div>
             
             <h3>Flujo 2: Validación de Deseos (Admin)</h3>
@@ -1317,7 +1317,13 @@
                 <div class="feature-card">
                     <span class="feature-icon">🖱️</span>
                     <h4>Doble-clic Rápido</h4>
-                    <p>En cualquier celda del calendario para editar instantáneamente</p>
+                    <p>En cualquier celda del calendario para abrir el panel de intercambio de turnos</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon">🕒</span>
+                    <h4>Reloj en la Celda (Admin)</h4>
+                    <p>Icono en la esquina superior derecha de la celda para ajustar horas de trabajo de ese día.</p>
                 </div>
                 
                 <div class="feature-card">
