@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import { getNotificationDisplay } from '../utils/notificationService';
+import { useTranslations } from '../hooks/useTranslations';
 
 interface NotificationPanelProps {
   userId: string;
@@ -10,6 +11,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ userId }) 
   const { notifications, markAsRead, removeNotification, getUnreadCount } = useNotification();
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations();
 
   const unreadCount = getUnreadCount(userId);
 
@@ -73,17 +75,17 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ userId }) 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
           <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800">Notificaciones</h3>
+            <h3 className="text-lg font-semibold text-gray-800">{t.notifications}</h3>
             {unreadCount > 0 && (
               <p className="text-sm text-gray-500">
-                {unreadCount} {unreadCount === 1 ? 'notificación nueva' : 'notificaciones nuevas'}
+                {unreadCount} {unreadCount === 1 ? t.newNotificationSingular : t.newNotificationPlural}
               </p>
             )}
           </div>
 
           {userNotifications.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-gray-500 text-sm">No hay notificaciones</p>
+              <p className="text-gray-500 text-sm">{t.noNotifications}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
