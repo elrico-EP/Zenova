@@ -1341,6 +1341,7 @@ const handleAddNurse = useCallback((name: string) => {
                 isMonthClosed={isMonthClosed} 
                 onOpenJornadaManager={() => setIsJornadaManagerOpen(true)}
                 schedule={schedule}
+                violations={violations}
                 onManualChange={handleManualChange}
                 onOpenSwapModal={() => setSwapPanelConfig({ isOpen: true, initialDate: '', initialNurseId: '' })}
               />
