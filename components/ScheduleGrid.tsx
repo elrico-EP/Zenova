@@ -419,17 +419,19 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
             return allDates;
         }
         
-        // Group dates by week for week view
-        const weekMap = new Map<number, Date[]>();
+        // Group dates by ISO week (Monday-Sunday) for week view
+        const weekMap = new Map<string, Date[]>();
         allDates.forEach(date => {
-            const weekNum = Math.floor((date.getUTCDate() - 1) / 7);
-            if (!weekMap.has(weekNum)) {
-                weekMap.set(weekNum, []);
+            const weekId = getWeekIdentifier(date);
+            if (!weekMap.has(weekId)) {
+                weekMap.set(weekId, []);
             }
-            weekMap.get(weekNum)!.push(date);
+            weekMap.get(weekId)!.push(date);
         });
         
+        // Sort dates within each week and get the selected week
         const weeks = Array.from(weekMap.values());
+        weeks.forEach(weekDates => weekDates.sort((a, b) => a.getTime() - b.getTime()));
         return weeks[selectedWeekIndex] || [];
     }, [allDates, viewMode, selectedWeekIndex]);
     
