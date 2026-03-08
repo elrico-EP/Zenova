@@ -1184,13 +1184,13 @@ const handleAddNurse = useCallback((name: string) => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const allDates = getWeeksForMonth(year, month);
-    const weekMap = new Map<number, Date[]>();
+    const weekMap = new Map<string, Date[]>();
     allDates.forEach(date => {
-      const weekNum = Math.floor((date.getUTCDate() - 1) / 7);
-      if (!weekMap.has(weekNum)) {
-        weekMap.set(weekNum, []);
+      const weekId = getWeekIdentifier(date);
+      if (!weekMap.has(weekId)) {
+        weekMap.set(weekId, []);
       }
-      weekMap.get(weekNum)!.push(date);
+      weekMap.get(weekId)!.push(date);
     });
     const weeksCount = weekMap.size;
     setSelectedWeekIndex(prev => Math.min(weeksCount - 1, prev + 1));
@@ -1363,18 +1363,17 @@ const handleAddNurse = useCallback((name: string) => {
                   <div className="flex min-h-0 flex-1 gap-2">
                     <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
                     <div className="flex items-center justify-between mb-2">
-                      <div></div>
+                      <WeekViewControls
+                        currentDate={currentDate}
+                        selectedWeekIndex={selectedWeekIndex}
+                        viewMode={viewMode}
+                        onViewModeChange={handleViewModeChange}
+                        onWeekSelect={handleWeekSelect}
+                        onPreviousWeek={handlePreviousWeek}
+                        onNextWeek={handleNextWeek}
+                      />
                       <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
                     </div>
-                    <WeekViewControls
-                      currentDate={currentDate}
-                      selectedWeekIndex={selectedWeekIndex}
-                      viewMode={viewMode}
-                      onViewModeChange={handleViewModeChange}
-                      onWeekSelect={handleWeekSelect}
-                      onPreviousWeek={handlePreviousWeek}
-                      onNextWeek={handleNextWeek}
-                    />
                     <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} viewMode={viewMode} selectedWeekIndex={selectedWeekIndex} />
                     </div>
                   
