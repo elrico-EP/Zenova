@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zenova - Guía Visual Completa 2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            padding: 60px 20px;
+            margin-bottom: 40px;
+        }
+        
+        header h1 {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            animation: fadeInDown 1s ease;
+        }
+        
+        header p {
+            font-size: 1.3em;
+            opacity: 0.95;
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeIn 0.8s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .section h2 {
+            font-size: 2.5em;
+            margin-bottom: 25px;
+            color: #667eea;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+        
+        .section h3 {
+            font-size: 1.8em;
+            margin: 30px 0 15px;
+            color: #764ba2;
+        }
+        
+        /* Mapa Mental */
+        .mindmap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 40px 0;
+            position: relative;
+        }
+        
+        .mindmap-root {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 40px;
+            border-radius: 50px;
+            font-size: 1.5em;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            margin-bottom: 50px;
+            animation: pulse 2s ease infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .mindmap-branches {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            width: 100%;
+        }
+        
+        .mindmap-branch {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mindmap-branch::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .mindmap-branch:hover::before {
+            left: 100%;
+        }
+        
+        .mindmap-branch:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+        }
+        
+        .mindmap-branch h4 {
+            font-size: 1.3em;
+            margin-bottom: 12px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mindmap-branch .icon {
+            font-size: 1.5em;
+        }
+        
+        .mindmap-branch ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .mindmap-branch li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 25px;
+            color: #555;
+        }
+        
+        .mindmap-branch li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        /* Mockup de Interfaz */
+        .mockup {
+            background: #f8fafc;
+            border: 3px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .mockup-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px 8px 0 0;
+            margin: -20px -20px 20px -20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .mockup-header h4 {
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mockup-nav {
+            background: white;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 12px 20px;
+            margin: -20px -20px 20px -20px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        .mockup-nav-item {
+            padding: 8px 16px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .mockup-nav-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .mockup-nav-item:hover {
+            background: #e2e8f0;
+        }
+        
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin: 20px 0;
+            font-size: 0.85em;
+        }
+        
+        .mockup-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.75em;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .mockup-cell:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        
+        .mockup-cell.header {
+            background: #cbd5e1;
+            color: #475569;
+            font-weight: bold;
+        }
+        
+        .mockup-cell.urgentes {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .mockup-cell.travail {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .mockup-cell.libero {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .mockup-cell.rest {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        /* Flujos de Trabajo */
+        .workflow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 30px 0;
+            align-items: center;
+        }
+        
+        .workflow-step {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 12px;
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .workflow-step:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .workflow-step .step-number {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .workflow-step .step-icon {
+            font-size: 2.5em;
+            margin: 10px 0;
+        }
+        
+        .workflow-step h5 {
+            font-size: 1.1em;
+            margin: 10px 0;
+            color: #667eea;
+        }
+        
+        .workflow-step p {
+            font-size: 0.9em;
+            color: #64748b;
+        }
+        
+        .workflow-arrow {
+            font-size: 2em;
+            color: #667eea;
+            flex: 0 0 30px;
+        }
+        
+        /* Tarjetas de características */
+        .feature-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-left: 5px solid #667eea;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.2);
+        }
+        
+        .feature-card .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .feature-card h4 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .feature-card p {
+            color: #64748b;
+            font-size: 0.95em;
+        }
+        
+        /* Comparación de roles */
+        .roles-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .roles-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .roles-table th {
+            padding: 18px 15px;
+            font-size: 1.1em;
+            text-align: left;
+        }
+        
+        .roles-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .roles-table tbody tr:hover {
+            background: #f8fafc;
+        }
+        
+        .roles-table .role-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .roles-table .checkmark {
+            color: #10b981;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        
+        .roles-table .crossmark {
+            color: #ef4444;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        
+        /* Tips y warnings */
+        .tip {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-left: 5px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .tip strong {
+            color: #065f46;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 5px solid #f59e0b;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .warning strong {
+            color: #92400e;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .danger {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-left: 5px solid #ef4444;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .danger strong {
+            color: #991b1b;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        /* Navegación flotante */
+        .floating-nav {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border-radius: 30px;
+            padding: 15px 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .floating-nav a {
+            display: block;
+            width: 12px;
+            height: 12px;
+            background: #cbd5e1;
+            border-radius: 50%;
+            margin: 12px 0;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .floating-nav a:hover,
+        .floating-nav a.active {
+            background: #667eea;
+            transform: scale(1.4);
+        }
+        
+        .floating-nav a::after {
+            content: attr(data-label);
+            position: absolute;
+            right: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            font-size: 0.85em;
+        }
+        
+        .floating-nav a:hover::after {
+            opacity: 1;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2.2em;
+            }
+            
+            .section {
+                padding: 25px;
+            }
+            
+            .mockup-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .floating-nav {
+                display: none;
+            }
+            
+            .workflow {
+                flex-direction: column;
+            }
+            
+            .workflow-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏥 Zenova 2026</h1>
+            <p>Guía Visual Completa • Admin & Usuario</p>
+        </header>
+
+        <!-- Navegación flotante -->
+        <nav class="floating-nav">
+            <a href="#inicio" data-label="Inicio" class="active"></a>
+            <a href="#estructura" data-label="Estructura"></a>
+            <a href="#admin" data-label="Admin"></a>
+            <a href="#usuario" data-label="Usuario"></a>
+            <a href="#flujos" data-label="Flujos"></a>
+        </nav>
+
+        <!-- SECCIÓN: INICIO Y ESTRUCTURA -->
+        <div class="section" id="inicio">
+            <h2>🎯 ¿Qué es Zenova?</h2>
+            <p style="font-size: 1.2em; margin-bottom: 30px;">
+                Zenova es una aplicación web profesional de <strong>planificación de turnos de enfermería</strong> 
+                con generación automática inteligente, edición manual completa, balance de horas y sincronización en tiempo real.
+            </p>
+
+            <div class="feature-cards">
+                <div class="feature-card">
+                    <span class="feature-icon">🤖</span>
+                    <h4>Generación Automática</h4>
+                    <p>Algoritmo inteligente que distribuye turnos equitativamente según reglas complejas de cobertura</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">✏️</span>
+                    <h4>Edición Manual</h4>
+                    <p>Modifica cualquier turno con historial auditable y recalcular automático de horas</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">📊</span>
+                    <h4>Balance de Horas</h4>
+                    <p>Visualiza horas trabajadas vs contrato con desglose por tipo de turno</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🙏</span>
+                    <h4>Sistema de Deseos</h4>
+                    <p>Los enfermeros pueden solicitar turnos específicos que los admin validan</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">👥</span>
+                    <h4>Multiusuario</h4>
+                    <p>Sincronización en tiempo real con Supabase para múltiples usuarios simultáneos</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🔒</span>
+                    <h4>Control de Acceso</h4>
+                    <p>3 roles (Admin/Nurse/Viewer) con permisos granulares</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: ESTRUCTURA VISUAL -->
+        <div class="section" id="estructura">
+            <h2>🗺️ Mapa Mental: Estructura de Zenova</h2>
+            
+            <div class="mindmap">
+                <div class="mindmap-root">
+                    🏥 ZENOVA 2026
+                </div>
+                
+                <div class="mindmap-branches">
+                    <div class="mindmap-branch">
+                        <h4><span class="icon">📅</span> Schedule (Calendario)</h4>
+                        <ul>
+                            <li>Vista mensual completa</li>
+                            <li>Vista semanal (lun-dom)</li>
+                            <li>Doble-clic para editar</li>
+                            <li>Zoom ajustable</li>
+                            <li>Notas por día</li>
+                            <li>Indicador de presentes</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mindmap-branch">
+                        <h4><span class="icon">⚖️</span> Balance</h4>
+                        <ul>
+                            <li>Horas por enfermero</li>
+                            <li>Balance vs contrato</li>
+                            <li>Desglose por turno</li>
+                            <li>Vista mensual/anual</li>
+                            <li>Exportar Excel</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mindmap-branch">
+                        <h4><span class="icon">🙏</span> Wishes (Deseos)</h4>
+                        <ul>
+                            <li>Solicitudes de turnos</li>
+                            <li>Validación admin</li>
+                            <li>Estados: Pendiente/Validado</li>
+                            <li>Filtros por enfermero</li>
+                            <li>Edición de texto</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mindmap-branch">
+                        <h4><span class="icon">👥</span> Users (Usuarios)</h4>
+                        <ul>
+                            <li>Crear/Editar usuarios</li>
+                            <li>Asignar roles</li>
+                            <li>Resetear contraseñas</li>
+                            <li>Asociar enfermero</li>
+                            <li>Eliminar usuarios</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mindmap-branch">
+                        <h4><span class="icon">⚙️</span> Sidebar (Herramientas)</h4>
+                        <ul>
+                            <li>Manage Team</li>
+                            <li>Shift Palette</li>
+                            <li>Rule Violations</li>
+                            <li>Strasbourg Events</li>
+                            <li>Jornadas Laborales</li>
+                            <li>Annual Planner</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mindmap-branch">
+                        <h4><span class="icon">🔧</span> Funciones Admin</h4>
+                        <ul>
+                            <li>Bloquear/Desbloquear mes</li>
+                            <li>Generar agenda automática</li>
+                            <li>Editar jornadas laborales</li>
+                            <li>Ver historial completo</li>
+                            <li>Exportar agendas</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: MOCKUP DE INTERFAZ -->
+        <div class="section">
+            <h2>🖥️ Vista de la Interfaz</h2>
+            
+            <div class="mockup">
+                <div class="mockup-header">
+                    <h4>📅 Agenda General - Marzo 2026</h4>
+                    <div style="display: flex; gap: 10px; font-size: 0.85em;">
+                        <span>🔍 Zoom: 40%</span>
+                        <span>|</span>
+                        <span>👤 Admin</span>
+                    </div>
+                </div>
+                
+                <div class="mockup-nav">
+                    <div class="mockup-nav-item active">Schedule</div>
+                    <div class="mockup-nav-item">Balance</div>
+                    <div class="mockup-nav-item">Wishes</div>
+                    <div class="mockup-nav-item">Users</div>
+                </div>
+                
+                <div style="padding: 20px; background: #f8fafc; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size: 0.85em; font-weight: 600; color: #64748b;">Vista:</span>
+                            <button style="padding: 4px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-size: 0.8em; font-weight: 600; cursor: pointer;">Meses</button>
+                            <button style="padding: 4px 12px; background: #e2e8f0; color: #64748b; border: none; border-radius: 6px; font-size: 0.8em; font-weight: 600; cursor: pointer;">Semanas</button>
+                        </div>
+                        <div style="font-weight: 600; color: #667eea;">← Febrero | Marzo 2026 | Abril →</div>
+                    </div>
+                    
+                    <div class="mockup-grid">
+                        <div class="mockup-cell header">Dom 1</div>
+                        <div class="mockup-cell header">Lun 2</div>
+                        <div class="mockup-cell header">Mar 3</div>
+                        <div class="mockup-cell header">Mié 4</div>
+                        <div class="mockup-cell header">Jue 5</div>
+                        <div class="mockup-cell header">Vie 6</div>
+                        <div class="mockup-cell header">Sáb 7</div>
+                        <div class="mockup-cell header">Dom 8</div>
+                        
+                        <div class="mockup-cell rest">REST</div>
+                        <div class="mockup-cell urgentes">URG</div>
+                        <div class="mockup-cell travail">TRV</div>
+                        <div class="mockup-cell urgentes">URG</div>
+                        <div class="mockup-cell libero">LIBERO</div>
+                        <div class="mockup-cell travail">TRV</div>
+                        <div class="mockup-cell rest">REST</div>
+                        <div class="mockup-cell rest">REST</div>
+                        
+                        <div class="mockup-cell rest">REST</div>
+                        <div class="mockup-cell travail">TRV</div>
+                        <div class="mockup-cell urgentes">URG</div>
+                        <div class="mockup-cell travail">TRV</div>
+                        <div class="mockup-cell urgentes">URG</div>
+                        <div class="mockup-cell libero">LIBERO</div>
+                        <div class="mockup-cell rest">REST</div>
+                        <div class="mockup-cell rest">REST</div>
+                        
+                        <div class="mockup-cell rest">REST</div>
+                        <div class="mockup-cell libero">LIBERO</div>
+                        <div class="mockup-cell travail">TRV</div>
+                        <div class="mockup-cell urgentes">URG</div>
+                        <div class="mockup-cell travail">TRV</div>
+                        <div class="mockup-cell urgentes">URG</div>
+                        <div class="mockup-cell rest">REST</div>
+                        <div class="mockup-cell rest">REST</div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; border: 2px dashed #cbd5e1;">
+                        <strong style="color: #667eea;">💡 Pista:</strong> Haz <strong>doble-clic</strong> en cualquier celda para editar el turno
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: ROLES Y PERMISOS -->
+        <div class="section">
+            <h2>👥 Roles y Permisos</h2>
+            
+            <table class="roles-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Funcionalidad</th>
+                        <th>Admin</th>
+                        <th>Nurse</th>
+                        <th>Viewer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="role-name">Ver calendario completo</td>
+                        <td class="checkmark">✓</td>
+                        <td class="checkmark">✓</td>
+                        <td class="checkmark">✓</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Editar turnos</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Ver balance de todos</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                        <td class="checkmark">✓</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Crear/Editar deseos propios</td>
+                        <td class="checkmark">✓</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Validar deseos de otros</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Bloquear/Desbloquear mes</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Gestionar usuarios</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Generar agenda automática</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Configurar jornadas laborales</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Ver agenda personal propia</td>
+                        <td class="checkmark">✓</td>
+                        <td class="checkmark">✓</td>
+                        <td class="crossmark">✗</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN: FUNCIONES ADMIN -->
+        <div class="section" id="admin">
+            <h2>🔧 Funciones de Administrador</h2>
+            
+            <h3>1. Gestión de Calendario</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🖱️</div>
+                    <h5>Doble-clic en celda</h5>
+                    <p>Selecciona la celda del turno a editar</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">📝</div>
+                    <h5>Abrir modal</h5>
+                    <p>Se muestra formulario de edición</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">✏️</div>
+                    <h5>Cambiar turno</h5>
+                    <p>Selecciona nuevo turno o elimina</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">💾</div>
+                    <h5>Guardar</h5>
+                    <p>Se actualiza automáticamente y recalcula horas</p>
+                </div>
+            </div>
+            
+            <div class="warning">
+                <strong>⚠️ Meses Bloqueados</strong>
+                Si un mes está bloqueado (icono candado 🔒), no podrás editar turnos. Para desbloquearlo, ve a Work Conditions Bar y haz clic en el candado.
+            </div>
+            
+            <h3>2. Validación de Deseos</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🙏</div>
+                    <h5>Ir a Wishes</h5>
+                    <p>Navega a la vista "Wishes"</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">👁️</div>
+                    <h5>Revisar solicitudes</h5>
+                    <p>Verás deseos con estado pendiente (⏰ naranja)</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">✅</div>
+                    <h5>Validar</h5>
+                    <p>Clic en botón cambia a validado (✓ verde)</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">🔄</div>
+                    <h5>Auto-aplicación</h5>
+                    <p>Sistema aplica cambio al calendario automáticamente</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <strong>💡 Tip Pro</strong>
+                Los deseos validados aparecen en verde y se aplican automáticamente al calendario. Si necesitas revertir, simplemente cambia el turno manualmente en el calendario.
+            </div>
+            
+            <h3>3. Gestión de Usuarios</h3>
+            <div class="mindmap-branches">
+                <div class="mindmap-branch">
+                    <h4><span class="icon">➕</span> Crear Usuario</h4>
+                    <ul>
+                        <li>Clic en "+ New User"</li>
+                        <li>Rellenar formulario</li>
+                        <li>Asignar rol (admin/nurse/viewer)</li>
+                        <li>Si es nurse: asociar a enfermero</li>
+                        <li>Establecer contraseña temporal</li>
+                        <li>Usuario forzado a cambiarla en primer login</li>
+                    </ul>
+                </div>
+                
+                <div class="mindmap-branch">
+                    <h4><span class="icon">✏️</span> Editar Usuario</h4>
+                    <ul>
+                        <li>Clic en fila de usuario</li>
+                        <li>Modificar datos en modal</li>
+                        <li>Cambiar rol si necesario</li>
+                        <li>Guardar cambios</li>
+                    </ul>
+                </div>
+                
+                <div class="mindmap-branch">
+                    <h4><span class="icon">🔑</span> Resetear Contraseña</h4>
+                    <ul>
+                        <li>Clic en "Reset Password"</li>
+                        <li>Sistema genera contraseña temporal</li>
+                        <li>Se envía por email al usuario</li>
+                        <li>Usuario forzado a cambiarla</li>
+                    </ul>
+                </div>
+                
+                <div class="mindmap-branch">
+                    <h4><span class="icon">🗑️</span> Eliminar Usuario</h4>
+                    <ul>
+                        <li>Clic en "Delete"</li>
+                        <li>Confirmar en diálogo</li>
+                        <li>Usuario eliminado permanentemente</li>
+                        <li>No afecta al enfermero asociado</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h3>4. Sidebar - Herramientas Avanzadas</h3>
+            
+            <div class="feature-cards">
+                <div class="feature-card">
+                    <span class="feature-icon">👥</span>
+                    <h4>Manage Team</h4>
+                    <p><strong>Agregar/editar enfermeros</strong> en la lista del equipo. Ver agendas individuales y limpiar histórico de cambios.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🎨</span>
+                    <h4>Shift Palette</h4>
+                    <p><strong>Leyenda de turnos</strong> con colores y descripciones. Referencia visual para identificar cada tipo.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">⚠️</span>
+                    <h4>Rule Violations</h4>
+                    <p><strong>Alertas de violaciones</strong> de reglas (turnos consecutivos, exceso de horas, falta de cobertura).</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🇫🇷</span>
+                    <h4>Strasbourg Events</h4>
+                    <p><strong>Gestión de eventos en Estrasburgo.</strong> Asignar enfermeros a sesiones plenarias y preparación.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">⏰</span>
+                    <h4>Jornadas Laborales</h4>
+                    <p><strong>Configurar reducciones de jornada</strong> (80%/90%/100%) con fechas de inicio/fin por enfermero.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">📅</span>
+                    <h4>Annual Planner</h4>
+                    <p><strong>Planificación anual completa.</strong> Editar múltiples meses y generar turnos de forma masiva.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: FUNCIONES USUARIO -->
+        <div class="section" id="usuario">
+            <h2>👤 Funciones de Usuario (Nurse)</h2>
+            
+            <h3>1. Ver Mi Agenda Personal</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🏠</div>
+                    <h5>Sidebar → Manage Team</h5>
+                    <p>Despliega el módulo "Manage Team"</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">📅</div>
+                    <h5>Clic en icono calendario</h5>
+                    <p>Junto a tu nombre, icono de calendario</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">🖼️</div>
+                    <h5>Modal con agenda</h5>
+                    <p>Se abre vista de tu agenda mensual individual</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">📄</div>
+                    <h5>Exportar PDF</h5>
+                    <p>Botón para descargar tu agenda en PDF</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <strong>💡 Acceso Rápido</strong>
+                También aparece un botón "🏠 Abrir mi agenda" directamente en el Sidebar si estás logueado como nurse y asociado a un enfermero.
+            </div>
+            
+            <h3>2. Crear Deseos (Solicitudes de Turnos)</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🙏</div>
+                    <h5>Ir a Wishes</h5>
+                    <p>Vista "Wishes" en menú superior</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">➕</div>
+                    <h5>Agregar deseo</h5>
+                    <p>Botón "+ Agregar Deseo"</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">📝</div>
+                    <h5>Rellenar formulario</h5>
+                    <p>Fecha, tipo de turno deseado, motivo</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">⏳</div>
+                    <h5>Esperar validación</h5>
+                    <p>Admin revisará y validará tu solicitud</p>
+                </div>
+            </div>
+            
+            <div class="warning">
+                <strong>⚠️ Limitaciones de Nurse</strong>
+                Como usuario "nurse", NO puedes:
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li>Editar turnos directamente en el calendario (solo admin)</li>
+                    <li>Ver balance de otros enfermeros (solo el tuyo)</li>
+                    <li>Validar deseos de otros (solo admin)</li>
+                    <li>Gestionar usuarios (solo admin)</li>
+                </ul>
+            </div>
+            
+            <h3>3. Ver Mi Balance de Horas</h3>
+            <div class="mockup">
+                <div class="mockup-header">
+                    <h4>⚖️ Balance de Horas - Tu Resumen</h4>
+                </div>
+                
+                <div style="padding: 25px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #3b82f6;">
+                            <div style="font-size: 0.9em; color: #1e40af; font-weight: 600;">Horas Trabajadas</div>
+                            <div style="font-size: 2.2em; font-weight: bold; color: #1e3a8a; margin-top: 8px;">152.5</div>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #10b981;">
+                            <div style="font-size: 0.9em; color: #065f46; font-weight: 600;">Horas Contrato</div>
+                            <div style="font-size: 2.2em; font-weight: bold; color: #064e3b; margin-top: 8px;">150.0</div>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b;">
+                            <div style="font-size: 0.9em; color: #92400e; font-weight: 600;">Balance</div>
+                            <div style="font-size: 2.2em; font-weight: bold; color: #78350f; margin-top: 8px;">+2.5</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; background: #f8fafc; padding: 20px; border-radius: 10px;">
+                        <h4 style="margin-bottom: 15px; color: #667eea;">Desglose por Tipo de Turno</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; font-size: 0.9em;">
+                            <div><strong>URGENCES:</strong> 8 turnos</div>
+                            <div><strong>TRAVAIL:</strong> 7 turnos</div>
+                            <div><strong>LIBERO:</strong> 2 turnos</div>
+                            <div><strong>RECUP:</strong> 3 turnos</div>
+                            <div><strong>CA:</strong> 1 turno</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: FLUJOS DE TRABAJO -->
+        <div class="section" id="flujos">
+            <h2>🔄 Flujos de Trabajo Completos</h2>
+            
+            <h3>Flujo 1: Edición Manual de Turno (Admin)</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🔍</div>
+                    <h5>Identificar celda</h5>
+                    <p>Localiza el turno a cambiar en calendario</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">🖱️</div>
+                    <h5>Doble-clic</h5>
+                    <p>Se abre modal de edición</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">🎯</div>
+                    <h5>Seleccionar turno</h5>
+                    <p>Elige nuevo turno del dropdown</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">⚡</div>
+                    <h5>Elegir alcance recalc</h5>
+                    <p>Ninguno / Día / Semana / Resto mes</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">5</div>
+                    <div class="step-icon">💾</div>
+                    <h5>Guardar</h5>
+                    <p>Actualización + recalc automático</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">6</div>
+                    <div class="step-icon">📊</div>
+                    <h5>Validar balance</h5>
+                    <p>Revisa horas actualizadas en Balance</p>
+                </div>
+            </div>
+            
+            <div class="danger">
+                <strong>🚨 Importante: Alcance de Recalculación</strong>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li><strong>Ninguno:</strong> Solo cambia el turno de ese enfermero, no recalcula nada más</li>
+                    <li><strong>Día:</strong> Recalcula ese día para TODOS los enfermeros (rebalancea cobertura)</li>
+                    <li><strong>Semana:</strong> Recalcula toda la semana para TODOS</li>
+                    <li><strong>Resto de mes:</strong> Recalcula desde ese día hasta fin de mes para TODOS</li>
+                </ul>
+            </div>
+            
+            <h3>Flujo 2: Validación de Deseos (Admin)</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">📧</div>
+                    <h5>Notificación</h5>
+                    <p>Recibes notificación de nuevo deseo</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">🙏</div>
+                    <h5>Ir a Wishes</h5>
+                    <p>Navega a vista de deseos</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">👁️</div>
+                    <h5>Revisar detalles</h5>
+                    <p>Lee fecha, enfermero, tipo de cambio</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">📅</div>
+                    <h5>Check calendario</h5>
+                    <p>Valida que no rompe cobertura</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">5</div>
+                    <div class="step-icon">✅</div>
+                    <h5>Validar</h5>
+                    <p>Clic en botón (⏰→✓)</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">6</div>
+                    <div class="step-icon">🔄</div>
+                    <h5>Auto-aplicación</h5>
+                    <p>Sistema actualiza calendario automáticamente</p>
+                </div>
+            </div>
+            
+            <h3>Flujo 3: Generación Automática de Mes (Admin)</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🗓️</div>
+                    <h5>Navegar a mes</h5>
+                    <p>Ir al mes que quieres generar</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">🎨</div>
+                    <h5>Configurar agenda</h5>
+                    <p>Sidebar → Agenda Planner (niveles actividad)</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">🇫🇷</div>
+                    <h5>Strasbourg (opcional)</h5>
+                    <p>Asignar enfermeros a sesiones</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">⚙️</div>
+                    <h5>Work Conditions</h5>
+                    <p>Clic en "Generar Agenda Automática"</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">5</div>
+                    <div class="step-icon">⏳</div>
+                    <h5>Procesando...</h5>
+                    <p>Algoritmo distribuye turnos</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">6</div>
+                    <div class="step-icon">✅</div>
+                    <h5>Revisar y ajustar</h5>
+                    <p>Calendario generado, edita manualmente si necesario</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">7</div>
+                    <div class="step-icon">🔒</div>
+                    <h5>Bloquear mes</h5>
+                    <p>Clic candado para congelar cambios</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: TIPS Y SHORTCUTS -->
+        <div class="section">
+            <h2>⚡ Tips y Atajos</h2>
+            
+            <div class="feature-cards">
+                <div class="feature-card">
+                    <span class="feature-icon">🖱️</span>
+                    <h4>Doble-clic Rápido</h4>
+                    <p>En cualquier celda del calendario para editar instantáneamente</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🔍</span>
+                    <h4>Zoom Dinámico</h4>
+                    <p>Controles de zoom (40%/60%/80%/100%) para ajustar vista según pantalla</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">📱</span>
+                    <h4>Vista Semanas</h4>
+                    <p>Activa vista semanal (lun-dom) con botones S1, S2, S3... para mejor lectura</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🔔</span>
+                    <h4>Notificaciones</h4>
+                    <p>Panel de notificaciones (campana) con historial de cambios importantes</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🌐</span>
+                    <h4>Multiidioma</h4>
+                    <p>Selector de idioma (ES/EN/FR) en header, cambia toda la interfaz</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">📧</span>
+                    <h4>Exportar Excel</h4>
+                    <p>Descarga agendas mensuales/anuales en formato XLSX desde Balance</p>
+                </div>
+            </div>
+            
+            <div class="tip">
+                <strong>💡 Navegación Rápida</strong>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li><strong>← Anterior | Siguiente →</strong> para cambiar de mes rápidamente</li>
+                    <li><strong>Hoy</strong> button vuelve al mes actual</li>
+                    <li><strong>Candado 🔒</strong> muestra si mes está bloqueado (rojo=bloqueado, verde=editable)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: PREGUNTAS FRECUENTES -->
+        <div class="section">
+            <h2>❓ Preguntas Frecuentes</h2>
+            
+            <div style="display: grid; gap: 20px;">
+                <details style="background: #f8fafc; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea; cursor: pointer;">
+                    <summary style="font-weight: 600; font-size: 1.1em; color: #667eea;">¿Cómo reseteo la contraseña de un usuario?</summary>
+                    <p style="margin-top: 15px; color: #64748b;">
+                        1. Ve a <strong>Users</strong> en el menú superior<br>
+                        2. Localiza el usuario en la tabla<br>
+                        3. Clic en botón <strong>"Reset Password"</strong><br>
+                        4. Sistema genera contraseña temporal y la envía por email<br>
+                        5. Usuario deberá cambiarla en su próximo login
+                    </p>
+                </details>
+                
+                <details style="background: #f8fafc; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea; cursor: pointer;">
+                    <summary style="font-weight: 600; font-size: 1.1em; color: #667eea;">¿Qué pasa si valido un deseo por error?</summary>
+                    <p style="margin-top: 15px; color: #64748b;">
+                        Simplemente vuelve a hacer clic en el botón de validación (cambiará de ✓ verde a ⏰ naranja) para marcarlo como pendiente nuevamente. El cambio en el calendario se revertirá automáticamente.
+                    </p>
+                </details>
+                
+                <details style="background: #f8fafc; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea; cursor: pointer;">
+                    <summary style="font-weight: 600; font-size: 1.1em; color: #667eea;">¿Puedo deshacer un cambio manual?</summary>
+                    <p style="margin-top: 15px; color: #64748b;">
+                        Sí, hay varias formas:<br>
+                        1. <strong>Botón Undo (⟲)</strong> en Work Conditions Bar para deshacer último cambio<br>
+                        2. Ver <strong>History Modal</strong> (Sidebar) para ver todos los cambios y restaurar estados anteriores<br>
+                        3. Editar manualmente la celda de vuelta al valor original
+                    </p>
+                </details>
+                
+                <details style="background: #f8fafc; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea; cursor: pointer;">
+                    <summary style="font-weight: 600; font-size: 1.1em; color: #667eea;">¿Cómo agrego un enfermero nuevo al sistema?</summary>
+                    <p style="margin-top: 15px; color: #64748b;">
+                        1. <strong>Sidebar → Manage Team</strong><br>
+                        2. Campo de texto con placeholder "Añadir enfermero/a..."<br>
+                        3. Escribe el nombre y presiona Enter o clic en "Add"<br>
+                        4. El enfermero aparece en la lista<br>
+                        5. Luego crea un <strong>Usuario</strong> (vista Users) y asócialo a ese enfermero
+                    </p>
+                </details>
+                
+                <details style="background: #f8fafc; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea; cursor: pointer;">
+                    <summary style="font-weight: 600; font-size: 1.1em; color: #667eea;">¿Por qué no veo el botón de edición en una celda?</summary>
+                    <p style="margin-top: 15px; color: #64748b;">
+                        Posibles razones:<br>
+                        1. <strong>Mes bloqueado:</strong> El mes está con candado (🔒). Desbloquéalo primero.<br>
+                        2. <strong>Permisos:</strong> Solo usuarios con rol <strong>admin</strong> pueden editar turnos.<br>
+                        3. <strong>Vista activa:</strong> Asegúrate de estar logueado y no en modo "Viewer"
+                    </p>
+                </details>
+                
+                <details style="background: #f8fafc; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea; cursor: pointer;">
+                    <summary style="font-weight: 600; font-size: 1.1em; color: #667eea;">¿Cómo exporto las agendas a Excel?</summary>
+                    <p style="margin-top: 15px; color: #64748b;">
+                        1. Ve a <strong>Balance</strong> en el menú superior<br>
+                        2. Clic en botón <strong>"Exportar Excel"</strong> (icono hoja de cálculo)<br>
+                        3. Selecciona rango: <strong>Mensual</strong> o <strong>Anual</strong><br>
+                        4. Elige mes/año<br>
+                        5. Se descarga archivo .xlsx con formato profesional
+                    </p>
+                </details>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer style="text-align: center; padding: 40px; color: white; margin-top: 60px;">
+            <p style="font-size: 1.2em; margin-bottom: 15px;">
+                ¿Necesitas más ayuda? Contacta con el administrador del sistema
+            </p>
+            <p style="opacity: 0.8;">
+                Zenova 2026 • Sistema de Planificación de Turnos de Enfermería
+            </p>
+            <p style="opacity: 0.6; font-size: 0.9em; margin-top: 10px;">
+                Versión 3.0 • Última actualización: Marzo 2026
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Smooth scroll para navegación
+        document.querySelectorAll('.floating-nav a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Update active state
+                    document.querySelectorAll('.floating-nav a').forEach(a => a.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+        
+        // Intersection Observer para navegación activa
+        const sections = document.querySelectorAll('.section');
+        const navLinks = document.querySelectorAll('.floating-nav a');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${entry.target.id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+        
+        sections.forEach(section => observer.observe(section));
+        
+        // Animación de aparición en scroll
+        const animateOnScroll = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        document.querySelectorAll('.feature-card, .mindmap-branch, .workflow-step').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 0.6s ease';
+            animateOnScroll.observe(el);
+        });
+    </script>
+</body>
+</html>
