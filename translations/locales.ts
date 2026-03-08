@@ -313,6 +313,10 @@ export const locales = {
     previousWeek: 'Semana anterior',
     nextWeek: 'Próxima semana',
     of: 'de',
+    notifications: 'Notificaciones',
+    newNotificationSingular: 'notificación nueva',
+    newNotificationPlural: 'notificaciones nuevas',
+    noNotifications: 'No hay notificaciones',
 
     // Shift Palette
     shiftLegendTitle: 'Leyenda de Turnos',
@@ -967,6 +971,10 @@ export const locales = {
     previousWeek: 'Previous week',
     nextWeek: 'Next week',
     of: 'of',
+    notifications: 'Notifications',
+    newNotificationSingular: 'new notification',
+    newNotificationPlural: 'new notifications',
+    noNotifications: 'No notifications',
 
     // Shift Palette
     shiftLegendTitle: 'Shift Legend',
@@ -1616,6 +1624,10 @@ export const locales = {
     previousWeek: 'Semaine précédente',
     nextWeek: 'Semaine suivante',
     of: 'de',
+    notifications: 'Notifications',
+    newNotificationSingular: 'nouvelle notification',
+    newNotificationPlural: 'nouvelles notifications',
+    noNotifications: 'Aucune notification',
 
     shiftLegendTitle: 'Légende des Postes',
     manageTeam: 'Équipe',
