@@ -53,7 +53,7 @@ const EventForm: React.FC<{
 
     const type = event?.type || 'other';
     const isFixedType = type !== 'other';
-    const isSplit = type === 'wednesday_permanence_return';
+    const isSplit = type === 'wednesday_permanence_return' || type === 'travel_str_permanence_tuesday';
 
     useEffect(() => {
         setName(event?.name || '');
@@ -86,12 +86,24 @@ const EventForm: React.FC<{
             setError(t.validation_only_wednesdays);
             return;
         }
+        if (type === 'travel_str_permanence_tuesday' && !checkDaysOfWeek(startDate, endDate, 2)) {
+            setError(t.validation_only_tuesdays);
+            return;
+        }
 
         const dataToSave: Omit<SpecialStrasbourgEvent, 'id'> & { id?: string } = { id: event?.id, name, startDate, endDate, startTime, endTime, morningStartTime, morningEndTime, afternoonStartTime, afternoonEndTime, nurseIds, notes, type, isSplit };
         
         // Ensure fixed data is correct on save
         if(type === 'euroscola') { dataToSave.name = 'Euroscola'; dataToSave.startTime = '08:00'; dataToSave.endTime = '17:00'; }
         if(type === 'tuesday_permanence') { dataToSave.name = 'Tuesday Permanence'; dataToSave.startTime = '13:30'; dataToSave.endTime = '18:30'; }
+        if(type === 'travel_str_permanence_tuesday') {
+            dataToSave.name = 'Travel STR + permanence Tuesday';
+            dataToSave.isSplit = true;
+            dataToSave.morningStartTime = '08:00';
+            dataToSave.morningEndTime = '13:30';
+            dataToSave.afternoonStartTime = '13:30';
+            dataToSave.afternoonEndTime = '18:30';
+        }
         if(type === 'wednesday_permanence') { dataToSave.name = 'Wednesday Permanence'; dataToSave.startTime = '09:30'; dataToSave.endTime = '14:30'; }
         if(type === 'wednesday_permanence_return') { dataToSave.name = 'Wednesday Permanence + Return'; dataToSave.isSplit = true; dataToSave.morningStartTime = morningStartTime; dataToSave.morningEndTime = morningEndTime; dataToSave.afternoonStartTime = afternoonStartTime; dataToSave.afternoonEndTime = afternoonEndTime; }
         if(type === 'mini_sesion_bruselas') { dataToSave.name = 'Mini Session Brussels'; dataToSave.startTime = '14:00'; dataToSave.endTime = '23:00'; }
@@ -197,6 +209,7 @@ const EventTypeSelector: React.FC<{
     const eventTypes: { type: SpecialStrasbourgEventType; label: string; description: string; }[] = [
         { type: 'euroscola', label: 'Euroscola', description: 'Fixed schedule 08:00-17:00' },
         { type: 'tuesday_permanence', label: 'Tuesday Permanence', description: 'Fixed schedule 13:30-18:30. Tuesdays only.' },
+        { type: 'travel_str_permanence_tuesday', label: 'Travel STR + permanence Tuesday', description: 'Tuesday split shift: Travel STR 08:00-13:30 + Permanence Tuesday 13:30-18:30.' },
         { type: 'wednesday_permanence', label: 'Wednesday Permanence', description: 'Fixed schedule 09:30-14:30. Wednesdays only.' },
         { type: 'wednesday_permanence_return', label: 'Wednesday Permanence + Return', description: 'Wednesday split shift: Permanence 09:30-14:30 + Return travel 16:00-21:30 (times editable)' },
         { type: 'mini_sesion_bruselas', label: 'Mini Session Brussels', description: 'Standard schedule 14:00-23:00 (adjustable in personal agenda). Next day: afternoon shift or TW if sufficient staff (following general TW rules).' },
@@ -250,6 +263,7 @@ export const StrasbourgEventsModule: React.FC<StrasbourgEventsModuleProps> = ({ 
         switch(type) {
             case 'euroscola': newEvent.name = 'Euroscola'; newEvent.startTime = '08:00'; newEvent.endTime = '17:00'; break;
             case 'tuesday_permanence': newEvent.name = 'Tuesday Permanence'; newEvent.startTime = '13:30'; newEvent.endTime = '18:30'; break;
+            case 'travel_str_permanence_tuesday': newEvent.name = 'Travel STR + permanence Tuesday'; newEvent.isSplit = true; newEvent.morningStartTime = '08:00'; newEvent.morningEndTime = '13:30'; newEvent.afternoonStartTime = '13:30'; newEvent.afternoonEndTime = '18:30'; break;
             case 'wednesday_permanence': newEvent.name = 'Wednesday Permanence'; newEvent.startTime = '09:30'; newEvent.endTime = '14:30'; break;
             case 'wednesday_permanence_return': newEvent.name = 'Wednesday Permanence + Return'; newEvent.isSplit = true; newEvent.morningStartTime = '09:30'; newEvent.morningEndTime = '14:30'; newEvent.afternoonStartTime = '16:00'; newEvent.afternoonEndTime = '21:30'; break;
             case 'mini_sesion_bruselas': newEvent.name = 'Mini Session Brussels'; newEvent.startTime = '14:00'; newEvent.endTime = '23:00'; break;
