@@ -11,7 +11,7 @@ import { holidays2026 } from '../data/agenda2026';
 import { agenda2026Data } from '../data/agenda2026'; // To get activity level
 import { getWeekIdentifier, getDateOfWeek } from '../utils/dateUtils';
 import { getScheduleCellHours, recalculateScheduleForMonth, getShiftsFromCell } from '../utils/scheduleUtils';
-import { calculateHoursForDay, calculateHoursDifference } from '../utils/hoursUtils';
+import { calculateHoursForDay, calculateHoursDifference, calculateNurseTheoreticalHoursForDay } from '../utils/hoursUtils';
 import { SHIFTS } from '../constants';
 import { copyPersonalAgendaToClipboard, copyAnnualAgendaToClipboard } from '../utils/exportUtils';
 import { getActiveJornada } from '../utils/jornadaUtils';
@@ -493,23 +493,23 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                     const isHoliday = holidays2026.has(dateKey);
                     const shiftCell = displayedSchedule?.[dateKey];
                     const shifts = getShiftsFromCell(shiftCell);
-                    const isSickDay = shifts.includes('SICK_LEAVE');
+                    const isSickDay = shifts.includes('SICK_LEAVE') || shifts.includes('CS');
 
                     let dailyHours = 0;
                     if (!hasPlannableWeekday) {
                         const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
                         dailyHours = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
                     } else if (activityLevel === 'CLOSED' || isHoliday || isSickDay) {
-                        if (dayOfWeek >= 1 && dayOfWeek <= 4) { // Mon-Thu
-                            dailyHours = 8.5;
-                        } else if (dayOfWeek === 5) { // Fri
-                            dailyHours = 6.0;
-                        }
+                        // Use theoretical hours which already apply jornada reductions
+                        dailyHours = calculateNurseTheoreticalHoursForDay(nurse, date, agenda, jornadasLaborales);
                     } else {
                         const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
                         dailyHours = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
                     }
-                    weekRealTotal += dailyHours;
+                    // Only count hours for dates that are in the current month
+                    if (date.getUTCMonth() === month) {
+                        weekRealTotal += dailyHours;
+                    }
                 }
             }
         });
