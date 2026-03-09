@@ -457,15 +457,20 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
             return isDateInWorkPeriod(nurse, date) && activityLevel !== 'CLOSED' && !isHoliday;
         });
 
-        // Calculate theoretical hours by summing each day in-month (not prorated formula)
+        // Count weekdays (Mon-Fri) in this month only, but prorate against standard 5-day week
+        const weekdaysInMonth = inMonthWeekDates.filter(date => {
+            const dayOfWeek = date.getUTCDay();
+            return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday = 1, Friday = 5
+        }).length;
+
+        // Prorate theoretical hours: only count days in month, against 5-day standard week
         let weekTheoreticalFixed = 0;
-        if (hasPlannableWeekday) {
-            inMonthWeekDates.forEach(date => {
-                const dayOfWeek = date.getUTCDay();
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Only weekdays
-                    weekTheoreticalFixed += calculateNurseTheoreticalHoursForDay(nurse, date, agenda, jornadasLaborales);
-                }
-            });
+        if (!hasPlannableWeekday) {
+            weekTheoreticalFixed = 0;
+        } else if (weekdaysInMonth > 0) {
+            // Proportional: (actual weekdays in month / 5 standard days) * base hours  
+            weekTheoreticalFixed = (weekdaysInMonth / 5) * weekTheoreticalBase;
+
         }
         
         let weekManual = 0;
