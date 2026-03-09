@@ -104,7 +104,7 @@ export const calculateHoursForDay = (
     const shifts = getShiftsFromCellUtil(scheduleCell);
 
     // Absences should count for the theoretical hours for that day.
-    if (shifts.length > 0 && ['CA', 'SICK_LEAVE', 'FP'].includes(shifts[0])) {
+    if (shifts.length > 0 && ['CA', 'SICK_LEAVE', 'FP', 'CS'].includes(shifts[0])) {
         return calculateNurseTheoreticalHoursForDay(nurse, date, agenda, jornadasLaborales);
     }
 
@@ -202,25 +202,17 @@ export const calculateHoursForDay = (
         else if (['F'].includes(primaryShift)) {
             baseHours = 0;
         }
-        // RECUP: discount standard hours of that day from balance (return as negative)
+        // RECUP: discount theoretical hours (respecting jornada) from balance (return as negative)
         else if (primaryShift === 'RECUP') {
-            // Get standard theoretical hours for this day and return as negative (discount)
-            const dayOfWeekForRecup = date.getUTCDay();
-            if (dayOfWeekForRecup >= 1 && dayOfWeekForRecup <= 5) {
-                baseHours = -(dayOfWeekForRecup === 5 ? 6.0 : 8.5); // Friday: -6h, Mon-Thu: -8.5h (negative = discount)
-            } else {
-                baseHours = 0; // Weekend
-            }
+            // Calculate theoretical hours for this nurse on this day (includes jornada reductions)
+            const theoreticalHours = calculateNurseTheoreticalHoursForDay(nurse, date, agenda, jornadasLaborales);
+            // Return as negative to discount from balance
+            return -theoreticalHours;
         }
     }
 
     if (baseHours === 0) {
         return 0;
-    }
-
-    // RECUP (negative values) bypass jornada reductions and are returned as-is
-    if (baseHours < 0) {
-        return baseHours;
     }
 
     // ---- Single point for applying jornada reductions FOR WORK SHIFTS ----
