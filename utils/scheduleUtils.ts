@@ -280,42 +280,36 @@ const assignAdminAndTWToRemainingNurses = (
     const hasPrevAdminOrTW = (nurseId: string) =>
         getShiftsFromCell(schedule[nurseId]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
 
-    const weeklyAdminTwCount = (nurseId: string) =>
-        (weeklyStats[nurseId]?.['ADMIN'] || 0) + (weeklyStats[nurseId]?.['TW'] || 0);
-
     let available = [...remainingNurses];
 
-    // Primeros 2 extras -> ADMIN (evitando consecutivos y >2 admin/tw semanales si hay alternativa)
-    for (let adminSlots = 0; adminSlots < 2 && available.length > 0; adminSlots++) {
-        const strictPool = available.filter(n => !hasPrevAdminOrTW(n.id) && weeklyAdminTwCount(n.id) < 2);
-        const mediumPool = available.filter(n => weeklyAdminTwCount(n.id) < 2);
-        const softPool = available.filter(n => !hasPrevAdminOrTW(n.id));
-        const pickPool = strictPool.length > 0 ? strictPool : (mediumPool.length > 0 ? mediumPool : (softPool.length > 0 ? softPool : available));
-
-        const selected = pickPool[0];
+    // Posición 7: ADMIN (preferir no consecutivo si hay opciones)
+    if (available.length > 0) {
+        const nonConsecutive = available.filter(n => !hasPrevAdminOrTW(n.id));
+        const selected = nonConsecutive.length > 0 ? nonConsecutive[0] : available[0];
         dailyAssignments[selected.id] = 'ADMIN';
         available = available.filter(n => n.id !== selected.id);
     }
 
-    // A partir del 3er extra: priorizar TW con reglas; si no es posible, ADMIN
+    // Posición 8: ADMIN (preferir no consecutivo si hay opciones)
+    if (available.length > 0) {
+        const nonConsecutive = available.filter(n => !hasPrevAdminOrTW(n.id));
+        const selected = nonConsecutive.length > 0 ? nonConsecutive[0] : available[0];
+        dailyAssignments[selected.id] = 'ADMIN';
+        available = available.filter(n => n.id !== selected.id);
+    }
+
+    // Posiciones 9+: TW (si cumple restricciones), si no -> ADMIN
     available.forEach(nurse => {
         const prevAdminOrTw = hasPrevAdminOrTW(nurse.id);
-        const weeklyAdminTw = weeklyAdminTwCount(nurse.id);
 
-        const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && nurse.id !== 'nurse-11' &&
+        const canGetTW =
+            nurse.id !== 'nurse-1' &&
+            nurse.id !== 'nurse-2' &&
+            nurse.id !== 'nurse-11' &&
             nurseStats[nurse.id].tw_weekly < 1 &&
-            !prevAdminOrTw &&
-            weeklyAdminTw < 2;
+            !prevAdminOrTw;
 
-        if (canGetTW) {
-            dailyAssignments[nurse.id] = 'TW';
-            return;
-        }
-
-        // Evitar consecutivo y >2 admin/tw semanal si hay posibilidad; si no, fallback a ADMIN
-        const canGetAdminPreferably = !prevAdminOrTw && weeklyAdminTw < 2;
-        const canGetAdminSoft = weeklyAdminTw < 2 || !prevAdminOrTw;
-        dailyAssignments[nurse.id] = (canGetAdminPreferably || canGetAdminSoft) ? 'ADMIN' : 'ADMIN';
+        dailyAssignments[nurse.id] = canGetTW ? 'TW' : 'ADMIN';
     });
 };
 
@@ -873,9 +867,8 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 else { dailyAssignments['nurse-11'] = 'TRAVAIL'; }
             }
 
-            // Regla de negocio: si hay más de 2 ADMIN en un día, el 3º/4º/5º pasan a TW
-            // salvo Elvio, Tanja, Becario o quien ya tenga TW esa semana.
-            enforceAdminOverflowToTW(dailyAssignments, nurseStats, weeklyStats, schedule, previousDateKey);
+            // Regla de negocio: se aplica en assignAdminAndTWToRemainingNurses (posición 7=ADMIN, 8=ADMIN, 9+=TW)
+            // enforceAdminOverflowToTW(dailyAssignments, nurseStats, weeklyStats, schedule, previousDateKey);
 
             Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
                 const nurse = nurses.find(n => n.id === nurseId)!;
