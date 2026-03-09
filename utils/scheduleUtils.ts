@@ -361,7 +361,6 @@ const assignAdminAndTWToRemainingNurses = (
     if (available.length > 0) {
         const selected = sortForAdmin(available)[0];
         dailyAssignments[selected.id] = 'ADMIN';
-        if (weeklyAdminTWCount) weeklyAdminTWCount[selected.id]++;
         available = available.filter(n => n.id !== selected.id);
     }
 
@@ -369,7 +368,6 @@ const assignAdminAndTWToRemainingNurses = (
     if (available.length > 0) {
         const selected = sortForAdmin(available)[0];
         dailyAssignments[selected.id] = 'ADMIN';
-        if (weeklyAdminTWCount) weeklyAdminTWCount[selected.id]++;
         available = available.filter(n => n.id !== selected.id);
     }
 
@@ -384,9 +382,9 @@ const assignAdminAndTWToRemainingNurses = (
         };
 
         const availableCanAdd = available.filter(canAdd);
-        if (availableCanAdd.length === 0) break; // No one available to take more this week
+        const fallbackPool = availableCanAdd.length > 0 ? availableCanAdd : available;
 
-        const eligibleTW = availableCanAdd.filter(nurse =>
+        const eligibleTW = fallbackPool.filter(nurse =>
             nurse.id !== 'nurse-1' &&
             nurse.id !== 'nurse-2' &&
             nurse.id !== 'nurse-11' &&
@@ -397,14 +395,12 @@ const assignAdminAndTWToRemainingNurses = (
         if (eligibleTW.length > 0) {
             const selectedTW = sortForTW(eligibleTW)[0];
             dailyAssignments[selectedTW.id] = 'TW';
-            if (weeklyAdminTWCount) weeklyAdminTWCount[selectedTW.id]++;
             available = available.filter(n => n.id !== selectedTW.id);
             continue;
         }
 
-        const selectedAdmin = sortForAdmin(availableCanAdd)[0];
+        const selectedAdmin = sortForAdmin(fallbackPool)[0];
         dailyAssignments[selectedAdmin.id] = 'ADMIN';
-        if (weeklyAdminTWCount) weeklyAdminTWCount[selectedAdmin.id]++;
         available = available.filter(n => n.id !== selectedAdmin.id);
     }
 };
@@ -580,10 +576,17 @@ export const ensureMandatoryCoverage = (
             });
         }
 
-        // Catchall: asegurar que todos los enfermeros tienen un turno ese día
+        // Catchall: asegurar que todos los enfermeros tienen un turno ese día (solo ADMIN/TW)
         nurses.forEach(nurse => {
             if (!result[nurse.id][dateKey]) {
-                result[nurse.id][dateKey] = { custom: 'Libre', type: 'F' };
+                const currentWeekId = getWeekIdentifier(currentDate);
+                const previousDate = new Date(currentDate);
+                previousDate.setUTCDate(previousDate.getUTCDate() - 1);
+                const previousDateKey = previousDate.toISOString().split('T')[0];
+                const hasPrevAdminOrTW = getShiftsFromCell(result[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
+                const weeklyTW = countWeeklyTWForNurse(nurse.id, dateKey, currentWeekId);
+                const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && nurse.id !== 'nurse-11' && !hasPrevAdminOrTW && weeklyTW < 1;
+                result[nurse.id][dateKey] = canGetTW ? 'TW' : 'ADMIN';
             }
         });
     }
@@ -986,11 +989,17 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
             // Regla de negocio: se aplica en assignAdminAndTWToRemainingNurses (posición 7=ADMIN, 8=ADMIN, 9+=TW)
             // enforceAdminOverflowToTW(dailyAssignments, nurseStats, weeklyStats, schedule, previousDateKey);
 
-            // Asegurar que TODOS los enfermeros tienen un turno asignado (catchall para cualquiera que falte)
+            // Asegurar que TODOS los enfermeros tienen un turno asignado (solo ADMIN/TW)
             nurses.forEach(nurse => {
                 if (!dailyAssignments[nurse.id]) {
-                    // Si no hay asignación, poner un LIBERO/día libre
-                    dailyAssignments[nurse.id] = { custom: 'Libre', type: 'F' };
+                    const hasPrevAdminOrTW = getShiftsFromCell(schedule[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
+                    const canGetTW =
+                        nurse.id !== 'nurse-1' &&
+                        nurse.id !== 'nurse-2' &&
+                        nurse.id !== 'nurse-11' &&
+                        nurseStats[nurse.id].tw_weekly < 1 &&
+                        !hasPrevAdminOrTW;
+                    dailyAssignments[nurse.id] = canGetTW ? 'TW' : 'ADMIN';
                 }
             });
 
