@@ -431,8 +431,6 @@ export const getClinicalNeedsForDay = (date: Date, agenda: Agenda, vaccinationPe
         return needs;
     }
     
-    if (activityLevel === 'REDUCED') return { 'URGENCES': 2, 'TRAVAIL': 2 };
-    
     return { 'URGENCES': 2, 'TRAVAIL': 2, 'URGENCES_TARDE': 1, 'TRAVAIL_TARDE': 1 };
 };
 
