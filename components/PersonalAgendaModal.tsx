@@ -494,11 +494,16 @@ export const PersonalAgendaModal: React.FC<PersonalAgendaModalProps> = ({
                     const shiftCell = displayedSchedule?.[dateKey];
                     const shifts = getShiftsFromCell(shiftCell);
                     const isSickDay = shifts.includes('SICK_LEAVE') || shifts.includes('CS');
+                    const isRecupDay = shifts.includes('RECUP');
 
                     let dailyHours = 0;
                     if (!hasPlannableWeekday) {
                         const specialEvent = specialStrasbourgEvents.find(e => e.nurseIds.includes(nurse.id) && dateKey >= e.startDate && dateKey <= e.endDate);
                         dailyHours = calculateHoursForDay(nurse, shiftCell, date, agenda, strasbourgAssignments, specialEvent, jornadasLaborales);
+                    } else if (isRecupDay) {
+                        // RECUP means no worked hours that day; weekly theoretical already accounts for the expected day.
+                        // Using 0 here avoids double subtraction in diff = real - theoretical.
+                        dailyHours = 0;
                     } else if (activityLevel === 'CLOSED' || isHoliday || isSickDay) {
                         // Use theoretical hours which already apply jornada reductions
                         dailyHours = calculateNurseTheoreticalHoursForDay(nurse, date, agenda, jornadasLaborales);
