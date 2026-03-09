@@ -296,6 +296,7 @@
                     <li><a href="#sidebar">3. Sidebar - Módulos de Admin</a></li>
                     <li><a href="#edicion">4. Edición de Turnos</a></li>
                     <li><a href="#cobertura">5. Sistema de Cobertura 🆕</a></li>
+                    <li><a href="#rotatorio">5B. Sistema de Rotación Automática 🆕</a></li>
                     <li><a href="#wishes">6. Wishes (Deseos)</a></li>
                     <li><a href="#usuarios">7. Gestión de Usuarios</a></li>
                     <li><a href="#historial">8. Historial / Auditoría</a></li>
@@ -730,6 +731,204 @@
                     <li>Verificar que no se quebró otro turno</li>
                 </ol>
                 <h4>AHORA (2026): ¡1 click!</h4>
+            </div>
+
+            <div class="separator"></div>
+
+            <h2 id="rotatorio">5B. SISTEMA DE ROTACIÓN AUTOMÁTICA DE TURNOS <span class="badge new">NUEVO 2026.3</span></h2>
+
+            <p>Cuando se genera o recalcula la planificación mensual, el sistema automáticamente asigna turnos basándose en un algoritmo de rotación equitativa. Esta sección explica cómo funciona EXACTAMENTE este proceso.</p>
+
+            <h3>5B.1 Función Principal: recalculateScheduleForMonth()</h3>
+            <div class="feature-box">
+                <p><strong>Ubicación:</strong> <code>utils/scheduleUtils.ts</code></p>
+                <p><strong>Qué hace:</strong> Genera el calendario completo del mes asignando turnos a todos los enfermeros día por día</p>
+                <p><strong>Flujo general:</strong></p>
+                <ol>
+                    <li>Identifica días festivos y tipo de día (NORMAL / SESSION / REDUCED / vacunación)</li>
+                    <li>Para cada día, calcula necesidades clínicas según tipo de día</li>
+                    <li>Asigna turnos en orden de prioridad (URGENCES_TARDE primero, etc.)</li>
+                    <li>Selecciona candidatos usando algoritmo de equidad</li>
+                    <li>Aplica restricciones de jornada reducida</li>
+                    <li>Asegura cobertura obligatoria mínima (6 turnos mandatory)</li>
+                    <li>Gestiona casos especiales (Elvio, Intern, Strasbourg)</li>
+                </ol>
+            </div>
+
+            <h3>5B.2 Necesidades Clínicas por Tipo de Día</h3>
+            <div class="feature-box">
+                <p><strong>Función:</strong> <code>getClinicalNeedsForDay(dayType, month, year, fullStaffCount)</code></p>
+                <p><strong>NORMAL (lunes-viernes regulares):</strong></p>
+                <ul>
+                    <li>URGENCES: 2 enfermeros</li>
+                    <li>TRAVAIL: 2 enfermeros</li>
+                    <li>URGENCES_TARDE: 1 enfermero</li>
+                    <li>TRAVAIL_TARDE: 1 enfermero</li>
+                    <li>ADMIN: 1 enfermero (Elvio en ADMIN)</li>
+                    <li>TW: Resto del staff disponible</li>
+                </ul>
+                <p><strong>SESSION (semanas con Strasbourg - cada 2-3 semanas):</strong></p>
+                <ul>
+                    <li>URGENCES: 1 enfermero (reducido porque otro está en STRASBOURG)</li>
+                    <li>TRAVAIL: 2 enfermeros</li>
+                    <li>URGENCES_TARDE: 1 enfermero</li>
+                    <li>TRAVAIL_TARDE: 1 enfermero</li>
+                    <li>STRASBOURG: 1 enfermero (10h de trabajo, rota entre staff)</li>
+                    <li>ADMIN: 1 enfermero</li>
+                    <li>TW: Resto disponible</li>
+                </ul>
+                <p><strong>REDUCED (viernes típico):</strong></p>
+                <ul>
+                    <li>URGENCES: 1 enfermero</li>
+                    <li>TRAVAIL: 1 enfermero</li>
+                    <li>URGENCES_TARDE: 1 enfermero</li>
+                    <li>TRAVAIL_TARDE: 1 enfermero</li>
+                    <li>ADMIN: 1 enfermero</li>
+                    <li>TW: Resto disponible</li>
+                </ul>
+                <p><strong>VACCINATION_AM / VACCINATION_PM (días especiales):</strong></p>
+                <ul>
+                    <li>Similar a NORMAL pero con slot VACCIN_AM o VACCIN_PM</li>
+                    <li>VACCIN: 1 enfermero dedicado a vacunación</li>
+                </ul>
+            </div>
+
+            <h3>5B.3 Sistema de Equidad y Selección de Candidatos</h3>
+            <div class="feature-box">
+                <p><strong>Función:</strong> <code>findBestCandidateWithWeeklyEquity()</code></p>
+                <p><strong>Objetivo:</strong> Distribuir turnos equitativamente usando estadísticas semanales Y mensuales</p>
+                <p><strong>Proceso de selección:</strong></p>
+                <ol>
+                    <li><strong>Filtra candidatos inelegibles:</strong>
+                        <ul>
+                            <li>Ya asignado hoy</li>
+                            <li>En jornada 80% con día libre completo</li>
+                            <li>Tiene restricción "ineligibleForAfternoon" si es turno de tarde</li>
+                            <li>Viola regla "exclude wish" validado</li>
+                        </ul>
+                    </li>
+                    <li><strong>Ordena candidatos por:</strong>
+                        <ol>
+                            <li><strong>Prioridad 1:</strong> Stat mensual MENOR para este tipo de turno (ej: menos URGENCES)</li>
+                            <li><strong>Prioridad 2:</strong> Stat semanal MENOR para este tipo de turno</li>
+                            <li><strong>Prioridad 3:</strong> Total clínico mensual MENOR</li>
+                            <li><strong>Desempate:</strong> Random</li>
+                        </ol>
+                    </li>
+                    <li><strong>Selecciona el primero</strong> de la lista ordenada</li>
+                </ol>
+                <p><strong>⚠️ Stats semanales se resetean cada lunes</strong> - Esto garantiza equidad dentro de cada semana, no solo mensual</p>
+            </div>
+
+            <h3>5B.4 Días de Vacunación (VACCINATION_AM / PM)</h3>
+            <div class="example">
+                <p><strong>Regla especial:</strong> Si un enfermero hace VACCIN_AM, NO puede tener turno de tarde el mismo día</p>
+                <p><strong>Implementación:</strong></p>
+                <ul>
+                    <li>Primero se asigna VACCIN_AM/PM</li>
+                    <li>Sistema marca ese enfermero como "ya asignado hoy"</li>
+                    <li>Al asignar turnos de tarde, ese enfermero queda automáticamente excluido</li>
+                </ul>
+            </div>
+
+            <h3>5B.5 Restricciones por Jornada Reducida</h3>
+            <div class="feature-box warning">
+                <p><strong>Jornada 90% con END_SHIFT_4H / START_SHIFT_4H:</strong></p>
+                <ul>
+                    <li>El enfermero termina/empieza 4h antes UN DÍA específico a la semana</li>
+                    <li><strong>Sistema crea set ineligibleForAfternoon</strong></li>
+                    <li>Ese día NO puede asignarse turno de tarde (URGENCES_TARDE, TRAVAIL_TARDE)</li>
+                    <li>Ejemplo: Katelijn tiene reducción lunes → Los lunes NO aparece en lista de candidatos para turnos de tarde</li>
+                </ul>
+                <p><strong>Jornada 80% con FULL_DAY_OFF:</strong></p>
+                <ul>
+                    <li>El enfermero no trabaja UN DÍA completo a la semana</li>
+                    <li>Sistema lo excluye completamente de asignaciones ese día</li>
+                    <li>No aparece en grid ni en candidatos</li>
+                </ul>
+            </div>
+
+            <h3>5B.6 Orden de Prioridad de Asignación</h3>
+            <div class="feature-box">
+                <p><strong>El sistema asigna en este orden (crítico para evitar desbalances):</strong></p>
+                <ol>
+                    <li><strong>URGENCES_TARDE</strong> (más difícil de cubrir, menos candidatos por restricciones)</li>
+                    <li><strong>TRAVAIL_TARDE</strong></li>
+                    <li><strong>URGENCES</strong> (mañana)</li>
+                    <li><strong>TRAVAIL</strong> (mañana)</li>
+                    <li><strong>STRASBOURG</strong> (si es SESSION day)</li>
+                    <li><strong>ADMIN</strong> (Elvio si disponible)</li>
+                    <li><strong>VACCIN_AM / VACCIN_PM</strong> (días especiales)</li>
+                    <li><strong>TW</strong> (último, para el resto del staff)</li>
+                </ol>
+                <p><strong>¿Por qué este orden?</strong> Los turnos de tarde tienen menos candidatos (por jornadas reducidas), así que se asignan primero cuando hay más opciones.</p>
+            </div>
+
+            <h3>5B.7 Regla de Cobertura Obligatoria Mínima</h3>
+            <div class="feature-box info">
+                <p><strong>Función:</strong> <code>ensureMandatoryCoverage()</code></p>
+                <p><strong>Regla:</strong> Antes de asignar ADMIN o TW, debe haber MÍNIMO 6 turnos "mandatory" cubiertos</p>
+                <p><strong>Turnos mandatory:</strong></p>
+                <ul>
+                    <li>URGENCES</li>
+                    <li>TRAVAIL</li>
+                    <li>URGENCES_TARDE</li>
+                    <li>TRAVAIL_TARDE</li>
+                    <li>STRASBOURG (en días SESSION)</li>
+                </ul>
+                <p><strong>⚠️ Si no hay 6 mandatory cubiertos:</strong></p>
+                <ul>
+                    <li>Sistema reasigna enfermeros de TW → mandatory faltante</li>
+                    <li>Prioridad: URGENCES_TARDE > TRAVAIL_TARDE > URGENCES > TRAVAIL</li>
+                    <li>Usa algoritmo de equidad para elegir a quién reasignar</li>
+                </ul>
+            </div>
+
+            <h3>5B.8 Casos Especiales</h3>
+            <div class="feature-box">
+                <p><strong>Elvio:</strong></p>
+                <ul>
+                    <li>Sistema intenta asignarlo a ADMIN días que no son viernes</li>
+                    <li>Si no es suficiente, rotará a turnos clínicos como los demás</li>
+                </ul>
+                <p><strong>Intern (interno rotante):</strong></p>
+                <ul>
+                    <li>Cada 4 semanas rota de servicio</li>
+                    <li>Sistema detecta "semana del intern" y lo asigna a URGENCES días hábiles</li>
+                    <li>Cuando NO está en URGENCES, trabaja rotación normal</li>
+                </ul>
+                <p><strong>Strasbourg (sesiones externas):</strong></p>
+                <ul>
+                    <li>Semanas SESSION: 1 enfermero va a STRASBOURG (10h de trabajo completo)</li>
+                    <li><strong>⚠️ IMPORTANTE:</strong> STRASBOURG NO aplica reducción de jornada - todos trabajan 10h sin importar si tienen 90%/80%</li>
+                    <li>Sistema rota quién va usando stats de Strasbourg (quien menos haya ido)</li>
+                </ul>
+            </div>
+
+            <h3>5B.9 Aplicación de Modificaciones de Jornada a Horas Trabajadas</h3>
+            <div class="example">
+                <p><strong>Después de asignar turno, sistema aplica ajustes:</strong></p>
+                <ul>
+                    <li><strong>Turno base URGENCES:</strong> 8.5h</li>
+                    <li><strong>Si enfermero tiene jornada 90% END_SHIFT_4H ese día:</strong> 8.5h - 4h = 4.5h</li>
+                    <li><strong>Si enfermero tiene jornada 90% LEAVE_EARLY_1H lunes-jueves:</strong> 8.5h - 1h = 7.5h</li>
+                    <li><strong>Turno tarde base:</strong> 6h</li>
+                    <li><strong>Si jornada 90% aplica:</strong> 6h - 1h = 5h (lunes-jueves)</li>
+                </ul>
+                <p><strong>Estas horas ajustadas son las que aparecen en Balance y cálculos semanales</strong></p>
+            </div>
+
+            <div class="feature-box info">
+                <h4>⚠️ EN RESUMEN - Cómo se asigna un turno:</h4>
+                <ol>
+                    <li>Sistema ve: "Necesito 1 URGENCES_TARDE el día 15"</li>
+                    <li>Filtra: Enfermeros SIN restricción de tarde, SIN asignación hoy, SIN wish exclude validado</li>
+                    <li>Ordena: Quien tenga MENOS URGENCES_TARDE esta semana → Quien tenga MENOS este mes → Quien tenga MENOS turnos clínicos totales</li>
+                    <li>Asigna: El primero de la lista</li>
+                    <li>Actualiza: Stats semanales +1, stats mensuales +1, marca como "asignado hoy"</li>
+                    <li>Aplica: Reducción de jornada si corresponde (ej: 6h → 5h si es lunes con LEAVE_EARLY_1H)</li>
+                    <li>Continúa: Siguiente turno en orden de prioridad</li>
+                </ol>
             </div>
 
             <div class="separator"></div>
