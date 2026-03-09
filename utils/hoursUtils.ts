@@ -299,7 +299,9 @@ export const calculateNurseTheoreticalHoursForDay = (
     const activityLevel = agenda[weekId] || 'NORMAL';
 
     // Is it a theoretical workday?
-    const isWorkday = dayOfWeek >= 1 && dayOfWeek <= 5 && !holidays2026.has(dateKey) && activityLevel !== 'CLOSED';
+    // Festive and CLOSED days are compensated like CA in the individual balance model,
+    // so they still carry the day's theoretical hours.
+    const isWorkday = dayOfWeek >= 1 && dayOfWeek <= 5;
     
     if (!isWorkday) {
         return 0;
