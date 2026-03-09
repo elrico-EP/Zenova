@@ -398,6 +398,45 @@ const AppContent: React.FC = () => {
     return getAutoBaseScheduleForMonth(date);
   }, [getMonthKeyFromDate, isFrozenGenerationMonth, frozenSchedules, getAutoBaseScheduleForMonth]);
 
+  // Function to regenerate frozen schedules from April onwards (discards old frozen data for Apr+)
+  // Keeps Jan-Mar frozen, but regenerates Apr-Dec with new code
+  const regenerateFrozenSchedulesFromApril = useCallback(async () => {
+    if (!frozenSchedules) return;
+    
+    const nextFrozenSchedules: Record<string, Schedule> = {};
+    
+    // Keep only Jan-Mar (2026-01, 2026-02, 2026-03) from frozen schedules
+    const filteredFrozen = Object.entries(frozenSchedules).filter(([key]) => {
+      const [yearStr, monthStr] = key.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      // Keep if before April 2026
+      return year < FROZEN_START_YEAR || (year === FROZEN_START_YEAR && month < FROZEN_START_MONTH_INDEX + 1);
+    });
+    
+    filteredFrozen.forEach(([key, schedule]) => {
+      nextFrozenSchedules[key] = schedule;
+    });
+    
+    // Months from April 2026 onwards will be regenerated on-demand when getFrozenOrAutoBaseScheduleForMonth is called
+    await updateData({ frozenSchedules: nextFrozenSchedules });
+    console.log('✅ Regenerated frozen schedules: frozen only for Jan-Mar, Apr+ will use new code');
+    triggerNotification('success', 'Frozen schedules regenerated for April onwards');
+  }, [frozenSchedules, updateData, triggerNotification]);
+
+  // Auto-regenerate April+ frozen schedules on component mount (only once per session)
+  useEffect(() => {
+    const hasRegenerated = sessionStorage.getItem('equity-regen-done');
+    if (!hasRegenerated && frozenSchedules && Object.keys(frozenSchedules).some(k => {
+      const [y, m] = k.split('-').map(Number);
+      return y === 2026 && m >= 4;
+    })) {
+      regenerateFrozenSchedulesFromApril().then(() => {
+        sessionStorage.setItem('equity-regen-done', 'true');
+      });
+    }
+  }, []);
+
   const askRecalcScopeForManualChanges = useCallback((context: 'manual' | 'swap'): Promise<RecalcScope> => {
     return new Promise(resolve => {
       recalcScopeResolverRef.current = resolve;
