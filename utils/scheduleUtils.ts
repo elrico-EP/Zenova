@@ -273,44 +273,99 @@ const assignAdminAndTWToRemainingNurses = (
     nurseStats: Record<string, NurseStats>,
     weeklyStats: Record<string, Record<WorkZone, number>>,
     schedule: Schedule,
-    previousDateKey: string
+    previousDateKey: string,
+    annualStats?: Record<string, NurseStats>
 ): void => {
     if (nursesOnMandatoryShifts < 6) return;
 
     const hasPrevAdminOrTW = (nurseId: string) =>
         getShiftsFromCell(schedule[nurseId]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
 
+    const sortForAdmin = (pool: Nurse[]): Nurse[] => {
+        return [...pool].sort((a, b) => {
+            const prevA = hasPrevAdminOrTW(a.id) ? 1 : 0;
+            const prevB = hasPrevAdminOrTW(b.id) ? 1 : 0;
+            if (prevA !== prevB) return prevA - prevB;
+
+            const weeklyAdminTwA = (weeklyStats[a.id]?.['ADMIN'] || 0) + (weeklyStats[a.id]?.['TW'] || 0);
+            const weeklyAdminTwB = (weeklyStats[b.id]?.['ADMIN'] || 0) + (weeklyStats[b.id]?.['TW'] || 0);
+            if (weeklyAdminTwA !== weeklyAdminTwB) return weeklyAdminTwA - weeklyAdminTwB;
+
+            const monthlyAdminA = nurseStats[a.id]?.admin || 0;
+            const monthlyAdminB = nurseStats[b.id]?.admin || 0;
+            if (monthlyAdminA !== monthlyAdminB) return monthlyAdminA - monthlyAdminB;
+
+            if (annualStats) {
+                const annualAdminA = annualStats[a.id]?.admin || 0;
+                const annualAdminB = annualStats[b.id]?.admin || 0;
+                if (annualAdminA !== annualAdminB) return annualAdminA - annualAdminB;
+            }
+
+            return Math.random() - 0.5;
+        });
+    };
+
+    const sortForTW = (pool: Nurse[]): Nurse[] => {
+        return [...pool].sort((a, b) => {
+            const weeklyTwA = weeklyStats[a.id]?.['TW'] || 0;
+            const weeklyTwB = weeklyStats[b.id]?.['TW'] || 0;
+            if (weeklyTwA !== weeklyTwB) return weeklyTwA - weeklyTwB;
+
+            const monthlyTwA = nurseStats[a.id]?.tw || 0;
+            const monthlyTwB = nurseStats[b.id]?.tw || 0;
+            if (monthlyTwA !== monthlyTwB) return monthlyTwA - monthlyTwB;
+
+            if (annualStats) {
+                const annualTwA = annualStats[a.id]?.tw || 0;
+                const annualTwB = annualStats[b.id]?.tw || 0;
+                if (annualTwA !== annualTwB) return annualTwA - annualTwB;
+            }
+
+            const weeklyAdminTwA = (weeklyStats[a.id]?.['ADMIN'] || 0) + (weeklyStats[a.id]?.['TW'] || 0);
+            const weeklyAdminTwB = (weeklyStats[b.id]?.['ADMIN'] || 0) + (weeklyStats[b.id]?.['TW'] || 0);
+            if (weeklyAdminTwA !== weeklyAdminTwB) return weeklyAdminTwA - weeklyAdminTwB;
+
+            return Math.random() - 0.5;
+        });
+    };
+
     let available = [...remainingNurses];
 
-    // Posición 7: ADMIN (preferir no consecutivo si hay opciones)
+    // Posición 7: ADMIN (equidad semanal/mensual/anual + no consecutivo)
     if (available.length > 0) {
-        const nonConsecutive = available.filter(n => !hasPrevAdminOrTW(n.id));
-        const selected = nonConsecutive.length > 0 ? nonConsecutive[0] : available[0];
+        const selected = sortForAdmin(available)[0];
         dailyAssignments[selected.id] = 'ADMIN';
         available = available.filter(n => n.id !== selected.id);
     }
 
-    // Posición 8: ADMIN (preferir no consecutivo si hay opciones)
+    // Posición 8: ADMIN (equidad semanal/mensual/anual + no consecutivo)
     if (available.length > 0) {
-        const nonConsecutive = available.filter(n => !hasPrevAdminOrTW(n.id));
-        const selected = nonConsecutive.length > 0 ? nonConsecutive[0] : available[0];
+        const selected = sortForAdmin(available)[0];
         dailyAssignments[selected.id] = 'ADMIN';
         available = available.filter(n => n.id !== selected.id);
     }
 
     // Posiciones 9+: TW (si cumple restricciones), si no -> ADMIN
-    available.forEach(nurse => {
-        const prevAdminOrTw = hasPrevAdminOrTW(nurse.id);
-
-        const canGetTW =
+    while (available.length > 0) {
+        const eligibleTW = available.filter(nurse =>
             nurse.id !== 'nurse-1' &&
             nurse.id !== 'nurse-2' &&
             nurse.id !== 'nurse-11' &&
             nurseStats[nurse.id].tw_weekly < 1 &&
-            !prevAdminOrTw;
+            !hasPrevAdminOrTW(nurse.id)
+        );
 
-        dailyAssignments[nurse.id] = canGetTW ? 'TW' : 'ADMIN';
-    });
+        if (eligibleTW.length > 0) {
+            const selectedTW = sortForTW(eligibleTW)[0];
+            dailyAssignments[selectedTW.id] = 'TW';
+            available = available.filter(n => n.id !== selectedTW.id);
+            continue;
+        }
+
+        const selectedAdmin = sortForAdmin(available)[0];
+        dailyAssignments[selectedAdmin.id] = 'ADMIN';
+        available = available.filter(n => n.id !== selectedAdmin.id);
+    }
 };
 
 
@@ -581,7 +636,7 @@ const isJornadaFullDayOff = (
     return false;
 };
 
-export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda: Agenda, manualOverrides: Schedule, vaccinationPeriod: { start: string; end: string } | null, strasbourgAssignments: Record<string, string[]>, jornadasLaborales: JornadaLaboral[]): Schedule => {
+export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda: Agenda, manualOverrides: Schedule, vaccinationPeriod: { start: string; end: string } | null, strasbourgAssignments: Record<string, string[]>, jornadasLaborales: JornadaLaboral[], annualStatsBase?: Record<string, NurseStats>): Schedule => {
     const schedule: Schedule = {};
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -598,8 +653,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
     const lastAssignmentDate: Record<string, Record<WorkZone, number>> = {};
     nurses.forEach(nurse => { lastAssignmentDate[nurse.id] = {} as Record<WorkZone, number>; });
     
-    // TODO: Load annual stats from AppState/Firebase (for now, undefined = no annual equity yet)
-    const annualStats: Record<string, NurseStats> | undefined = undefined;
+    const annualStats: Record<string, NurseStats> | undefined = annualStatsBase;
 
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -784,7 +838,8 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     nurseStats,
                     weeklyStats,
                     schedule,
-                    previousDateKey
+                    previousDateKey,
+                    annualStats
                 );
 
             } else {
@@ -828,7 +883,8 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     nurseStats,
                     weeklyStats,
                     schedule,
-                    previousDateKey
+                    previousDateKey,
+                    annualStats
                 );
             }
 
