@@ -110,8 +110,10 @@ export const Header: React.FC<HeaderProps> = ({
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const { user } = useUser();
 
-  const handlePrevMonth = () => onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  const handleNextMonth = () => onDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  const normalizeToMidday = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0);
+
+  const handlePrevMonth = () => onDateChange(normalizeToMidday(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)));
+  const handleNextMonth = () => onDateChange(normalizeToMidday(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)));
 
   const navButtonClass = "px-4 py-2 text-sm font-medium rounded-md transition-colors";
   const activeNavClass = "bg-white text-zen-800 shadow";
@@ -146,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-white/20"><ArrowLeftIcon className="w-5 h-5" /></button>
             <div className="relative">
                 <button onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)} className="font-semibold text-lg w-48 text-center capitalize">{monthName} {year}</button>
-                {isMonthPickerOpen && <MonthPicker currentDate={currentDate} onSelectDate={(d) => { onDateChange(d); setIsMonthPickerOpen(false); }} onClose={() => setIsMonthPickerOpen(false)} />}
+                {isMonthPickerOpen && <MonthPicker currentDate={currentDate} onSelectDate={(d) => { onDateChange(normalizeToMidday(d)); setIsMonthPickerOpen(false); }} onClose={() => setIsMonthPickerOpen(false)} />}
             </div>
             <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-white/20"><ArrowRightIcon className="w-5 h-5" /></button>
         </div>
