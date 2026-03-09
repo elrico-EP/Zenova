@@ -105,6 +105,11 @@ export interface NurseStats {
     tw_weekly: number;
 }
 
+export interface AnnualStats {
+    year: number;
+    nurses: Record<string, NurseStats>;
+}
+
 export interface TimeSegment {
   startTime: string;
   endTime: string;
