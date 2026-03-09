@@ -424,18 +424,16 @@ const AppContent: React.FC = () => {
     triggerNotification('success', 'Frozen schedules regenerated for April onwards');
   }, [frozenSchedules, updateData, triggerNotification]);
 
-  // Auto-regenerate April+ frozen schedules on component mount (only once per session)
+  // Auto-regenerate April+ frozen schedules whenever old Apr+ frozen keys exist.
+  // This is idempotent: after cleanup, Apr+ keys no longer exist and effect stops running.
   useEffect(() => {
-    const hasRegenerated = sessionStorage.getItem('equity-regen-done');
-    if (!hasRegenerated && frozenSchedules && Object.keys(frozenSchedules).some(k => {
+    if (frozenSchedules && Object.keys(frozenSchedules).some(k => {
       const [y, m] = k.split('-').map(Number);
       return y === 2026 && m >= 4;
     })) {
-      regenerateFrozenSchedulesFromApril().then(() => {
-        sessionStorage.setItem('equity-regen-done', 'true');
-      });
+      regenerateFrozenSchedulesFromApril();
     }
-  }, []);
+  }, [frozenSchedules, regenerateFrozenSchedulesFromApril]);
 
   const askRecalcScopeForManualChanges = useCallback((context: 'manual' | 'swap'): Promise<RecalcScope> => {
     return new Promise(resolve => {
