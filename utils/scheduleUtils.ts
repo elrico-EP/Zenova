@@ -274,7 +274,9 @@ const assignAdminAndTWToRemainingNurses = (
     weeklyStats: Record<string, Record<WorkZone, number>>,
     schedule: Schedule,
     previousDateKey: string,
-    annualStats?: Record<string, NurseStats>
+    annualStats?: Record<string, NurseStats>,
+    weeklyAdminTWCount?: Record<string, number>,
+    isWeeklyCoordinated?: boolean
 ): void => {
     if (nursesOnMandatoryShifts < 6) return;
 
@@ -283,6 +285,18 @@ const assignAdminAndTWToRemainingNurses = (
 
     const sortForAdmin = (pool: Nurse[]): Nurse[] => {
         return [...pool].sort((a, b) => {
+            // For weekly coordinated: prioritize nurses with <1 ADMIN/TW this week
+            if (isWeeklyCoordinated && weeklyAdminTWCount) {
+                const countA = weeklyAdminTWCount[a.id] || 0;
+                const countB = weeklyAdminTWCount[b.id] || 0;
+                // Prioritize those with 0, then 1, exclude if 2+
+                if (countA > 1 || countB > 1) {
+                    if (countA <= 1 && countB > 1) return -1;
+                    if (countA > 1 && countB <= 1) return 1;
+                }
+                if (countA !== countB && countA <= 1 && countB <= 1) return countA - countB;
+            }
+
             const prevA = hasPrevAdminOrTW(a.id) ? 1 : 0;
             const prevB = hasPrevAdminOrTW(b.id) ? 1 : 0;
             if (prevA !== prevB) return prevA - prevB;
@@ -307,6 +321,18 @@ const assignAdminAndTWToRemainingNurses = (
 
     const sortForTW = (pool: Nurse[]): Nurse[] => {
         return [...pool].sort((a, b) => {
+            // For weekly coordinated: prioritize nurses with <1 TW this week
+            if (isWeeklyCoordinated && weeklyAdminTWCount) {
+                const countA = weeklyAdminTWCount[a.id] || 0;
+                const countB = weeklyAdminTWCount[b.id] || 0;
+                // Prioritize those with 0, then 1, exclude if 2+
+                if (countA > 1 || countB > 1) {
+                    if (countA <= 1 && countB > 1) return -1;
+                    if (countA > 1 && countB <= 1) return 1;
+                }
+                if (countA !== countB && countA <= 1 && countB <= 1) return countA - countB;
+            }
+
             const weeklyTwA = weeklyStats[a.id]?.['TW'] || 0;
             const weeklyTwB = weeklyStats[b.id]?.['TW'] || 0;
             if (weeklyTwA !== weeklyTwB) return weeklyTwA - weeklyTwB;
@@ -335,6 +361,7 @@ const assignAdminAndTWToRemainingNurses = (
     if (available.length > 0) {
         const selected = sortForAdmin(available)[0];
         dailyAssignments[selected.id] = 'ADMIN';
+        if (weeklyAdminTWCount) weeklyAdminTWCount[selected.id]++;
         available = available.filter(n => n.id !== selected.id);
     }
 
@@ -342,12 +369,24 @@ const assignAdminAndTWToRemainingNurses = (
     if (available.length > 0) {
         const selected = sortForAdmin(available)[0];
         dailyAssignments[selected.id] = 'ADMIN';
+        if (weeklyAdminTWCount) weeklyAdminTWCount[selected.id]++;
         available = available.filter(n => n.id !== selected.id);
     }
 
-    // Posiciones 9+: TW (si cumple restricciones), si no -> ADMIN
+    // Posiciones 9+: TW (si cumple restricciones y <2 ADMIN/TW esa semana), si no -> ADMIN
     while (available.length > 0) {
-        const eligibleTW = available.filter(nurse =>
+        const canAdd = (nurse: Nurse): boolean => {
+            if (isWeeklyCoordinated && weeklyAdminTWCount && weeklyAdminTWCount[nurse.id] >= 2) {
+                // Si ya tiene 2 ADMIN/TW en la semana, no asignarle más
+                return false;
+            }
+            return true;
+        };
+
+        const availableCanAdd = available.filter(canAdd);
+        if (availableCanAdd.length === 0) break; // No one available to take more this week
+
+        const eligibleTW = availableCanAdd.filter(nurse =>
             nurse.id !== 'nurse-1' &&
             nurse.id !== 'nurse-2' &&
             nurse.id !== 'nurse-11' &&
@@ -358,12 +397,14 @@ const assignAdminAndTWToRemainingNurses = (
         if (eligibleTW.length > 0) {
             const selectedTW = sortForTW(eligibleTW)[0];
             dailyAssignments[selectedTW.id] = 'TW';
+            if (weeklyAdminTWCount) weeklyAdminTWCount[selectedTW.id]++;
             available = available.filter(n => n.id !== selectedTW.id);
             continue;
         }
 
-        const selectedAdmin = sortForAdmin(available)[0];
+        const selectedAdmin = sortForAdmin(availableCanAdd)[0];
         dailyAssignments[selectedAdmin.id] = 'ADMIN';
+        if (weeklyAdminTWCount) weeklyAdminTWCount[selectedAdmin.id]++;
         available = available.filter(n => n.id !== selectedAdmin.id);
     }
 };
@@ -653,7 +694,14 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
     const lastAssignmentDate: Record<string, Record<WorkZone, number>> = {};
     nurses.forEach(nurse => { lastAssignmentDate[nurse.id] = {} as Record<WorkZone, number>; });
     
+    // Track ADMIN+TW count per week (for new weekly distribution rule, April onwards)
+    const weeklyAdminTWCount: Record<string, number> = {};
+    nurses.forEach(nurse => { weeklyAdminTWCount[nurse.id] = 0; });
+    
     const annualStats: Record<string, NurseStats> | undefined = annualStatsBase;
+    
+    // New weekly distribution rule for April onwards: track if we're applying coordinated ADMIN/TW
+    const isApplyingWeeklyCoordination = year === 2026 && month >= 3;
 
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -666,6 +714,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
             nurses.forEach(nurse => {
                 nurseStats[nurse.id].tw_weekly = 0;
                 weeklyStats[nurse.id] = {} as Record<WorkZone, number>;
+                weeklyAdminTWCount[nurse.id] = 0; // Reset weekly ADMIN+TW count
             });
         }
         
@@ -839,7 +888,9 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     weeklyStats,
                     schedule,
                     previousDateKey,
-                    annualStats
+                    annualStats,
+                    isApplyingWeeklyCoordination ? weeklyAdminTWCount : undefined,
+                    isApplyingWeeklyCoordination
                 );
 
             } else {
@@ -884,7 +935,9 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     weeklyStats,
                     schedule,
                     previousDateKey,
-                    annualStats
+                    annualStats,
+                    isApplyingWeeklyCoordination ? weeklyAdminTWCount : undefined,
+                    isApplyingWeeklyCoordination
                 );
             }
 
@@ -946,8 +999,15 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                  if (shift === 'URGENCES' || shift === 'URGENCES_C') nurseStats[nurse.id].urgences++;
                  if (shift === 'TRAVAIL' || shift === 'TRAVAIL_C') nurseStats[nurse.id].travail++;
                  if (shift.includes('_TARDE')) nurseStats[nurse.id].afternoon++;
-                 if (shift === 'ADMIN') nurseStats[nurse.id].admin++;
-                 if (shift === 'TW') { nurseStats[nurse.id].tw++; nurseStats[nurse.id].tw_weekly = (nurseStats[nurse.id].tw_weekly || 0) + 1; }
+                 if (shift === 'ADMIN') {
+                     nurseStats[nurse.id].admin++;
+                     if (isApplyingWeeklyCoordination) weeklyAdminTWCount[nurse.id]++;
+                 }
+                 if (shift === 'TW') {
+                     nurseStats[nurse.id].tw++;
+                     nurseStats[nurse.id].tw_weekly = (nurseStats[nurse.id].tw_weekly || 0) + 1;
+                     if (isApplyingWeeklyCoordination) weeklyAdminTWCount[nurse.id]++;
+                 }
                  if (shift === 'VACCIN' || shift === 'VACCIN_AM') nurseStats[nurse.id].vaccin_am++;
                  if (shift === 'VACCIN_PM') nurseStats[nurse.id].vaccin_pm++;
                  
