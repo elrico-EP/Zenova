@@ -579,6 +579,13 @@ export const ensureMandatoryCoverage = (
                 }
             });
         }
+
+        // Catchall: asegurar que todos los enfermeros tienen un turno ese día
+        nurses.forEach(nurse => {
+            if (!result[nurse.id][dateKey]) {
+                result[nurse.id][dateKey] = { custom: 'Libre', type: 'F' };
+            }
+        });
     }
 
     return result;
@@ -978,6 +985,14 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
 
             // Regla de negocio: se aplica en assignAdminAndTWToRemainingNurses (posición 7=ADMIN, 8=ADMIN, 9+=TW)
             // enforceAdminOverflowToTW(dailyAssignments, nurseStats, weeklyStats, schedule, previousDateKey);
+
+            // Asegurar que TODOS los enfermeros tienen un turno asignado (catchall para cualquiera que falte)
+            nurses.forEach(nurse => {
+                if (!dailyAssignments[nurse.id]) {
+                    // Si no hay asignación, poner un LIBERO/día libre
+                    dailyAssignments[nurse.id] = { custom: 'Libre', type: 'F' };
+                }
+            });
 
             Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
                 const nurse = nurses.find(n => n.id === nurseId)!;
