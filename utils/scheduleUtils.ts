@@ -159,13 +159,31 @@ const findBestCandidate = (candidates: Nurse[], stats: Record<string, NurseStats
     return sorted[0];
 };
 
+/**
+ * Calculate total clinical shifts for a nurse this week (all shift types combined)
+ */
+const calculateWeeklyClinicTotal = (weeklyShiftStats: Record<WorkZone, number>): number => {
+    return (weeklyShiftStats['URGENCES'] || 0) +
+           (weeklyShiftStats['TRAVAIL'] || 0) +
+           (weeklyShiftStats['URGENCES_TARDE'] || 0) +
+           (weeklyShiftStats['TRAVAIL_TARDE'] || 0) +
+           (weeklyShiftStats['ADMIN'] || 0) +
+           (weeklyShiftStats['STRASBOURG'] || 0) +
+           (weeklyShiftStats['VACCIN'] || 0) +
+           (weeklyShiftStats['VACCIN_AM'] || 0) +
+           (weeklyShiftStats['VACCIN_PM'] || 0);
+};
+
 const findBestCandidateWithWeeklyEquity = (
     candidates: Nurse[], 
     stats: Record<string, NurseStats>, 
     weeklyShiftStats: Record<string, Record<WorkZone, number>>,
     targetShift: WorkZone,
     primaryStat: keyof NurseStats, 
-    secondaryStat: keyof NurseStats = 'clinicalTotal'
+    secondaryStat: keyof NurseStats = 'clinicalTotal',
+    annualStats?: Record<string, NurseStats>,
+    currentDay?: number,
+    lastAssignmentDate?: Record<string, Record<WorkZone, number>>
 ): Nurse | undefined => {
     if (candidates.length === 0) return undefined;
 
@@ -174,11 +192,40 @@ const findBestCandidateWithWeeklyEquity = (
         const statsB = stats[b.id];
         const weeklyA = weeklyShiftStats[a.id][targetShift] || 0;
         const weeklyB = weeklyShiftStats[b.id][targetShift] || 0;
+        const weeklyTotalA = calculateWeeklyClinicTotal(weeklyShiftStats[a.id]);
+        const weeklyTotalB = calculateWeeklyClinicTotal(weeklyShiftStats[b.id]);
 
-        if (statsA[primaryStat] !== statsB[primaryStat]) return statsA[primaryStat] - statsB[primaryStat];
+        // CRITERIO 1: Stat semanal del turno específico (quien menos tenga esta semana)
         if (weeklyA !== weeklyB) return weeklyA - weeklyB;
+        
+        // CRITERIO 2: Total clínico semanal (quien menos días trabajó esta semana)
+        if (weeklyTotalA !== weeklyTotalB) return weeklyTotalA - weeklyTotalB;
+        
+        // CRITERIO 3: Stat mensual del turno específico (quien menos tenga este mes)
+        if (statsA[primaryStat] !== statsB[primaryStat]) return statsA[primaryStat] - statsB[primaryStat];
+        
+        // CRITERIO 4: Total clínico mensual (quien menos turnos clínicos tenga este mes)
         if (statsA[secondaryStat] !== statsB[secondaryStat]) return statsA[secondaryStat] - statsB[secondaryStat];
         
+        // CRITERIO 5: Stat anual del turno específico (quien menos tenga este año)
+        if (annualStats) {
+            const annualA = annualStats[a.id]?.[primaryStat] || 0;
+            const annualB = annualStats[b.id]?.[primaryStat] || 0;
+            if (annualA !== annualB) return annualA - annualB;
+        }
+        
+        // CRITERIO 6: Penalización por consecutividad (si trabajó este turno hace <3 días)
+        if (currentDay !== undefined && lastAssignmentDate) {
+            const lastDayA = lastAssignmentDate[a.id]?.[targetShift] || 0;
+            const lastDayB = lastAssignmentDate[b.id]?.[targetShift] || 0;
+            const daysAgoA = currentDay - lastDayA;
+            const daysAgoB = currentDay - lastDayB;
+            const penaltyA = (lastDayA > 0 && daysAgoA < 3) ? 100 : 0;
+            const penaltyB = (lastDayB > 0 && daysAgoB < 3) ? 100 : 0;
+            if (penaltyA !== penaltyB) return penaltyA - penaltyB;
+        }
+        
+        // CRITERIO 7: Random (último recurso)
         return Math.random() - 0.5;
     });
     return sorted[0];
@@ -428,6 +475,13 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
     nurses.forEach(nurse => { nurseStats[nurse.id] = { urgences: 0, travail: 0, admin: 0, tw: 0, clinicalTotal: 0, afternoon: 0, vaccin_am: 0, vaccin_pm: 0, tw_weekly: 0 }; });
     const weeklyStats: Record<string, Record<WorkZone, number>> = {};
     nurses.forEach(nurse => { weeklyStats[nurse.id] = {} as Record<WorkZone, number>; });
+    
+    // Track last assignment date for each shift type (for consecutiveness penalty)
+    const lastAssignmentDate: Record<string, Record<WorkZone, number>> = {};
+    nurses.forEach(nurse => { lastAssignmentDate[nurse.id] = {} as Record<WorkZone, number>; });
+    
+    // TODO: Load annual stats from AppState/Firebase (for now, undefined = no annual equity yet)
+    const annualStats: Record<string, NurseStats> | undefined = undefined;
 
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -546,7 +600,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 const vaccin_pm_nurses: Nurse[] = [];
                 let tempVaccinPool = [...vaccination_group];
                 while(vaccin_am_nurses.length < 2 && tempVaccinPool.length > 0) {
-                    const candidate = findBestCandidateWithWeeklyEquity(tempVaccinPool, nurseStats, weeklyStats, 'VACCIN_AM', 'vaccin_am');
+                    const candidate = findBestCandidateWithWeeklyEquity(tempVaccinPool, nurseStats, weeklyStats, 'VACCIN_AM', 'vaccin_am', annualStats, day, lastAssignmentDate);
                     if(candidate) { vaccin_am_nurses.push(candidate); tempVaccinPool = tempVaccinPool.filter(n => n.id !== candidate.id); } 
                     else { break; }
                 }
@@ -582,7 +636,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                         let eligiblePool = clinicalPool.filter(n => !(shift.includes('_TARDE') && ineligibleForAfternoon.has(n.id)));
                         if (eligiblePool.length === 0) break;
                         const stat = shift.includes('URGENCES') ? 'urgences' : 'travail';
-                        const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, shift as WorkZone, stat as keyof NurseStats);
+                        const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, shift as WorkZone, stat as keyof NurseStats, annualStats, day, lastAssignmentDate);
                         if(candidate) { dailyAssignments[candidate.id] = shift as WorkZone; clinicalPool = clinicalPool.filter(n => n.id !== candidate.id); }
                     }
                 }
@@ -644,7 +698,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 for (const need of neededShifts) {
                     let eligiblePool = localUnassignedPool.filter(n => !(need.includes('_TARDE') && ineligibleForAfternoon.has(n.id)));
                     const primaryStat = need.includes('URGENCES') ? 'urgences' : 'travail';
-                    const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, need, primaryStat as keyof NurseStats);
+                    const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, need, primaryStat as keyof NurseStats, annualStats, day, lastAssignmentDate);
                     if (candidate) { dailyAssignments[candidate.id] = need; localUnassignedPool = localUnassignedPool.filter(n => n.id !== candidate.id); }
                 }
                 
@@ -737,6 +791,9 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                  if (shift === 'VACCIN_PM') nurseStats[nurse.id].vaccin_pm++;
                  
                  weeklyStats[nurse.id][shift] = (weeklyStats[nurse.id][shift] || 0) + 1;
+                 
+                 // Track last assignment date for consecutiveness penalty
+                 lastAssignmentDate[nurse.id][shift] = day;
             });
              if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { nurseStats[nurse.id].clinicalTotal++; }
         });
@@ -765,11 +822,19 @@ export const generateAndBalanceGaps = (
 
     const weeklyStats: Record<string, Record<WorkZone, number>> = {};
     nurses.forEach(nurse => { weeklyStats[nurse.id] = {} as Record<WorkZone, number>; });
+    
+    // Track last assignment date for consecutiveness penalty
+    const lastAssignmentDate: Record<string, Record<WorkZone, number>> = {};
+    nurses.forEach(nurse => { lastAssignmentDate[nurse.id] = {} as Record<WorkZone, number>; });
+    
+    // TODO: Load annual stats from AppState/Firebase (for now, undefined = no annual equity yet)
+    const annualStats: Record<string, NurseStats> | undefined = undefined;
 
     for (let d = new Date(Date.UTC(year, 0, 1)); d.getUTCFullYear() === year; d.setUTCDate(d.getUTCDate() + 1)) {
         const currentDate = new Date(d);
         const dateKey = currentDate.toISOString().split('T')[0];
         const dayOfWeek = currentDate.getUTCDay();
+        const dayOfMonth = currentDate.getUTCDate();
 
         if (dayOfWeek === 1) { 
             nurses.forEach(nurse => {
@@ -818,7 +883,7 @@ export const generateAndBalanceGaps = (
 
                 for (const need of neededShifts) {
                     const primaryStat = need.includes('URGENCES') ? 'urgences' : 'travail';
-                    const candidate = findBestCandidateWithWeeklyEquity(dutyPool, generationStats, weeklyStats, need, primaryStat as keyof NurseStats);
+                    const candidate = findBestCandidateWithWeeklyEquity(dutyPool, generationStats, weeklyStats, need, primaryStat as keyof NurseStats, annualStats, dayOfMonth, lastAssignmentDate);
                     if (candidate) { 
                         dailyAssignments[candidate.id] = need;
                         if (!generatedGaps[candidate.id]) generatedGaps[candidate.id] = {};
@@ -848,6 +913,9 @@ export const generateAndBalanceGaps = (
                  if (shift === 'TW') { generationStats[nurseId].tw++; generationStats[nurseId].tw_weekly = (generationStats[nurseId].tw_weekly || 0) + 1; }
                  
                  weeklyStats[nurseId][shift] = (weeklyStats[nurseId][shift] || 0) + 1;
+                 
+                 // Track last assignment date for consecutiveness penalty
+                 lastAssignmentDate[nurseId][shift] = dayOfMonth;
             });
              if (shifts.length > 0 && !shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) { generationStats[nurseId].clinicalTotal++; }
         });
