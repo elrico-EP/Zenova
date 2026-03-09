@@ -239,6 +239,30 @@ const findBestCandidateWithWeeklyEquity = (
     return sorted[0];
 };
 
+const enforceAdminOverflowToTW = (
+    dailyAssignments: Record<string, ScheduleCell>,
+    nurseStats: Record<string, NurseStats>,
+    schedule: Schedule,
+    previousDateKey: string
+): void => {
+    const adminNurseIds = Object.keys(dailyAssignments).filter(nurseId =>
+        getShiftsFromCell(dailyAssignments[nurseId]).includes('ADMIN')
+    );
+
+    if (adminNurseIds.length <= 2) return;
+
+    const overflowAdminIds = adminNurseIds.slice(2);
+    overflowAdminIds.forEach(nurseId => {
+        const canGetTW = nurseId !== 'nurse-1' && nurseId !== 'nurse-2' && nurseId !== 'nurse-11' &&
+            nurseStats[nurseId].tw_weekly < 1 &&
+            !getShiftsFromCell(schedule[nurseId]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
+
+        if (canGetTW) {
+            dailyAssignments[nurseId] = 'TW';
+        }
+    });
+};
+
 
 export const getClinicalNeedsForDay = (date: Date, agenda: Agenda, vaccinationPeriod: { start: string; end: string } | null): Record<string, number> => {
     const dayOfWeek = date.getUTCDay();
@@ -772,6 +796,10 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 if (adminNurseId) { dailyAssignments['nurse-11'] = 'TRAVAIL'; dailyAssignments[adminNurseId] = 'ADMIN'; } 
                 else { dailyAssignments['nurse-11'] = 'TRAVAIL'; }
             }
+
+            // Regla de negocio: si hay más de 2 ADMIN en un día, el 3º/4º/5º pasan a TW
+            // salvo Elvio, Tanja, Becario o quien ya tenga TW esa semana.
+            enforceAdminOverflowToTW(dailyAssignments, nurseStats, schedule, previousDateKey);
 
             Object.entries(dailyAssignments).forEach(([nurseId, cell]) => {
                 const nurse = nurses.find(n => n.id === nurseId)!;
