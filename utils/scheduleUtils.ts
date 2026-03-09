@@ -340,6 +340,15 @@ export const ensureMandatoryCoverage = (
     const result: Schedule = JSON.parse(JSON.stringify(schedule));
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+    const countWeeklyTWForNurse = (nurseId: string, currentDateKey: string, currentWeekId: string): number => {
+        const nurseSchedule = result[nurseId] || {};
+        return Object.entries(nurseSchedule).reduce((count, [dateKey, cell]) => {
+            if (dateKey > currentDateKey) return count;
+            if (getWeekIdentifier(new Date(`${dateKey}T12:00:00Z`)) !== currentWeekId) return count;
+            return count + (getShiftsFromCell(cell).includes('TW') ? 1 : 0);
+        }, 0);
+    };
+
     for (let day = 1; day <= daysInMonth; day++) {
         const currentDate = new Date(Date.UTC(year, month, day));
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -396,6 +405,33 @@ export const ensureMandatoryCoverage = (
                 result[replacementCandidate.id][dateKey] = mandatoryShift;
                 currentCount++;
             }
+        }
+
+        // Regla de negocio final del día:
+        // 1) obligatorios cubiertos (arriba),
+        // 2) si hay más de 2 ADMIN, el 3º+ pasa a TW si cumple exclusiones.
+        const adminNurseIds = nurses
+            .map(nurse => nurse.id)
+            .filter(nurseId => {
+                const cell = result[nurseId]?.[dateKey];
+                return !!cell && getShiftsFromCell(cell).includes('ADMIN');
+            });
+
+        if (adminNurseIds.length > 2) {
+            const previousDate = new Date(currentDate);
+            previousDate.setUTCDate(previousDate.getUTCDate() - 1);
+            const previousDateKey = previousDate.toISOString().split('T')[0];
+            const currentWeekId = getWeekIdentifier(currentDate);
+
+            adminNurseIds.slice(2).forEach(nurseId => {
+                const hasPrevAdminOrTW = getShiftsFromCell(result[nurseId]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
+                const weeklyTW = countWeeklyTWForNurse(nurseId, dateKey, currentWeekId);
+                const canGetTW = nurseId !== 'nurse-1' && nurseId !== 'nurse-2' && nurseId !== 'nurse-11' && !hasPrevAdminOrTW && weeklyTW < 1;
+
+                if (canGetTW) {
+                    result[nurseId][dateKey] = 'TW';
+                }
+            });
         }
     }
 
