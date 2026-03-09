@@ -99,10 +99,10 @@ const EventForm: React.FC<{
         if(type === 'travel_str_permanence_tuesday') {
             dataToSave.name = 'Travel STR + permanence Tuesday';
             dataToSave.isSplit = true;
-            dataToSave.morningStartTime = '08:00';
-            dataToSave.morningEndTime = '13:30';
-            dataToSave.afternoonStartTime = '13:30';
-            dataToSave.afternoonEndTime = '18:30';
+            dataToSave.morningStartTime = morningStartTime || '08:00';
+            dataToSave.morningEndTime = morningEndTime || '13:30';
+            dataToSave.afternoonStartTime = afternoonStartTime || '13:30';
+            dataToSave.afternoonEndTime = afternoonEndTime || '18:30';
         }
         if(type === 'wednesday_permanence') { dataToSave.name = 'Wednesday Permanence'; dataToSave.startTime = '09:30'; dataToSave.endTime = '14:30'; }
         if(type === 'wednesday_permanence_return') { dataToSave.name = 'Wednesday Permanence + Return'; dataToSave.isSplit = true; dataToSave.morningStartTime = morningStartTime; dataToSave.morningEndTime = morningEndTime; dataToSave.afternoonStartTime = afternoonStartTime; dataToSave.afternoonEndTime = afternoonEndTime; }
@@ -209,7 +209,7 @@ const EventTypeSelector: React.FC<{
     const eventTypes: { type: SpecialStrasbourgEventType; label: string; description: string; }[] = [
         { type: 'euroscola', label: 'Euroscola', description: 'Fixed schedule 08:00-17:00' },
         { type: 'tuesday_permanence', label: 'Tuesday Permanence', description: 'Fixed schedule 13:30-18:30. Tuesdays only.' },
-        { type: 'travel_str_permanence_tuesday', label: 'Travel STR + permanence Tuesday', description: 'Tuesday split shift: Travel STR 08:00-13:30 + Permanence Tuesday 13:30-18:30.' },
+        { type: 'travel_str_permanence_tuesday', label: 'Travel STR + permanence Tuesday', description: 'Tuesday split shift: Travel STR + Permanence Tuesday (08:00-13:30 and 13:30-18:30, editable).' },
         { type: 'wednesday_permanence', label: 'Wednesday Permanence', description: 'Fixed schedule 09:30-14:30. Wednesdays only.' },
         { type: 'wednesday_permanence_return', label: 'Wednesday Permanence + Return', description: 'Wednesday split shift: Permanence 09:30-14:30 + Return travel 16:00-21:30 (times editable)' },
         { type: 'mini_sesion_bruselas', label: 'Mini Session Brussels', description: 'Standard schedule 14:00-23:00 (adjustable in personal agenda). Next day: afternoon shift or TW if sufficient staff (following general TW rules).' },
