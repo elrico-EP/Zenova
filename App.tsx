@@ -18,7 +18,7 @@ import { ForceChangePasswordScreen } from './components/ForceChangePasswordScree
 import { PersonalAgendaPrintView } from './components/PersonalAgendaPrintView';
 import { NotificationToast } from './components/NotificationToast';
 import { NotificationPanel } from './components/NotificationPanel';
-import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState, RecalcScope } from './types';
+import type { User, Schedule, Nurse, WorkZone, RuleViolation, Agenda, ScheduleCell, Notes, Hours, ManualChangePayload, ManualChangeLogEntry, StrasbourgEvent, BalanceData, ShiftCounts, HistoryEntry, CustomShift, Wishes, PersonalHoursChangePayload, JornadaLaboral, SpecialStrasbourgEvent, AppState, RecalcScope, NurseStats } from './types';
 import { UndoIcon } from './components/Icons';
 import { SHIFTS, INITIAL_NURSES } from './constants';
 import { recalculateScheduleForMonth, getShiftsFromCell, ensureMandatoryCoverage } from './utils/scheduleUtils';
@@ -377,8 +377,99 @@ const AppContent: React.FC = () => {
     return isInternActive ? nurses : nurses.filter(n => n.id !== 'nurse-11');
   }, [nurses]);
 
+  const createEmptyStats = useCallback((targetNurses: Nurse[]): Record<string, NurseStats> => {
+    const result: Record<string, NurseStats> = {};
+    targetNurses.forEach(n => {
+      result[n.id] = {
+        urgences: 0,
+        travail: 0,
+        admin: 0,
+        tw: 0,
+        clinicalTotal: 0,
+        afternoon: 0,
+        vaccin_am: 0,
+        vaccin_pm: 0,
+        tw_weekly: 0,
+      };
+    });
+    return result;
+  }, []);
+
+  const addMonthToAnnualStats = useCallback((annual: Record<string, NurseStats>, monthSchedule: Schedule, targetNurses: Nurse[]) => {
+    targetNurses.forEach(nurse => {
+      if (!annual[nurse.id]) {
+        annual[nurse.id] = {
+          urgences: 0,
+          travail: 0,
+          admin: 0,
+          tw: 0,
+          clinicalTotal: 0,
+          afternoon: 0,
+          vaccin_am: 0,
+          vaccin_pm: 0,
+          tw_weekly: 0,
+        };
+      }
+
+      Object.entries(monthSchedule[nurse.id] || {}).forEach(([, cell]) => {
+        const shifts = getShiftsFromCell(cell);
+        if (shifts.length === 0) return;
+
+        shifts.forEach(shift => {
+          if (shift === 'URGENCES' || shift === 'URGENCES_C') annual[nurse.id].urgences++;
+          if (shift === 'TRAVAIL' || shift === 'TRAVAIL_C') annual[nurse.id].travail++;
+          if (shift.includes('_TARDE')) annual[nurse.id].afternoon++;
+          if (shift === 'ADMIN') annual[nurse.id].admin++;
+          if (shift === 'TW') annual[nurse.id].tw++;
+          if (shift === 'VACCIN' || shift === 'VACCIN_AM') annual[nurse.id].vaccin_am++;
+          if (shift === 'VACCIN_PM') annual[nurse.id].vaccin_pm++;
+        });
+
+        if (!shifts.every(s => ['ADMIN', 'TW', 'CA', 'SICK_LEAVE', 'FP', 'RECUP', 'STRASBOURG', 'F'].includes(s))) {
+          annual[nurse.id].clinicalTotal++;
+        }
+      });
+    });
+  }, []);
+
   const getAutoBaseScheduleForMonth = useCallback((date: Date): Schedule => {
     const nursesForDate = getNursesForDate(date);
+
+    // Equidad anual activa en ciclo 2026 abril -> diciembre
+    if (date.getFullYear() === FROZEN_START_YEAR && date.getMonth() >= FROZEN_START_MONTH_INDEX) {
+      const annualStats = createEmptyStats(nurses);
+
+      for (let monthIndex = FROZEN_START_MONTH_INDEX; monthIndex < date.getMonth(); monthIndex++) {
+        const iterDate = new Date(date.getFullYear(), monthIndex, 1);
+        const iterNurses = getNursesForDate(iterDate);
+        const iterScheduleRaw = recalculateScheduleForMonth(
+          iterNurses,
+          iterDate,
+          effectiveAgenda,
+          {},
+          vaccinationPeriod,
+          strasbourgAssignments,
+          jornadasLaborales,
+          annualStats
+        );
+        const iterSchedule = shouldEnforceCoverageForMonth(iterDate.getFullYear(), iterDate.getMonth())
+          ? ensureMandatoryCoverage(iterScheduleRaw, nurses, iterDate.getFullYear(), iterDate.getMonth(), effectiveAgenda, vaccinationPeriod, jornadasLaborales)
+          : iterScheduleRaw;
+        addMonthToAnnualStats(annualStats, iterSchedule, iterNurses);
+      }
+
+      return recalculateScheduleForMonth(
+        nursesForDate,
+        date,
+        effectiveAgenda,
+        {},
+        vaccinationPeriod,
+        strasbourgAssignments,
+        jornadasLaborales,
+        annualStats
+      );
+    }
+
     return recalculateScheduleForMonth(
       nursesForDate,
       date,
@@ -388,7 +479,7 @@ const AppContent: React.FC = () => {
       strasbourgAssignments,
       jornadasLaborales
     );
-  }, [getNursesForDate, effectiveAgenda, vaccinationPeriod, strasbourgAssignments, jornadasLaborales]);
+  }, [getNursesForDate, effectiveAgenda, vaccinationPeriod, strasbourgAssignments, jornadasLaborales, FROZEN_START_YEAR, FROZEN_START_MONTH_INDEX, createEmptyStats, nurses, shouldEnforceCoverageForMonth, addMonthToAnnualStats]);
 
   const getFrozenOrAutoBaseScheduleForMonth = useCallback((date: Date): Schedule => {
     const key = getMonthKeyFromDate(date);
