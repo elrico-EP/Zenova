@@ -171,7 +171,8 @@ const calculateWeeklyClinicTotal = (weeklyShiftStats: Record<WorkZone, number>):
            (weeklyShiftStats['STRASBOURG'] || 0) +
            (weeklyShiftStats['VACCIN'] || 0) +
            (weeklyShiftStats['VACCIN_AM'] || 0) +
-           (weeklyShiftStats['VACCIN_PM'] || 0);
+           (weeklyShiftStats['VACCIN_PM'] || 0) +
+           (weeklyShiftStats['TW'] || 0);  // TW cuenta también en el total semanal
 };
 
 const findBestCandidateWithWeeklyEquity = (
@@ -187,7 +188,14 @@ const findBestCandidateWithWeeklyEquity = (
 ): Nurse | undefined => {
     if (candidates.length === 0) return undefined;
 
-    const sorted = [...candidates].sort((a, b) => {
+    // Apply tw_weekly restriction BEFORE sorting
+    let filteredCandidates = candidates;
+    if (targetShift === 'TW') {
+        filteredCandidates = candidates.filter(nurse => stats[nurse.id].tw_weekly < 1);
+        if (filteredCandidates.length === 0) return undefined; // No eligible nurses for TW this week
+    }
+
+    const sorted = [...filteredCandidates].sort((a, b) => {
         const statsA = stats[a.id];
         const statsB = stats[b.id];
         const weeklyA = weeklyShiftStats[a.id][targetShift] || 0;
@@ -671,10 +679,9 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                         const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && 
                                        nurseStats[nurse.id].tw_weekly < 1 &&
                                        !getShiftsFromCell(schedule[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
+                        // Si ya tiene 1 TW esta semana, asignar ADMIN
                         dailyAssignments[nurse.id] = canGetTW ? 'TW' : 'ADMIN';
                     }
-                    // Si no hay 6 enfermeros en obligatorios, no asignar nada aún
-                    // La lógica de reasignación más abajo se encargará
                 }
 
             } else {
@@ -723,6 +730,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                         const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && 
                                        nurseStats[nurse.id].tw_weekly < 1 &&
                                        !getShiftsFromCell(schedule[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
+                        // Si ya tiene 1 TW esta semana, asignar ADMIN
                         dailyAssignments[nurse.id] = canGetTW ? 'TW' : 'ADMIN';
                     }
                     // Si no hay 6 enfermeros en obligatorios, no asignar nada aún
