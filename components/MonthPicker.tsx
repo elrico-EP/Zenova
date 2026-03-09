@@ -16,6 +16,10 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({ currentDate, onSelectD
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setViewDate(currentDate);
+  }, [currentDate]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
         onClose();
@@ -30,7 +34,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({ currentDate, onSelectD
   const years = Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i);
 
   const handleMonthClick = (monthIndex: number) => {
-    onSelectDate(new Date(currentYear, monthIndex, 1));
+    onSelectDate(new Date(currentYear, monthIndex, 1, 12, 0, 0));
   };
 
   const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
