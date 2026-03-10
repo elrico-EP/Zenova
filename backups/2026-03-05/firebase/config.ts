@@ -3,7 +3,7 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBi3ThoxS4Jvfg84ikUeqK_TISwxgfy2rc",
+  apiKey: "REDACTED_REMOVED_FROM_REPO",
   authDomain: "zenova-4c728.firebaseapp.com",
   projectId: "zenova-4c728",
   storageBucket: "zenova-4c728.firebasestorage.app",
