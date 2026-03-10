@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
 import type { Nurse, Wishes, Agenda, ActivityLevel, Wish, WorkZone, JornadaLaboral } from '../types';
 import { getWeekIdentifier } from '../utils/dateUtils';
-import { getActiveJornada } from '../utils/jornadaUtils';
+import { calculateNurseTheoreticalHoursForDay } from '../utils/hoursUtils';
 import { useUser } from '../contexts/UserContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -174,7 +174,7 @@ interface WishesPageProps {
     wishes: Wishes;
     jornadasLaborales: JornadaLaboral[];
     onWishesChange: (nurseId: string, dateKey: string, text: string, shiftType?: WorkZone) => void;
-    onBulkWishesChange?: (nurseId: string, updates: Record<string, { text: string; shiftType?: WorkZone }>) => void;
+    onBulkWishesChange?: (nurseId: string, updates: Record<string, { text: string; shiftType?: WorkZone } | null>) => void;
     onWishValidationChange: (nurseId: string, dateKey: string, isValidated: boolean) => void;
     onDeleteWish: (nurseId: string, dateKey: string) => void;
     agenda: Agenda;
@@ -203,12 +203,20 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
     };
 
     const isFullReductionDayOff = (nurseId: string, date: Date) => {
-        const activeJornada = getActiveJornada(nurseId, date, jornadasLaborales);
-        if (!activeJornada || activeJornada.reductionOption !== 'FULL_DAY_OFF' || !activeJornada.reductionDayOfWeek) {
+        const nurse = nurses.find(n => n.id === nurseId);
+        if (!nurse) {
             return false;
         }
-        const dayOfWeekMondayBased = date.getDay() === 0 ? 7 : date.getDay();
-        return dayOfWeekMondayBased === activeJornada.reductionDayOfWeek;
+
+        const dateUtc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const utcDay = dateUtc.getUTCDay();
+        const isWeekday = utcDay >= 1 && utcDay <= 5;
+        if (!isWeekday) {
+            return false;
+        }
+
+        const theoreticalHours = calculateNurseTheoreticalHoursForDay(nurse, dateUtc, agenda, jornadasLaborales);
+        return theoreticalHours === 0;
     };
 
     const dayNames = useMemo(() => {
@@ -252,7 +260,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
             return;
         }
 
-        const bulkUpdates: Record<string, { text: string; shiftType?: WorkZone }> = {};
+        const bulkUpdates: Record<string, { text: string; shiftType?: WorkZone } | null> = {};
 
         // Aplicar el deseo a todos los días en el rango, excluyendo fines de semana
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -260,6 +268,8 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
             // Excluir sábados (6) y domingos (0)
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                 if (isFullReductionDayOff(bulkNurseId, d)) {
+                    const dateKey = toLocalDateKey(d);
+                    bulkUpdates[dateKey] = null;
                     continue;
                 }
                 const dateKey = toLocalDateKey(d);
@@ -271,7 +281,11 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
             onBulkWishesChange(bulkNurseId, bulkUpdates);
         } else {
             Object.entries(bulkUpdates).forEach(([dateKey, value]) => {
-                onWishesChange(bulkNurseId, dateKey, value.text, value.shiftType);
+                if (value === null) {
+                    onDeleteWish(bulkNurseId, dateKey);
+                } else {
+                    onWishesChange(bulkNurseId, dateKey, value.text, value.shiftType);
+                }
             });
         }
 
