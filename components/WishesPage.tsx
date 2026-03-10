@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
-import type { Nurse, Wishes, Agenda, ActivityLevel, Wish, WorkZone } from '../types';
+import type { Nurse, Wishes, Agenda, ActivityLevel, Wish, WorkZone, JornadaLaboral } from '../types';
 import { getWeekIdentifier } from '../utils/dateUtils';
+import { getActiveJornada } from '../utils/jornadaUtils';
 import { useUser } from '../contexts/UserContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -23,10 +24,11 @@ const DayCell: React.FC<{
     nurseId: string;
     dateKey: string;
     wish: Wish | undefined;
+    isNonWorkingReductionDay: boolean;
     onWishesChange: (nurseId: string, dateKey: string, text: string, shiftType?: WorkZone) => void;
     onValidate: (nurseId: string, dateKey: string, isValidated: boolean) => void;
     onDeleteWish: (nurseId: string, dateKey: string) => void;
-}> = React.memo(({ nurseId, dateKey, wish, onWishesChange, onValidate, onDeleteWish }) => {
+}> = React.memo(({ nurseId, dateKey, wish, isNonWorkingReductionDay, onWishesChange, onValidate, onDeleteWish }) => {
     const { effectiveUser } = useUser();
     const permissions = usePermissions();
     const t = useTranslations();
@@ -37,7 +39,7 @@ const DayCell: React.FC<{
     const isOwner = effectiveUser?.id === nurseId;
     const isValidated = wish?.validated || false;
     
-    const canEdit = (permissions.canEditOwnWishes && isOwner && !isValidated) || permissions.isViewingAsAdmin;
+    const canEdit = !isNonWorkingReductionDay && ((permissions.canEditOwnWishes && isOwner && !isValidated) || permissions.isViewingAsAdmin);
     
     useLayoutEffect(() => {
         const el = textareaRef.current;
@@ -170,6 +172,7 @@ interface WishesPageProps {
     year: number;
     currentDate: Date;
     wishes: Wishes;
+    jornadasLaborales: JornadaLaboral[];
     onWishesChange: (nurseId: string, dateKey: string, text: string, shiftType?: WorkZone) => void;
     onBulkWishesChange?: (nurseId: string, updates: Record<string, { text: string; shiftType?: WorkZone }>) => void;
     onWishValidationChange: (nurseId: string, dateKey: string, isValidated: boolean) => void;
@@ -177,7 +180,7 @@ interface WishesPageProps {
     agenda: Agenda;
 }
 
-export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDate, wishes, onWishesChange, onBulkWishesChange, onWishValidationChange, onDeleteWish, agenda }) => {
+export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDate, wishes, jornadasLaborales, onWishesChange, onBulkWishesChange, onWishValidationChange, onDeleteWish, agenda }) => {
     const t = useTranslations();
     const { language } = useLanguage();
     const { effectiveUser } = useUser();
@@ -197,6 +200,15 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const d = String(date.getDate()).padStart(2, '0');
         return `${y}-${m}-${d}`;
+    };
+
+    const isFullReductionDayOff = (nurseId: string, date: Date) => {
+        const activeJornada = getActiveJornada(nurseId, date, jornadasLaborales);
+        if (!activeJornada || activeJornada.reductionOption !== 'FULL_DAY_OFF' || !activeJornada.reductionDayOfWeek) {
+            return false;
+        }
+        const dayOfWeekMondayBased = date.getDay() === 0 ? 7 : date.getDay();
+        return dayOfWeekMondayBased === activeJornada.reductionDayOfWeek;
     };
 
     const dayNames = useMemo(() => {
@@ -247,6 +259,9 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
             const dayOfWeek = d.getDay();
             // Excluir sábados (6) y domingos (0)
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                if (isFullReductionDayOff(bulkNurseId, d)) {
+                    continue;
+                }
                 const dateKey = toLocalDateKey(d);
                 bulkUpdates[dateKey] = { text: bulkText, shiftType: bulkShiftType };
             }
@@ -642,13 +657,16 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                                     {nurses.map(nurse => {
                                                         const wish = wishes[nurse.id]?.[dateKey];
                                                         const isValidated = wish?.validated || false;
-                                                        const cellBg = isValidated ? 'bg-green-50/80' : dayRowBg;
+                                                        const isReductionDayOff = isFullReductionDayOff(nurse.id, date);
+                                                        const cellBgBase = isReductionDayOff ? 'bg-slate-100' : dayRowBg;
+                                                        const cellBg = isValidated ? 'bg-green-50/80' : cellBgBase;
                                                         return (
                                                         <td key={nurse.id} className={`border-b p-0 ${cellBg}`}>
                                                             <DayCell
                                                                 nurseId={nurse.id}
                                                                 dateKey={dateKey}
                                                                 wish={wish}
+                                                                isNonWorkingReductionDay={isReductionDayOff}
                                                                 onWishesChange={onWishesChange}
                                                                 onValidate={onWishValidationChange}
                                                                 onDeleteWish={onDeleteWish}
