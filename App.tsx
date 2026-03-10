@@ -1532,6 +1532,7 @@ const handleAddNurse = useCallback((name: string) => {
                     year={year} 
                     currentDate={currentDate}
                     wishes={wishes}   
+                    jornadasLaborales={jornadasLaborales}
                     onWishesChange={(nurseId, dateKey, text, shiftType) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], text, shiftType } } } })} 
                     onBulkWishesChange={(nurseId, updates) => {
                       const nurseWishes = wishes[nurseId] || {};
