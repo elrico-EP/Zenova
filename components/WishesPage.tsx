@@ -187,6 +187,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
     const [bulkStartDate, setBulkStartDate] = useState('');
     const [bulkEndDate, setBulkEndDate] = useState('');
     const [bulkText, setBulkText] = useState('');
+    const [bulkShiftType, setBulkShiftType] = useState<WorkZone | undefined>(undefined);
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
 
     const dayNames = useMemo(() => {
@@ -236,12 +237,13 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
             // Excluir sábados (6) y domingos (0)
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                 const dateKey = d.toISOString().split('T')[0];
-                onWishesChange(bulkNurseId, dateKey, bulkText);
+                onWishesChange(bulkNurseId, dateKey, bulkText, bulkShiftType);
             }
         }
 
         // Resetear formulario
         setBulkText('');
+        setBulkShiftType(undefined);
         setBulkStartDate('');
         setBulkEndDate('');
         setShowBulkEdit(false);
@@ -455,6 +457,78 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                     rows={3}
                                     className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-zen-500 focus:border-zen-500"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t.shiftType || 'Shift Type'} <span className="text-gray-400 text-xs">(optional)</span></label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkShiftType(bulkShiftType === 'CA' ? undefined : 'CA')}
+                                        className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
+                                            bulkShiftType === 'CA'
+                                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        CA
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkShiftType(bulkShiftType === 'SICK_LEAVE' ? undefined : 'SICK_LEAVE')}
+                                        className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
+                                            bulkShiftType === 'SICK_LEAVE'
+                                                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        CM
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkShiftType(bulkShiftType === 'FP' ? undefined : 'FP')}
+                                        className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
+                                            bulkShiftType === 'FP'
+                                                ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        FP
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkShiftType(bulkShiftType === 'RECUP' ? undefined : 'RECUP')}
+                                        className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
+                                            bulkShiftType === 'RECUP'
+                                                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        RECUP
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkShiftType(bulkShiftType === 'TW' ? undefined : 'TW')}
+                                        className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
+                                            bulkShiftType === 'TW'
+                                                ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        TW
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkShiftType(bulkShiftType === 'TW_ABROAD' ? undefined : 'TW_ABROAD')}
+                                        className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
+                                            bulkShiftType === 'TW_ABROAD'
+                                                ? 'bg-violet-100 text-violet-800 border-violet-300'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        TW Abroad
+                                    </button>
+                                </div>
                             </div>
 
                             <p className="text-xs text-gray-500 italic">
