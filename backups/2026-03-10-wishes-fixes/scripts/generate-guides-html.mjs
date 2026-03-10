@@ -1,0 +1,484 @@
+#!/usr/bin/env node
+
+import fs from "node:fs";
+import path from "node:path";
+
+const docsDir = path.resolve("docs");
+if (!fs.existsSync(docsDir)) {
+  fs.mkdirSync(docsDir, { recursive: true });
+}
+
+const htmlES = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía de Usuario - Zenova</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
+    h1 { color: #0f172a; border-bottom: 3px solid #0f172a; padding-bottom: 10px; font-size: 28px; }
+    h2 { color: #111827; margin-top: 30px; font-size: 20px; border-left: 4px solid #0369a1; padding-left: 10px; }
+    h3 { color: #334155; font-size: 16px; margin-top: 20px; }
+    .intro { background: #f0f9ff; padding: 15px; border-left: 4px solid #0369a1; margin: 20px 0; }
+    .tip { background: #fef3c7; padding: 10px 15px; border-left: 4px solid #f59e0b; margin: 15px 0; }
+    .warning { background: #fee2e2; padding: 10px 15px; border-left: 4px solid #dc2626; margin: 15px 0; }
+    .step { margin: 15px 0; padding: 10px; background: #f9fafb; border-left: 4px solid #6b7280; }
+    ol, ul { margin: 10px 0; padding-left: 25px; }
+    li { margin: 8px 0; }
+    strong { color: #111827; }
+    .section-break { page-break-after: always; }
+  </style>
+</head>
+<body>
+
+<h1>Zenova — Guía Práctica Completa para Usuario/a</h1>
+<p style="color: #666; font-style: italic;">Versión 2026 · Manual paso a paso para sacar máximo provecho de la aplicación</p>
+
+<div class="intro">
+<strong>¿Qué encontrarás aquí?</strong> Una guía práctica y detallada para usar Zenova en tu trabajo diario. No es manual técnico: es instrucciones claras paso a paso con ejemplos reales.
+</div>
+
+<h2>1. INTRODUCCIÓN</h2>
+<p>Zenova es tu herramienta para gestionar turnos de enfermería. Con ella puedes:</p>
+<ul>
+  <li>Consultar tu calendario mensual de turnos</li>
+  <li>Solicitar cambios, vacaciones o preferencias</li>
+  <li>Revisar horas trabajadas vs. contrato</li>
+  <li>Recibir notificaciones de cambios</li>
+  <li>Intercambiar turnos con compañeros</li>
+  <li>Exportar tu agenda a PDF o Excel</li>
+</ul>
+
+<h2>2. ACCESO Y PRIMEROS PASOS</h2>
+
+<h3>2.1 Iniciar sesión</h3>
+<div class="step">
+<strong>Paso 1:</strong> Abre tu navegador (Chrome, Firefox, Edge) y ve a la URL de Zenova.<br>
+<strong>Paso 2:</strong> Verás pantalla de login con dos campos: Usuario y Contraseña.<br>
+<strong>Paso 3:</strong> Escribe tu usuario (email ej: ana.garcia@hospital.es).<br>
+<strong>Paso 4:</strong> Introduce tu contraseña (cuidado: diferencia mayúsculas/minúsculas).<br>
+<strong>Paso 5:</strong> Haz clic en "Iniciar sesión" o presiona Enter.
+</div>
+
+<div class="tip">
+💡 Si es tu primer acceso, la app probablemente te pida cambiar contraseña. Es obligatorio. Introduce una contraseña segura de al menos 6 caracteres.
+</div>
+
+<h3>2.2 Cambio obligatorio de contraseña</h3>
+<div class="step">
+<strong>Paso 1:</strong> Verás modal diciendo "Debes cambiar tu contraseña".<br>
+<strong>Paso 2:</strong> Introduce nueva contraseña (mínimo 6 caracteres, recomendado mezclar letras y números).<br>
+<strong>Paso 3:</strong> Confirma escribiendo exactamente lo mismo de nuevo.<br>
+<strong>Paso 4:</strong> Haz clic en "Cambiar Contraseña".<br>
+<strong>Resultado:</strong> Accederás a la pantalla principal.
+</div>
+
+<div class="warning">
+⚠️ GUARDA tu nueva contraseña en un lugar seguro. Si la olvidas, contacta con administración.
+</div>
+
+<div class="section-break"></div>
+
+<h2>3. TU PERFIL: CONFIGURACIÓN CRÍTICA</h2>
+<p>Tu perfil es donde configuras datos personales, idioma y <strong>el email para recibir notificaciones</strong>. Esta es la configuración más importante.</p>
+
+<h3>3.1 Acceder a Mi Perfil</h3>
+<div class="step">
+<strong>Paso 1:</strong> En pantalla principal, busca tu nombre en esquina superior derecha.<br>
+<strong>Paso 2:</strong> Haz clic en tu nombre o ícono de usuario.<br>
+<strong>Paso 3:</strong> Se abrirá menú desplegable.<br>
+<strong>Paso 4:</strong> Selecciona "Mi Perfil" o "My Profile".
+</div>
+
+<h3>3.2 EMAIL PARA NOTIFICACIONES (CRÍTICO!!!)</h3>
+<p><strong>SIN ESTE EMAIL, NO RECIBIRÁS AVISOS DE CAMBIOS EN TU PLANIFICACIÓN.</strong></p>
+
+<div class="step">
+<strong>Paso 1:</strong> Busca campo "Email para notificaciones" (primero en sección).<br>
+<strong>Paso 2:</strong> Si hay email anterior, bórralo completamente.<br>
+<strong>Paso 3:</strong> Escribe tu email real. Ejemplos correctos: ana@gmail.com, juan.lopez@hotmail.com<br>
+<strong>Paso 4:</strong> Verifica que NO haya espacios antes ni después.<br>
+<strong>Paso 5:</strong> Haz clic botón "Guardar" (azul grande).<br>
+<strong>Resultado:</strong> Verás mensaje verde "Email actualizado correctamente".
+</div>
+
+<div class="warning">
+⚠️ Si ves error rojo: el email no es válido O ya lo usa otro usuario. Revisa formato o contacta admin.
+</div>
+
+<div class="tip">
+💡 Usa el email que revisas regularmente. Si escribes email que no lees, perderás notificaciones.
+</div>
+
+<h3>3.3 Cambiar Contraseña</h3>
+<div class="step">
+<strong>Paso 1:</strong> En sección "Cambiar Contraseña", introduce tu contraseña actual.<br>
+<strong>Paso 2:</strong> Escribe nueva contraseña (mínimo 6 caracteres).<br>
+<strong>Paso 3:</strong> Confirma escribiendo exactamente lo mismo en "Confirmar Nueva Contraseña".<br>
+<strong>Paso 4:</strong> Haz clic "Guardar Contraseña".<br>
+<strong>Resultado:</strong> Mensaje verde. Próximo login usa la nueva contraseña.
+</div>
+
+<h3>3.4 Cambiar Idioma</h3>
+<div class="step">
+<strong>Paso 1:</strong> En "Preferencias de Idioma", haz clic en desplegable.<br>
+<strong>Paso 2:</strong> Selecciona: Español, English o Français.<br>
+<strong>Resultado:</strong> Toda la interfaz cambia inmediatamente. Se guarda automáticamente.
+</div>
+
+<div class="section-break"></div>
+
+<h2>4. CALENDARIO MENSUAL: Tu Vista Principal</h2>
+<p>Es la pantalla que ves al iniciar sesión. Muestra TODOS los turnos del mes actual para todo el equipo.</p>
+
+<h3>4.1 Estructura</h3>
+<ul>
+  <li><strong>Cada FILA:</strong> Un enfermero/a (tu nombre aparecerá en una fila)</li>
+  <li><strong>Cada COLUMNA:</strong> Un día del mes (1, 2, 3... hasta 31)</li>
+  <li><strong>Cada CELDA:</strong> Un turno asignado (URGENCES, TRAVAIL, ADMIN, etc.)</li>
+  <li><strong>CELDA VACÍA:</strong> Día libre, festivo o sin asignación</li>
+</ul>
+
+<h3>4.2 Navegar por meses</h3>
+<div class="step">
+<strong>Paso 1:</strong> En parte superior, verás mes actual (ej: "Mayo 2026").<br>
+<strong>Paso 2:</strong> A la izquierda: botón "< Mes anterior".<br>
+<strong>Paso 3:</strong> A la derecha: botón "Mes siguiente >".<br>
+<strong>Paso 4:</strong> Haz clic para navegar. Calendario se actualiza.
+</div>
+
+<h3>4.3 Significado de colores</h3>
+<ul>
+  <li>🔵 <strong>URGENCES / URGENCES_C</strong>: azul claro (AM) y azul intenso (URG PM).</li>
+  <li>🟡 <strong>TRAVAIL / TRAVAIL_C</strong>: amarillo claro (AM) y amarillo intenso (TRAV PM).</li>
+  <li>🟠 <strong>ADMIN / ADM_PLUS</strong>: naranja claro (Adm) y naranja intenso (Adm +).</li>
+  <li>🟣 <strong>TW / TW_ABROAD</strong>: morado claro (TW) y morado intenso (TW abroad).</li>
+  <li>🌹 <strong>STRASBOURG</strong>: rosa/rose.</li>
+  <li>🩵 <strong>LIBERO / RECUP</strong>: cian o azul cielo (según tipo).</li>
+  <li>🟩 <strong>FP</strong>: verde claro.</li>
+  <li>🟦 <strong>CS</strong>: índigo claro.</li>
+  <li>⚫ <strong>SICK_LEAVE (CM)</strong>: gris oscuro.</li>
+  <li>⚪ <strong>CA</strong>: gris muy claro.</li>
+  <li>🔴 <strong>F</strong>: rojo (festivo).</li>
+  <li>🟢 <strong>VACCIN / VACCIN_AM / VACCIN_PM / VACCIN_PM_PLUS</strong>: gama verde-azulada (teal).</li>
+  <li>🧩 <strong>Split / custom</strong>: si el turno es dividido o personalizado, verás bloques combinados con color según el tipo.</li>
+</ul>
+
+<h3>4.4 Leer tu planificación personal</h3>
+<div class="step">
+<strong>Paso 1:</strong> Busca tu nombre en columna izquierda.<br>
+<strong>Paso 2:</strong> Sigue esa fila de izquierda a derecha viendo cada día.<br>
+<strong>Paso 3:</strong> El color y nombre de cada celda es tu turno para ese día.
+</div>
+
+<div class="tip">
+💡 Revisa especialmente lunes y viernes. Suelen tener dinámicas diferentes.
+</div>
+
+<div class="section-break"></div>
+
+<h2>5. NOTIFICACIONES: Recibir Avisos</h2>
+<p><strong>CRÍTICO:</strong> Las notificaciones te alertan de cambios. Funcionan en dos canales: pantalla e email.</p>
+
+<h3>5.1 Notificaciones en pantalla</h3>
+<p>Cuando algo importante cambia en tu planificación, aparece automáticamente un mensaje en la parte superior durante 7 segundos. Ejemplo: "✅ Tu turno del 15/5 cambió de URGENCES a TRAVAIL".</p>
+
+<h3>5.2 Notificaciones por EMAIL</h3>
+<p><strong>Requiere haber guardado email en Mi Perfil (sección 3.2).</strong> Si lo hiciste, recibirás email automático cuando haya cambios importantes con detalles: qué cambió, cuándo, qué turno es ahora. Puede tardar unos segundos o minutos en llegar (como Gmail).</p>
+
+<div class="warning">
+⚠️ Si NUNCA recibes email: probablemente no guardaste email válido en Mi Perfil. Vuelve a sección 3.2 y hazlo AHORA.
+</div>
+
+<div class="tip">
+💡 Si no ves email: revisa carpeta SPAM. Los filtros a veces lo clasifican erróneamente ahí.
+</div>
+
+<h3>5.3 Panel de Notificaciones</h3>
+<div class="step">
+<strong>Paso 1:</strong> Busca ícono campana 🔔 en esquina superior derecha.<br>
+<strong>Paso 2:</strong> Haz clic para abrir panel lateral.<br>
+<strong>Paso 3:</strong> Verás lista de todas tus notificaciones recientes.<br>
+<strong>Paso 4:</strong> Las nuevas (no leídas) tienen punto azul a la izquierda.<br>
+<strong>Paso 5:</strong> Haz clic en notificación para marcarla como leída.
+</div>
+
+<div class="section-break"></div>
+
+<h2>6. PERSONAL AGENDA: Tu Agenda Privada Descargable</h2>
+<p>Tu agenda personal es una vista más limpia: SOLO tus turnos, sin los de otros compañeros.</p>
+
+<h3>6.1 Acceder a Tu Agenda Personal</h3>
+<div class="step">
+<strong>Paso 1:</strong> En menú principal (arriba a la izquierda), busca "Mi Agenda" o "Personal Agenda".<br>
+<strong>Paso 2:</strong> Se abrirá vista con SOLO tus turnos del mes actual.<br>
+<strong>Paso 3:</strong> Puedes navegar meses igual que en vista general (< / >).
+</div>
+
+<h3>6.2 Exportar a PDF</h3>
+<div class="step">
+<strong>Paso 1:</strong> En vista "Mi Agenda", busca botón "Exportar a PDF" o "Export PDF".<br>
+<strong>Paso 2:</strong> Haz clic. Se descargará un PDF con tu planificación bonita, lista para imprimir.<br>
+<strong>Paso 3:</strong> Puedes guardarlo en tu carpeta, enviarlo, o imprimirlo.
+</div>
+
+<h3>6.3 Exportar a Excel/Google Sheets</h3>
+<div class="step">
+<strong>Paso 1:</strong> En misma vista Mi Agenda, busca botón "Exportar a Excel" o similar.<br>
+<strong>Paso 2:</strong> Se descargará archivo Excel con tu calendario.<br>
+<strong>Paso 3:</strong> Lo puedes abrir directamente en Excel o Google Sheets (sube archivo allí).<br>
+<strong>Ventaja:</strong> Puedes hacer cálculos, copiar, analizar tus turnos.
+</div>
+
+<div class="section-break"></div>
+
+<h2>7. WISHES & PREFERENCES: Solicitudes Personales</h2>
+<p>Las "Wishes" son tus solicitudes: "No quiero trabajar el 20 de mayo" o "Prefiero URGENCES esos días". Debes solicitarlas, y después el administrador las apruba o rechaza.</p>
+
+<h3>7.1 Crear una Wish (Solicitud)</h3>
+<div class="step">
+<strong>Paso 1:</strong> En menú principal, busca "Wishes" o "Mis Deseos".<br>
+<strong>Paso 2:</strong> Verás lista de wishes que ya solicitaste.<br>
+<strong>Paso 3:</strong> Ve a la celda del día que quieres pedir.<br>
+<strong>Paso 4:</strong> Escribe directamente tu texto en la celda (zona con "...").<br>
+<strong>Paso 5 (opcional):</strong> Haz clic en los <strong>3 puntos verticales</strong> para elegir tipo de turno (CA, CM, FP, RECUP, TW, TW Abroad).
+</div>
+
+<h3>7.2 Rellenar solicitud: Ejemplo Real</h3>
+<div class="step">
+<strong>EJEMPLO REAL EN ZENOVA:</strong> pedir CA para el 20 de mayo<br><br>
+<strong>Paso 1:</strong> En fila del día 20, escribe en tu celda: "CA" o "Vacaciones".<br>
+<strong>Paso 2:</strong> Si quieres marcarlo como turno estructurado, abre los 3 puntos verticales y elige <strong>CA</strong>.<br>
+<strong>Paso 3:</strong> Haz clic fuera de la celda para guardar (blur automático).<br>
+<strong>Resultado:</strong> Tu wish queda guardada y visible para validación de admin.
+</div>
+
+<h3>7.3 Estados de Wish</h3>
+<ul>
+  <li>⏳ <strong>Pendiente:</strong> wish guardada pero no validada (icono reloj ámbar).</li>
+  <li>✅ <strong>Validada:</strong> admin la valida (icono check verde).</li>
+  <li>🗑️ <strong>Eliminada:</strong> se borra la wish de la celda (por usuario si no validada, o por admin).</li>
+</ul>
+
+<div class="tip">
+💡 Moraleja: Solicita con anticipación. Wishes último minuto son más difíciles de aprobar.
+</div>
+
+<div class="section-break"></div>
+
+<h2>8. SHIFT SWAPS: Intercambiar Turnos con Compañeros</h2>
+<p>Intercambiar turno significa: Tú trabajas el turno de otro, él trabaja el tuyo. Ambos deben estar de acuerdo.</p>
+
+<h3>8.1 Iniciar un Swap</h3>
+<div class="step">
+<strong>EJEMPLO:</strong> Quieres intercambiar tu turno del 12 de mayo con otra persona.<br><br>
+<strong>Paso 1:</strong> Ve al calendario general.<br>
+<strong>Paso 2:</strong> Haz <strong>doble clic</strong> en la celda del turno que quieres intercambiar.<br>
+<strong>Paso 3:</strong> Se abre el panel de intercambio (Swap).<br>
+<strong>Paso 4:</strong> En "Nurse 2", elige la persona con la que quieres intercambiar.<br>
+<strong>Paso 5:</strong> Revisa la previsualización de cómo quedarán ambos turnos.<br>
+<strong>Paso 6:</strong> Haz clic en "Confirm Swap".
+</div>
+
+<h3>8.2 Estados del Swap</h3>
+<p>En la app actual no hay flujo de estados (pendiente/aceptado/rechazado) para swaps. El intercambio se aplica cuando confirmas en el panel.</p>
+
+<h3>8.3 Ver mis swaps</h3>
+<div class="step">
+<strong>Paso 1:</strong> Revisa el <strong>Histórico</strong> de la agenda general para ver los intercambios guardados.<br>
+<strong>Paso 2:</strong> También puedes verlo en tu agenda personal, en el bloque de cambios manuales del mes.
+</div>
+
+<div class="section-break"></div>
+
+<h2>9. BALANCE & HOURS: ¿Cuántas Horas He Trabajado?</h2>
+<p>En Zenova, el seguimiento fino de horas está en tu Agenda Personal: balance semanal, diferencia del mes y total mensual.</p>
+
+<h3>9.0 Indicador "R" amarillo en celdas</h3>
+<div class="step">
+Si ves una <strong>R amarilla</strong> en la esquina de la celda de un día, significa que ese día está bajo una <strong>reducción de jornada activa</strong> (80%/90%).<br>
+Puedes pasar el ratón por la "R" para ver el detalle de la regla aplicada.
+</div>
+
+<h3>9.1 Acceder a Balance</h3>
+<div class="step">
+<strong>Paso 1:</strong> Abre tu Agenda Personal (clic en tu agenda desde Balance o desde tu acceso personal).<br>
+<strong>Paso 2:</strong> Verás el calendario del mes y, a la derecha, el resumen de balance.<br>
+<strong>Paso 3:</strong> Cada semana muestra: horas planificadas, horas manuales y balance semanal.
+</div>
+
+<h3>9.2 Interpretar la tabla</h3>
+<div class="step">
+<strong>Cómo leer los datos reales:</strong><br><br>
+<strong>Balance semanal:</strong> diferencia entre horas reales de la semana y objetivo semanal según tu jornada (40/36/32).<br>
+<strong>Mes anterior:</strong> campo editable para arrastrar saldo del mes previo.<br>
+<strong>Diferencia:</strong> suma de balances semanales del mes actual.<br>
+<strong>Total mes:</strong> Diferencia + Mes anterior.<br><br>
+<strong>Interpretación:</strong> valor en verde = superávit; valor en rojo = déficit.
+</div>
+
+<h3>9.3 Exportar balance</h3>
+<div class="step">
+<strong>Paso 1:</strong> En Agenda Personal, usa los botones de exportación (PDF mes, PDF año o Copy).<br>
+<strong>Paso 2:</strong> Usa esos exportes para revisar y compartir tus horas y tu planificación.
+</div>
+
+<div class="warning">
+⚠️ Si ves DEFICIT grande: avisa a administración. Puede ser error o necesitas horas extra.
+</div>
+
+<div class="section-break"></div>
+
+<h2>10. CAMBIAR IDIOMA: English, Español, Français</h2>
+<p>Zenova funciona en tres idiomas. Puedes cambiar cuando quieras.</p>
+
+<h3>10.1 Cambiar idioma</h3>
+<div class="step">
+<strong>Paso 1:</strong> Busca el botón de idioma en la cabecera (muestra <strong>bandera + nombre del idioma</strong> actual).<br>
+<strong>Paso 2:</strong> Haz clic para abrir el desplegable con Español, English y Français.<br>
+<strong>Paso 3:</strong> Haz clic en el que quieras.<br>
+<strong>Resultado:</strong> Toda interfaz cambia inmediatamente. Se guarda tu preferencia.
+</div>
+
+<div class="section-break"></div>
+
+<h2>11. EXPORTAR: Descarga tus Datos</h2>
+<p>Puedes descargar tu información en múltiples formatos.</p>
+
+<h3>11.1 Exportar Agenda Completa</h3>
+<div class="step">
+<strong>Paso 1:</strong> Ve a "Mi Agenda".<br>
+<strong>Paso 2:</strong> Selecciona mes que quieres exportar (navega con < / >).<br>
+<strong>Paso 3:</strong> Haz clic "Exportar a PDF" para formato bonito/imprimible.<br>
+<strong>Paso 4:</strong> O haz clic "Exportar a Excel" para formato editable/analizable.
+</div>
+
+<h3>11.2 Exportar Balance</h3>
+<div class="step">
+<strong>Paso 1:</strong> Ve a "Wishes".<br>
+<strong>Paso 2:</strong> Usa los botones de exportación disponibles: <strong>CSV</strong>, <strong>Copy</strong> (portapapeles para Sheets/Excel) y <strong>PDF</strong> (impresión/exportación).<br>
+<strong>Resultado:</strong> Puedes compartir o archivar tus deseos/solicitudes por periodo.
+</div>
+
+<h3>11.3 Dónde se descargan</h3>
+<p>Los archivos irán a tu carpeta "Descargas" del sistema operativo. Ejemplo: C:\Users\tu_usuario\Downloads\ (Windows) o ~/Downloads (Mac/Linux).</p>
+
+<div class="section-break"></div>
+
+<h2>12. MEJORES PRÁCTICAS: Consejos Profesionales</h2>
+<p>Aprovecha Zenova al máximo:</p>
+
+<ul>
+  <li>✅ <strong>Revisa diariamente:</strong> Abre Zenova cada mañana (2-3 minutos) para ver si hay cambios nocturnos.</li>
+  <li>✅ <strong>Email actualizado:</strong> Tu email en Mi Perfil es CRÍTICO. Si no está: AHORA MISMO, ve a sección 3.2.</li>
+  <li>✅ <strong>Solicita pronto:</strong> Wishes con 2-3 semanas anticipación tienen más probabilidad aprobación.</li>
+  <li>✅ <strong>Coordina intercambios:</strong> Habla antes con compañero. Propuestas coordinadas se aprueban más rápido.</li>
+  <li>✅ <strong>Descarga backup:</strong> Cada mes, exporta tu agenda a Excel/PDF. Así tienes copia de seguridad.</li>
+  <li>✅ <strong>Revisa balance:</strong> Cada mes-final, chequea que tus horas sean correctas. Si hay discrepancia, avisa.</li>
+  <li>✅ <strong>Usa búsqueda de compañeros:</strong> Si necesitas intercambio, pregunta al que trabaja el día que necesitas (no es random).</li>
+  <li>✅ <strong>Guarda contraseña:</strong> Usa password manager (1Password, Bitwarden, etc.) para no olvidarla.</li>
+</ul>
+
+<div class="section-break"></div>
+
+<h2>13. SOLUCIÓN DE PROBLEMAS</h2>
+
+<h3>Problema 1: "No veo mis cambios en el calendario"</h3>
+<div class="step">
+<strong>Solución:</strong><br>
+1. Actualiza página (F5 o Ctrl+R).<br>
+2. Si sigue igual: cierra navegador completamente y reabre.<br>
+3. Si aún no ves: contacta admin (puede ser problema tipo dato congelado).
+</div>
+
+<h3>Problema 2: "Recibí notificación en pantalla pero no por email"</h3>
+<div class="step">
+<strong>Solución:</strong><br>
+1. Revisa que hayas guardado email en Mi Perfil (sección 3.2).<br>
+2. Mira carpeta SPAM/Correo no deseado de tu email.<br>
+3. Si email escrito es incorrecto: corrígelo en Mi Perfil ahora.<br>
+4. Contacta admin si las dos primeras no funcionan.
+</div>
+
+<h3>Problema 3: "Olvidé mi contraseña"</h3>
+<div class="step">
+<strong>Solución:</strong><br>
+Contacta con administración para que gestionen el restablecimiento de contraseña.
+</div>
+
+<h3>Problema 4: "Mi wish fue rechazada sin motivo"</h3>
+<div class="step">
+<strong>Posibles razones:</strong><br>
+1. Cobertura mínima: ese día necesitan mínimas rotaciones obligatorias.<br>
+2. Falta de disponibilidad: todos solicitan lo mismo ese día.<br>
+3. Problema jornada: tu contrato (80%/90%/100%) no lo permite.<br>
+4. Contacta admin para explicación exacta.
+</div>
+
+<h3>Problema 5: "No puedo hacer swap con Juan"</h3>
+<div class="step">
+Contacta con admin.
+</div>
+
+<div class="section-break"></div>
+
+<h2>14. SEGURIDAD: Protege tu Cuenta</h2>
+
+<h3>Buenas Prácticas</h3>
+<ul>
+  <li>🔐 <strong>Contraseña fuerte:</strong> Mínimo 6 caracteres, mejor si mezclas letras+números. NO uses: fecha nacimiento, nombre, secuencias obvias.</li>
+  <li>🔐 <strong>Computadora pública:</strong> Nunca dejes sesión abierta en computadora compartida. Cierra navegador siempre.</li>
+  <li>🔐 <strong>Wi-Fi público:</strong> Evita conectarte a Zenova en Wi-Fi público sin VPN (cafés, aeropuertos). Si debes: no accedas datos sensibles.</li>
+  <li>🔐 <strong>Phishing:</strong> Si recibes email raro pidiendo login: NO hagas clic. Contacta admin si es sospechoso.</li>
+  <li>🔐 <strong>Logout:</strong> Cuando termines sesión en PC ajena: haz clic tu nombre → "Salir" o "Logout".</li>
+  <li>🔐 <strong>Cambio regular:</strong> Cada 3-6 meses, cambia contraseña (especialmente si compartiste computadora).</li>
+</ul>
+
+<div class="section-break"></div>
+
+<h2>PREGUNTAS FRECUENTES (FAQ)</h2>
+
+<div class="step">
+<strong>P: ¿Puedo ver calendario de mis compañeros?</strong><br>
+R: Sí, en vista "Calendario General". Ventana pública donde ves TODOS (estrategia de planificación).
+</div>
+
+<div class="step">
+<strong>P: ¿Puedo cambiar mis datos personales (nombre, email principal)?</strong><br>
+R: Parcialmente. Email de NOTIFICACIONES: sí (sección 3.2). Email principal, nombre: NO. Contacta admin.
+</div>
+
+<div class="step">
+<strong>P: ¿Qué pasa si me cambio a otro hospital antes de terminar mes?</strong><br>
+R: Tus horas se calculan hasta fecha de cambio. Balance se congela. Contacta admin para finiquito.
+</div>
+
+<div class="step">
+<strong>P: ¿Zenova funciona en celular?</strong><br>
+R: Sí, abre en navegador Chrome/Firefox de celular. No hay app nativa, es web responsive.
+</div>
+
+<div class="section-break"></div>
+
+<h2>CONTACTO Y SOPORTE</h2>
+<p><strong>Si después de leer esta guía tienes dudas o problemas:</strong></p>
+<ul>
+  <li>📧 Contacta administración Zenova del hospital.</li>
+  <li>📋 Proporciona: tu nombre, fecha del problema, descripción clara de qué pasó.</li>
+  <li>⏰ Respuesta típica: 24 horas laborales.</li>
+</ul>
+
+<p style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #ccc; color: #666; font-style: italic;">
+— Versión 2026 · Guía Zenova · Último update: Marzo 2026 —
+</p>
+
+</body>
+</html>
+`;
+
+const htmlFile = path.join(docsDir, "Guia_Usuario_Zenova_COMPLETA.html");
+fs.writeFileSync(htmlFile, htmlES);
+
+console.log("✅ Guía HTML generada:", htmlFile);
+console.log("📝 Ahora puedes: 1) Abrir en navegador 2) Imprimir a PDF (Ctrl+P → Guardar como PDF)");
