@@ -671,11 +671,13 @@
                     <div class="mindmap-branch">
                         <h4><span class="icon">🙏</span> Wishes (Deseos)</h4>
                         <ul>
-                            <li>Solicitudes de turnos</li>
+                            <li>Solicitudes por celda (texto + tipo)</li>
+                            <li>Acción "Multiple Days" por rango</li>
+                            <li>Tipos rápidos: CA, CM, FP, CS, RECUP, TW, TW Abroad</li>
                             <li>Validación admin</li>
                             <li>Estados: Pendiente/Validado</li>
-                            <li>Filtros por enfermero</li>
-                            <li>Edición de texto</li>
+                            <li>Bloqueo automático en días no laborables por jornada</li>
+                            <li>Edición de texto y tipo de turno</li>
                         </ul>
                     </div>
                     
@@ -1095,16 +1097,16 @@
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">2</div>
-                    <div class="step-icon">➕</div>
-                    <h5>Agregar deseo</h5>
-                    <p>Botón "+ Agregar Deseo"</p>
+                    <div class="step-icon">📝</div>
+                    <h5>Editar celda o usar Multiple Days</h5>
+                    <p>Escribe texto en celda y/o selecciona tipo (menú de 3 puntos)</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
                     <div class="step-number">3</div>
-                    <div class="step-icon">📝</div>
-                    <h5>Rellenar formulario</h5>
-                    <p>Fecha, tipo de turno deseado, motivo</p>
+                    <div class="step-icon">📅</div>
+                    <h5>Rango opcional</h5>
+                    <p>Con "Multiple Days": enfermero + fechas + texto/turno (FP y CS incluidos)</p>
                 </div>
                 <div class="workflow-arrow">→</div>
                 <div class="workflow-step">
@@ -1113,6 +1115,11 @@
                     <h5>Esperar validación</h5>
                     <p>Admin revisará y validará tu solicitud</p>
                 </div>
+            </div>
+
+            <div class="tip">
+                <strong>💡 Regla importante de Jornada Laboral</strong>
+                Si un día es <strong>no laborable por reducción de jornada</strong> (por ejemplo, FULL_DAY_OFF o viernes de FRIDAY_PLUS_EXTRA), ese día <strong>no se guarda como CA/FP/CS</strong> aunque esté dentro del rango de "Multiple Days". Se trata como día no laborable (igual que fin de semana).
             </div>
             
             <div class="warning">
@@ -1429,6 +1436,16 @@
                         3. Selecciona rango: <strong>Mensual</strong> o <strong>Anual</strong><br>
                         4. Elige mes/año<br>
                         5. Se descarga archivo .xlsx con formato profesional
+                    </p>
+                </details>
+
+                <details style="background: #f8fafc; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea; cursor: pointer;">
+                    <summary style="font-weight: 600; font-size: 1.1em; color: #667eea;">En Wishes, ¿por qué un día del rango no aparece como CA/FP/CS?</summary>
+                    <p style="margin-top: 15px; color: #64748b;">
+                        Si el día coincide con un <strong>día no laborable por jornada</strong>, Zenova no lo cuenta como vacaciones/ausencia. Ejemplos:<br>
+                        1. <strong>FULL_DAY_OFF</strong> en el día configurado<br>
+                        2. <strong>FRIDAY_PLUS_EXTRA</strong> → el viernes siempre es no laborable<br>
+                        En esos casos la celda se comporta como no laborable (similar a fin de semana) y el deseo no se aplica en ese día.
                     </p>
                 </details>
             </div>
