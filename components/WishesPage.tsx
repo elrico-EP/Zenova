@@ -221,7 +221,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
     const handleNextMonth = () => setCurrentMonth(m => (m === 11 ? 0 : m + 1));
 
     const handleBulkApply = () => {
-        if (!bulkNurseId || !bulkStartDate || !bulkEndDate || !bulkText.trim()) return;
+        if (!bulkNurseId || !bulkStartDate || !bulkEndDate || (!bulkText.trim() && !bulkShiftType)) return;
         
         const start = new Date(bulkStartDate);
         const end = new Date(bulkEndDate);
@@ -544,7 +544,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                 </button>
                                 <button
                                     onClick={handleBulkApply}
-                                    disabled={!bulkNurseId || !bulkStartDate || !bulkEndDate || !bulkText.trim()}
+                                    disabled={!bulkNurseId || !bulkStartDate || !bulkEndDate || (!bulkText.trim() && !bulkShiftType)}
                                     className="px-4 py-2 bg-zen-600 text-white font-semibold rounded-md hover:bg-zen-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                                 >
                                     {t.apply || 'Apply'}
