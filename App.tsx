@@ -1533,6 +1533,25 @@ const handleAddNurse = useCallback((name: string) => {
                     currentDate={currentDate}
                     wishes={wishes}   
                     onWishesChange={(nurseId, dateKey, text, shiftType) => updateData({ wishes: { ...wishes, [nurseId]: { ...wishes[nurseId], [dateKey]: { ...wishes[nurseId]?.[dateKey], text, shiftType } } } })} 
+                    onBulkWishesChange={(nurseId, updates) => {
+                      const nurseWishes = wishes[nurseId] || {};
+                      const mergedNurseWishes = { ...nurseWishes };
+
+                      Object.entries(updates).forEach(([dateKey, value]) => {
+                        mergedNurseWishes[dateKey] = {
+                          ...nurseWishes[dateKey],
+                          text: value.text,
+                          shiftType: value.shiftType,
+                        };
+                      });
+
+                      updateData({
+                        wishes: {
+                          ...wishes,
+                          [nurseId]: mergedNurseWishes,
+                        },
+                      });
+                    }}
                     onWishValidationChange={(nurseId, dateKey, isValidated) => {
                       const wish = wishes[nurseId]?.[dateKey];
                       const updates: any = {
