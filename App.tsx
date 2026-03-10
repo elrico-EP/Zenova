@@ -267,8 +267,10 @@ const AppContent: React.FC = () => {
   }, []);
 
   const isFrozenGenerationMonth = useCallback((date: Date) => {
-    if (date.getFullYear() > FROZEN_START_YEAR) return true;
-    return date.getFullYear() === FROZEN_START_YEAR && date.getMonth() >= FROZEN_START_MONTH_INDEX;
+    // Returns true for months BEFORE april 2026 (jan-mar), which are frozen/unchangeable
+    // Returns false for april 2026 onwards, which are dynamically generated
+    if (date.getFullYear() < FROZEN_START_YEAR) return true;
+    return date.getFullYear() === FROZEN_START_YEAR && date.getMonth() < FROZEN_START_MONTH_INDEX;
   }, []);
 
   const shouldEnforceCoverageForMonth = useCallback((targetYear: number, targetMonth: number) => {
