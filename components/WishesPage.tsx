@@ -171,12 +171,13 @@ interface WishesPageProps {
     currentDate: Date;
     wishes: Wishes;
     onWishesChange: (nurseId: string, dateKey: string, text: string, shiftType?: WorkZone) => void;
+    onBulkWishesChange?: (nurseId: string, updates: Record<string, { text: string; shiftType?: WorkZone }>) => void;
     onWishValidationChange: (nurseId: string, dateKey: string, isValidated: boolean) => void;
     onDeleteWish: (nurseId: string, dateKey: string) => void;
     agenda: Agenda;
 }
 
-export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDate, wishes, onWishesChange, onWishValidationChange, onDeleteWish, agenda }) => {
+export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDate, wishes, onWishesChange, onBulkWishesChange, onWishValidationChange, onDeleteWish, agenda }) => {
     const t = useTranslations();
     const { language } = useLanguage();
     const { effectiveUser } = useUser();
@@ -239,14 +240,24 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
             return;
         }
 
+        const bulkUpdates: Record<string, { text: string; shiftType?: WorkZone }> = {};
+
         // Aplicar el deseo a todos los días en el rango, excluyendo fines de semana
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dayOfWeek = d.getDay();
             // Excluir sábados (6) y domingos (0)
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                 const dateKey = toLocalDateKey(d);
-                onWishesChange(bulkNurseId, dateKey, bulkText, bulkShiftType);
+                bulkUpdates[dateKey] = { text: bulkText, shiftType: bulkShiftType };
             }
+        }
+
+        if (onBulkWishesChange) {
+            onBulkWishesChange(bulkNurseId, bulkUpdates);
+        } else {
+            Object.entries(bulkUpdates).forEach(([dateKey, value]) => {
+                onWishesChange(bulkNurseId, dateKey, value.text, value.shiftType);
+            });
         }
 
         // Resetear formulario
