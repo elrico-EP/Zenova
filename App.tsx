@@ -1539,11 +1539,15 @@ const handleAddNurse = useCallback((name: string) => {
                       const mergedNurseWishes = { ...nurseWishes };
 
                       Object.entries(updates).forEach(([dateKey, value]) => {
-                        mergedNurseWishes[dateKey] = {
-                          ...nurseWishes[dateKey],
-                          text: value.text,
-                          shiftType: value.shiftType,
-                        };
+                        if (value === null) {
+                          delete mergedNurseWishes[dateKey];
+                        } else {
+                          mergedNurseWishes[dateKey] = {
+                            ...nurseWishes[dateKey],
+                            text: value.text,
+                            shiftType: value.shiftType,
+                          };
+                        }
                       });
 
                       updateData({
