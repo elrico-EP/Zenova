@@ -68,6 +68,7 @@ const DayCell: React.FC<{
         { type: 'CA', label: 'CA', color: 'bg-emerald-100 text-emerald-800' },
         { type: 'SICK_LEAVE', label: 'CM', color: 'bg-rose-100 text-rose-800' },
         { type: 'FP', label: 'FP', color: 'bg-blue-100 text-blue-800' },
+        { type: 'CS', label: 'CS', color: 'bg-cyan-100 text-cyan-800' },
         { type: 'RECUP', label: 'RECUP', color: 'bg-amber-100 text-amber-800' },
         { type: 'TW', label: 'TW', color: 'bg-indigo-100 text-indigo-800' },
         { type: 'TW_ABROAD', label: 'TW Abroad', color: 'bg-violet-100 text-violet-800' },
@@ -190,6 +191,13 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
     const [bulkShiftType, setBulkShiftType] = useState<WorkZone | undefined>(undefined);
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
 
+    const toLocalDateKey = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
     const dayNames = useMemo(() => {
         const formatter = new Intl.DateTimeFormat(language, { weekday: 'narrow' });
         // 2023-01-01 is a Sunday. Create an array starting with Sunday.
@@ -236,7 +244,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
             const dayOfWeek = d.getDay();
             // Excluir sábados (6) y domingos (0)
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                const dateKey = d.toISOString().split('T')[0];
+                const dateKey = toLocalDateKey(d);
                 onWishesChange(bulkNurseId, dateKey, bulkText, bulkShiftType);
             }
         }
@@ -497,6 +505,17 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                     </button>
                                     <button
                                         type="button"
+                                        onClick={() => setBulkShiftType(bulkShiftType === 'CS' ? undefined : 'CS')}
+                                        className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
+                                            bulkShiftType === 'CS'
+                                                ? 'bg-cyan-100 text-cyan-800 border-cyan-300'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        CS
+                                    </button>
+                                    <button
+                                        type="button"
                                         onClick={() => setBulkShiftType(bulkShiftType === 'RECUP' ? undefined : 'RECUP')}
                                         className={`px-3 py-2 text-sm font-semibold rounded-md border transition-all ${
                                             bulkShiftType === 'RECUP'
@@ -581,7 +600,7 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
                                     <tbody>
                                         {Array.from({ length: daysInDisplayMonth }, (_, i) => i + 1).map(day => {
                                             const date = new Date(year, displayMonth, day, 12, 0, 0);
-                                            const dateKey = date.toISOString().split('T')[0];
+                                            const dateKey = toLocalDateKey(date);
                                             const dayOfWeek = date.getDay();
                                             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                                             const isHoliday = holidays2026.has(dateKey);
