@@ -737,7 +737,9 @@ useEffect(() => {
     // Only update if actually changed (prevent infinite loops)
     setLocalHours(prevHours => {
       if (JSON.stringify(prevHours) !== JSON.stringify(newHoursState)) {
-        console.log(t.log_recalculatingHours);
+        if (import.meta.env.DEV) {
+          console.log(t.log_recalculatingHours);
+        }
         return newHoursState;
       }
       return prevHours;

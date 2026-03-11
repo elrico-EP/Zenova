@@ -49,6 +49,7 @@ export const useSupabaseState = () => {
     const lastRealtimeEventRef = useRef<number>(0);
     const lastLocalSaveRef = useRef<number>(0);
     const isSavingRef = useRef<boolean>(false);
+    const hasWarnedStateUnavailableRef = useRef<boolean>(false);
 
     useEffect(() => {
         let pollingInterval: NodeJS.Timeout | undefined;
@@ -288,7 +289,10 @@ export const useSupabaseState = () => {
     return new Promise<void>((resolve, reject) => {
         setData(currentData => {
             if (!currentData) {
-                console.warn("⚠️ Estado no disponible");
+                if (!hasWarnedStateUnavailableRef.current) {
+                    console.warn("⚠️ Estado no disponible");
+                    hasWarnedStateUnavailableRef.current = true;
+                }
                 resolve();
                 return currentData;
             }
