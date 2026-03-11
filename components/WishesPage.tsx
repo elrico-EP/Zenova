@@ -262,17 +262,28 @@ export const WishesPage: React.FC<WishesPageProps> = ({ nurses, year, currentDat
 
         const bulkUpdates: Record<string, { text: string; shiftType?: WorkZone } | null> = {};
 
-        // Aplicar el deseo a todos los días en el rango, excluyendo fines de semana
+        // Aplicar el deseo a todos los días en el rango, excluyendo no laborables
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dayOfWeek = d.getDay();
+            const dateKey = toLocalDateKey(d);
+            const weekId = getWeekIdentifier(d);
+            const activityLevel = agenda[weekId] || 'NORMAL';
+            const isHoliday = holidays2026.has(dateKey);
+            const isClosedDay = activityLevel === 'CLOSED';
+
             // Excluir sábados (6) y domingos (0)
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                if (isFullReductionDayOff(bulkNurseId, d)) {
-                    const dateKey = toLocalDateKey(d);
+                // Excluir festivos/cierres y limpiar posibles deseos ya guardados
+                if (isHoliday || isClosedDay) {
                     bulkUpdates[dateKey] = null;
                     continue;
                 }
-                const dateKey = toLocalDateKey(d);
+
+                if (isFullReductionDayOff(bulkNurseId, d)) {
+                    bulkUpdates[dateKey] = null;
+                    continue;
+                }
+
                 bulkUpdates[dateKey] = { text: bulkText, shiftType: bulkShiftType };
             }
         }
