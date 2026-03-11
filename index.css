@@ -1,2 +1,58 @@
 
-/* Estilos movidos a index.html para evitar errores de MIME en producción */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	--zen-50: #f0f9ff;
+	--zen-800: #083344;
+}
+
+html, body, #root {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+	background-color: var(--zen-50);
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: #94a3b8;
+}
+
+@media print {
+	body {
+		overflow: visible !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	#root, html {
+		height: auto !important;
+		overflow: visible !important;
+	}
+
+	.no-print {
+		display: none !important;
+	}
+
+	.print-grid-container {
+		max-height: none !important;
+		overflow: visible !important;
+	}
+}
