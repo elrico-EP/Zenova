@@ -274,7 +274,7 @@ const AppContent: React.FC = () => {
   }, []);
 
   const shouldEnforceCoverageForMonth = useCallback((targetYear: number, targetMonth: number) => {
-    return isFrozenGenerationMonth(new Date(targetYear, targetMonth, 1));
+    return !isFrozenGenerationMonth(new Date(targetYear, targetMonth, 1));
   }, [isFrozenGenerationMonth]);
 
   const effectiveAgenda = useMemo(() => (year === 2026 ? agenda2026Data : agenda), [year, agenda]);
