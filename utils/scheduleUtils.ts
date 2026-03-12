@@ -294,7 +294,18 @@ const findBestCandidateWithWeeklyEquity = (
         
         // CRITERIO 2: Total clínico semanal (quien menos días trabajó esta semana)
         if (weeklyTotalA !== weeklyTotalB) return weeklyTotalA - weeklyTotalB;
-        
+
+        // CRITERIO 2.5: Rest-day enforcement — nurses who have ≥4 pure clinical days
+        // this week with 0 ADMIN/TW are soft-blocked from further clinical selection.
+        // This prevents 5-clinical weeks while colleagues have 2 non-clinical days.
+        const weeklyAdminTwA2 = (weeklyShiftStats[a.id]?.['ADMIN'] || 0) + (weeklyShiftStats[a.id]?.['TW'] || 0);
+        const weeklyAdminTwB2 = (weeklyShiftStats[b.id]?.['ADMIN'] || 0) + (weeklyShiftStats[b.id]?.['TW'] || 0);
+        const pureClinA = weeklyTotalA - weeklyAdminTwA2;
+        const pureClinB = weeklyTotalB - weeklyAdminTwB2;
+        const needsRestA = pureClinA >= 4 && weeklyAdminTwA2 === 0 ? 1 : 0;
+        const needsRestB = pureClinB >= 4 && weeklyAdminTwB2 === 0 ? 1 : 0;
+        if (needsRestA !== needsRestB) return needsRestA - needsRestB;
+
         // CRITERIO 3: Stat mensual del turno específico (quien menos tenga este mes)
         if (statsA[primaryStat] !== statsB[primaryStat]) return statsA[primaryStat] - statsB[primaryStat];
         
