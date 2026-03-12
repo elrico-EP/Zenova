@@ -583,13 +583,28 @@ export const ensureMandatoryCoverage = (
 
             // If not enough coverage, reassign from ADMIN/TW
             while (currentCount < requiredCount) {
-                const { candidateId, discardedCandidates } = pickReplacementCandidate(
+                const primaryAttempt = pickReplacementCandidate(
                     nurses.map(n => n.id),
                     (nurseId) => result[nurseId]?.[dateKey],
                     mandatoryShift,
                     ineligibleForAfternoon,
                     new Set<string>(['nurse-1'])
                 );
+
+                const fallbackAttempt = !primaryAttempt.candidateId
+                    ? pickReplacementCandidate(
+                        nurses.map(n => n.id),
+                        (nurseId) => result[nurseId]?.[dateKey],
+                        mandatoryShift,
+                        ineligibleForAfternoon,
+                        new Set<string>()
+                    )
+                    : undefined;
+
+                const candidateId = primaryAttempt.candidateId || fallbackAttempt?.candidateId;
+                const discardedCandidates = primaryAttempt.candidateId
+                    ? primaryAttempt.discardedCandidates
+                    : [...primaryAttempt.discardedCandidates, ...(fallbackAttempt?.discardedCandidates || [])];
 
                 if (!candidateId) {
                     logCoverageDiagnostic({
