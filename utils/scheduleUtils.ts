@@ -588,6 +588,135 @@ export const ensureMandatoryCoverage = (
         }, 0);
     };
 
+    const clinicalShifts = new Set<WorkZone>([
+        'URGENCES',
+        'TRAVAIL',
+        'URGENCES_TARDE',
+        'TRAVAIL_TARDE',
+        'URGENCES_C',
+        'TRAVAIL_C',
+        'VACCIN',
+        'VACCIN_AM',
+        'VACCIN_PM',
+        'VACCIN_PM_PLUS',
+        'LIBERO',
+    ]);
+
+    const isClinicalCell = (cell: ScheduleCell | undefined): boolean => {
+        const shifts = getShiftsFromCell(cell);
+        return shifts.some(shift => clinicalShifts.has(shift));
+    };
+
+    const isAdminOnlyCell = (cell: ScheduleCell | undefined): boolean => {
+        const shifts = getShiftsFromCell(cell);
+        return shifts.length === 1 && shifts[0] === 'ADMIN';
+    };
+
+    const canTakeClinicalCell = (nurseId: string, cell: ScheduleCell | undefined, date: Date): boolean => {
+        if (!cell) return false;
+        const shifts = getShiftsFromCell(cell);
+        const needsAfternoonEligibility = shifts.some(shift =>
+            shift.includes('_TARDE') || shift.includes('_PM') || shift === 'ADM_PLUS'
+        );
+
+        if (!needsAfternoonEligibility) return true;
+
+        const activeJornada = getActiveJornada(nurseId, date, jornadasLaborales);
+        const dayOfWeek = date.getUTCDay();
+        const isAfternoonRestricted = !!activeJornada &&
+            activeJornada.porcentaje === 90 &&
+            (activeJornada.reductionOption === 'START_SHIFT_4H' || activeJornada.reductionOption === 'END_SHIFT_4H') &&
+            dayOfWeek >= 1 &&
+            dayOfWeek <= 4 &&
+            dayOfWeek === activeJornada.reductionDayOfWeek;
+
+        return !isAfternoonRestricted;
+    };
+
+    const createsConsecutiveAdminOrTW = (nurseId: string, dateKey: string): boolean => {
+        const baseDate = new Date(`${dateKey}T12:00:00Z`);
+        const prevDate = new Date(baseDate);
+        prevDate.setUTCDate(prevDate.getUTCDate() - 1);
+        const nextDate = new Date(baseDate);
+        nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+        const prevKey = prevDate.toISOString().split('T')[0];
+        const nextKey = nextDate.toISOString().split('T')[0];
+
+        const hasPrevAdminOrTW = getShiftsFromCell(result[nurseId]?.[prevKey]).some(shift => ['ADMIN', 'TW'].includes(shift));
+        const hasNextAdminOrTW = getShiftsFromCell(result[nurseId]?.[nextKey]).some(shift => ['ADMIN', 'TW'].includes(shift));
+        return hasPrevAdminOrTW || hasNextAdminOrTW;
+    };
+
+    const rebalanceWeekClinicalLoad = (weekDateKeys: string[]): void => {
+        const MAX_SWAPS_PER_WEEK = 2;
+
+        const buildCounts = () => {
+            const clinicalCount: Record<string, number> = {};
+            nurses.forEach(nurse => {
+                clinicalCount[nurse.id] = weekDateKeys.reduce((count, dateKey) => {
+                    return count + (isClinicalCell(result[nurse.id]?.[dateKey]) ? 1 : 0);
+                }, 0);
+            });
+            return clinicalCount;
+        };
+
+        for (let swapIndex = 0; swapIndex < MAX_SWAPS_PER_WEEK; swapIndex++) {
+            const clinicalCount = buildCounts();
+            const sortedByClinicalAsc = [...nurses].sort((a, b) => {
+                if (clinicalCount[a.id] !== clinicalCount[b.id]) return clinicalCount[a.id] - clinicalCount[b.id];
+                return a.id.localeCompare(b.id);
+            });
+            const sortedByClinicalDesc = [...nurses].sort((a, b) => {
+                if (clinicalCount[a.id] !== clinicalCount[b.id]) return clinicalCount[b.id] - clinicalCount[a.id];
+                return a.id.localeCompare(b.id);
+            });
+
+            const minClinical = clinicalCount[sortedByClinicalAsc[0].id] || 0;
+            const maxClinical = clinicalCount[sortedByClinicalDesc[0].id] || 0;
+            if (maxClinical - minClinical < 2) {
+                break;
+            }
+
+            let swapped = false;
+
+            for (const receiver of sortedByClinicalAsc) {
+                for (const donor of sortedByClinicalDesc) {
+                    if (receiver.id === donor.id) continue;
+                    if ((clinicalCount[donor.id] || 0) - (clinicalCount[receiver.id] || 0) < 2) continue;
+
+                    const candidateDateKey = weekDateKeys.find(dateKey => {
+                        const date = new Date(`${dateKey}T12:00:00Z`);
+                        const donorCell = result[donor.id]?.[dateKey];
+                        const receiverCell = result[receiver.id]?.[dateKey];
+
+                        if (!isClinicalCell(donorCell)) return false;
+                        if (!isAdminOnlyCell(receiverCell)) return false;
+                        if (!canTakeClinicalCell(receiver.id, donorCell, date)) return false;
+                        if (createsConsecutiveAdminOrTW(donor.id, dateKey)) return false;
+
+                        return true;
+                    });
+
+                    if (!candidateDateKey) continue;
+
+                    const donorCell = result[donor.id]?.[candidateDateKey];
+                    if (!donorCell) continue;
+
+                    result[receiver.id][candidateDateKey] = donorCell;
+                    result[donor.id][candidateDateKey] = 'ADMIN';
+                    swapped = true;
+                    break;
+                }
+
+                if (swapped) break;
+            }
+
+            if (!swapped) {
+                break;
+            }
+        }
+    };
+
     for (let day = 1; day <= daysInMonth; day++) {
         const currentDate = new Date(Date.UTC(year, month, day));
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -742,6 +871,27 @@ export const ensureMandatoryCoverage = (
                 }
                 result[nurse.id][dateKey] = canGetTW ? 'TW' : 'ADMIN';
             }
+        });
+    }
+
+    if (year === 2026 && month >= 3) {
+        const weekMap = new Map<string, string[]>();
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const currentDate = new Date(Date.UTC(year, month, day));
+            const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const hasAnyAssignment = nurses.some(nurse => !!result[nurse.id]?.[dateKey]);
+            if (!hasAnyAssignment) continue;
+
+            const weekId = getWeekIdentifier(currentDate);
+            if (!weekMap.has(weekId)) {
+                weekMap.set(weekId, []);
+            }
+            weekMap.get(weekId)!.push(dateKey);
+        }
+
+        weekMap.forEach(weekDateKeys => {
+            rebalanceWeekClinicalLoad(weekDateKeys.sort());
         });
     }
 
