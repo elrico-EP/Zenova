@@ -709,7 +709,7 @@ useEffect(() => {
 }, [currentSchedule]);
 
   useEffect(() => {
-    const calculatedHoursForMonth = calculateHoursForMonth(nurses, currentDate, effectiveAgenda, schedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
+    const calculatedHoursForMonth = calculateHoursForMonth(nurses, currentDate, effectiveAgenda, currentSchedule, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales);
     const newHoursState = JSON.parse(JSON.stringify(calculatedHoursForMonth));
     
     // Merge with manual hours from Supabase
@@ -744,7 +744,7 @@ useEffect(() => {
       }
       return prevHours;
     });
-  }, [nurses, schedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, savedHours]);
+  }, [nurses, currentSchedule, currentDate, effectiveAgenda, strasbourgAssignments, specialStrasbourgEvents, jornadasLaborales, savedHours]);
 
   // Use localHours as the final hours state (already merged with savedHours)
   const hours = localHours;
