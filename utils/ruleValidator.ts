@@ -3,7 +3,7 @@ import type { Schedule, Nurse, RuleViolation, WorkZone, Agenda, ScheduleCell } f
 import { getWeekIdentifier, getWeeksInMonth } from './dateUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { Locale } from '../translations/locales';
-import { getShiftsFromCell } from './scheduleUtils';
+import { getClinicalNeedsForDay, getShiftsFromCell } from './scheduleUtils';
 
 export const validateSchedule = (schedule: Schedule, nurses: Nurse[], currentDate: Date, agenda: Agenda, t: Locale): RuleViolation[] => {
     let violations: RuleViolation[] = [];
@@ -42,16 +42,58 @@ export const validateSchedule = (schedule: Schedule, nurses: Nurse[], currentDat
         });
 
         const isVaccinationDay = (dailyCounts['VACCIN_AM'] || 0) > 0 || (dailyCounts['VACCIN_PM'] || 0) > 0;
+        const mandatoryNeeds = getClinicalNeedsForDay(date, agenda, null);
+
+        const requiredUrgT = mandatoryNeeds['URGENCES_TARDE'] || 0;
+        const requiredTravT = mandatoryNeeds['TRAVAIL_TARDE'] || 0;
+        const requiredUrg = mandatoryNeeds['URGENCES'] || 0;
+        const requiredTrav = mandatoryNeeds['TRAVAIL'] || 0;
+
+        const currentUrgT = dailyCounts['URGENCES_TARDE'] || 0;
+        const currentTravT = dailyCounts['TRAVAIL_TARDE'] || 0;
+        const currentUrg = dailyCounts['URGENCES'] || 0;
+        const currentTrav = dailyCounts['TRAVAIL'] || 0;
+
+        if (requiredUrgT > 0 && currentUrgT < requiredUrgT) {
+            violations.push({
+                nurseId: 'global',
+                dateKey,
+                message: `${t.violation_missingUrgT} (${currentUrgT}/${requiredUrgT})`,
+                severity: 'error'
+            });
+        }
+
+        if (requiredTravT > 0 && currentTravT < requiredTravT) {
+            violations.push({
+                nurseId: 'global',
+                dateKey,
+                message: `${t.violation_missingTravT} (${currentTravT}/${requiredTravT})`,
+                severity: 'error'
+            });
+        }
+
+        if (requiredUrg > 0 && currentUrg < requiredUrg) {
+            violations.push({
+                nurseId: 'global',
+                dateKey,
+                message: `${t.violation_urgCoverage.replace('{count}', currentUrg.toString())} (${currentUrg}/${requiredUrg})`,
+                severity: 'error'
+            });
+        }
+
+        if (requiredTrav > 0 && currentTrav < requiredTrav) {
+            violations.push({
+                nurseId: 'global',
+                dateKey,
+                message: `${t.violation_travCoverage.replace('{count}', currentTrav.toString())} (${currentTrav}/${requiredTrav})`,
+                severity: 'error'
+            });
+        }
 
         if (isVaccinationDay) {
             // Vaccination Period Rules
-            if((dailyCounts['URGENCES_TARDE'] || 0) < 1) violations.push({ nurseId: 'global', dateKey, message: t.violation_missingUrgT, severity: 'error'});
-            if((dailyCounts['TRAVAIL_TARDE'] || 0) < 1) violations.push({ nurseId: 'global', dateKey, message: t.violation_missingTravT, severity: 'error'});
             if((dailyCounts['VACCIN_AM'] || 0) < 2) violations.push({ nurseId: 'global', dateKey, message: t.violation_missingVacM, severity: 'warning'});
             if((dailyCounts['VACCIN_PM'] || 0) < 2) violations.push({ nurseId: 'global', dateKey, message: t.violation_missingVacT, severity: 'warning'});
-        } else {
-             // Normal Day Rules (example, can be expanded)
-             // ...
         }
     }
 
