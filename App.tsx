@@ -1507,7 +1507,7 @@ const handleAddNurse = useCallback((name: string) => {
                       />
                       <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
                     </div>
-                    <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={schedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} viewMode={viewMode} selectedWeekIndex={selectedWeekIndex} />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={currentSchedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} viewMode={viewMode} selectedWeekIndex={selectedWeekIndex} />
                     </div>
                   
                     <div className="flex-shrink-0 w-36 no-print flex flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
