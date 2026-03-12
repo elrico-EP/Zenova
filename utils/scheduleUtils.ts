@@ -640,6 +640,35 @@ export const ensureMandatoryCoverage = (
         coverageAddedWeeklyTW[nurseId][currentWeekId] = (coverageAddedWeeklyTW[nurseId][currentWeekId] || 0) + 1;
     };
 
+    const enforceOneTWPerWeek = (): void => {
+        if (!isApril2026OrLater) return;
+
+        nurses.forEach(nurse => {
+            const twByWeek = new Map<string, string[]>();
+            const nurseSchedule = result[nurse.id] || {};
+
+            Object.entries(nurseSchedule).forEach(([dateKey, cell]) => {
+                if (!getShiftsFromCell(cell).includes('TW')) return;
+                const weekId = getWeekIdentifier(new Date(`${dateKey}T12:00:00Z`));
+                if (!twByWeek.has(weekId)) {
+                    twByWeek.set(weekId, []);
+                }
+                twByWeek.get(weekId)!.push(dateKey);
+            });
+
+            twByWeek.forEach((dateKeys) => {
+                if (dateKeys.length <= 1) return;
+
+                const sorted = [...dateKeys].sort();
+                sorted.slice(1).forEach(dateKey => {
+                    if (result[nurse.id]?.[dateKey]) {
+                        result[nurse.id][dateKey] = 'ADMIN';
+                    }
+                });
+            });
+        });
+    };
+
     const clinicalShifts = new Set<WorkZone>([
         'URGENCES',
         'TRAVAIL',
@@ -950,6 +979,8 @@ export const ensureMandatoryCoverage = (
             rebalanceWeekClinicalLoad(weekDateKeys.sort());
         });
     }
+
+    enforceOneTWPerWeek();
 
     return result;
 };
