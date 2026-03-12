@@ -373,7 +373,9 @@ const assignAdminAndTWToRemainingNurses = (
     previousDateKey: string,
     annualStats?: Record<string, NurseStats>,
     weeklyAdminTWCount?: Record<string, number>,
-    isWeeklyCoordinated?: boolean
+    isWeeklyCoordinated?: boolean,
+    canAssignTWThisWeek?: (nurseId: string) => boolean,
+    onAssignTW?: (nurseId: string) => void
 ): void => {
     if (nursesOnMandatoryShifts < 6) return;
 
@@ -496,12 +498,13 @@ const assignAdminAndTWToRemainingNurses = (
             nurse.id !== 'nurse-1' &&
             nurse.id !== 'nurse-2' &&
             nurse.id !== 'nurse-11' &&
-            nurseStats[nurse.id].tw_weekly < 1
+            (canAssignTWThisWeek ? canAssignTWThisWeek(nurse.id) : nurseStats[nurse.id].tw_weekly < 1)
         );
 
         if (eligibleTW.length > 0) {
             const selectedTW = sortForTW(eligibleTW)[0];
             dailyAssignments[selectedTW.id] = 'TW';
+            if (onAssignTW) onAssignTW(selectedTW.id);
             available = available.filter(n => n.id !== selectedTW.id);
             continue;
         }
@@ -1069,6 +1072,10 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
     
     // New weekly distribution rule for April onwards: track if we're applying coordinated ADMIN/TW
     const isApplyingWeeklyCoordination = year === 2026 && month >= 3;
+    const isApril2026OrLater = year === 2026 && month >= 3;
+
+    const twConsumedWeekly: Record<string, number> = {};
+    nurses.forEach(nurse => { twConsumedWeekly[nurse.id] = 0; });
 
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -1082,8 +1089,22 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 nurseStats[nurse.id].tw_weekly = 0;
                 weeklyStats[nurse.id] = {} as Record<WorkZone, number>;
                 weeklyAdminTWCount[nurse.id] = 0; // Reset weekly ADMIN+TW count
+                twConsumedWeekly[nurse.id] = 0;
             });
         }
+
+        const canAssignTWThisWeek = (nurseId: string): boolean => {
+            if (isApril2026OrLater) {
+                return (twConsumedWeekly[nurseId] || 0) < 1;
+            }
+            return nurseStats[nurseId].tw_weekly < 1;
+        };
+
+        const markTWAssigned = (nurseId: string): void => {
+            if (isApril2026OrLater) {
+                twConsumedWeekly[nurseId] = (twConsumedWeekly[nurseId] || 0) + 1;
+            }
+        };
         
         const activityLevel = agenda[weekId] || 'NORMAL';
         const isWorkday = !(dayOfWeek === 0 || dayOfWeek === 6 || holidays2026.has(dateKey) || activityLevel === 'CLOSED');
@@ -1257,7 +1278,9 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     previousDateKey,
                     annualStats,
                     isApplyingWeeklyCoordination ? weeklyAdminTWCount : undefined,
-                    isApplyingWeeklyCoordination
+                    isApplyingWeeklyCoordination,
+                    canAssignTWThisWeek,
+                    markTWAssigned
                 );
 
             } else {
@@ -1304,7 +1327,9 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     previousDateKey,
                     annualStats,
                     isApplyingWeeklyCoordination ? weeklyAdminTWCount : undefined,
-                    isApplyingWeeklyCoordination
+                    isApplyingWeeklyCoordination,
+                    canAssignTWThisWeek,
+                    markTWAssigned
                 );
             }
 
@@ -1377,9 +1402,12 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                         nurse.id !== 'nurse-1' &&
                         nurse.id !== 'nurse-2' &&
                         nurse.id !== 'nurse-11' &&
-                        nurseStats[nurse.id].tw_weekly < 1 &&
+                        canAssignTWThisWeek(nurse.id) &&
                         !hasPrevAdminOrTW;
                     dailyAssignments[nurse.id] = canGetTW ? 'TW' : 'ADMIN';
+                    if (canGetTW) {
+                        markTWAssigned(nurse.id);
+                    }
                 }
             });
 
