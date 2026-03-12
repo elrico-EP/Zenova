@@ -583,12 +583,35 @@ export const ensureMandatoryCoverage = (
 ): Schedule => {
     const result: Schedule = JSON.parse(JSON.stringify(schedule));
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const isApril2026OrLater = year === 2026 && month >= 3;
 
     nurses.forEach(nurse => {
         if (!result[nurse.id]) {
             result[nurse.id] = {};
         }
     });
+
+    const originalWeeklyTWDates: Record<string, Record<string, string[]>> = {};
+    const coverageAddedWeeklyTW: Record<string, Record<string, number>> = {};
+
+    nurses.forEach(nurse => {
+        originalWeeklyTWDates[nurse.id] = {};
+        coverageAddedWeeklyTW[nurse.id] = {};
+    });
+
+    if (isApril2026OrLater) {
+        nurses.forEach(nurse => {
+            const nurseSchedule = schedule[nurse.id] || {};
+            Object.entries(nurseSchedule).forEach(([dateKey, cell]) => {
+                if (!getShiftsFromCell(cell).includes('TW')) return;
+                const weekId = getWeekIdentifier(new Date(`${dateKey}T12:00:00Z`));
+                if (!originalWeeklyTWDates[nurse.id][weekId]) {
+                    originalWeeklyTWDates[nurse.id][weekId] = [];
+                }
+                originalWeeklyTWDates[nurse.id][weekId].push(dateKey);
+            });
+        });
+    }
 
     const countWeeklyTWForNurse = (nurseId: string, currentDateKey: string, currentWeekId: string): number => {
         const nurseSchedule = result[nurseId] || {};
@@ -597,6 +620,21 @@ export const ensureMandatoryCoverage = (
             if (getWeekIdentifier(new Date(`${dateKey}T12:00:00Z`)) !== currentWeekId) return count;
             return count + (getShiftsFromCell(cell).includes('TW') ? 1 : 0);
         }, 0);
+    };
+
+    const getEffectiveWeeklyTWCount = (nurseId: string, currentDateKey: string, currentWeekId: string): number => {
+        if (!isApril2026OrLater) {
+            return countWeeklyTWForNurse(nurseId, currentDateKey, currentWeekId);
+        }
+
+        const originalCount = (originalWeeklyTWDates[nurseId]?.[currentWeekId] || []).filter(dateKey => dateKey <= currentDateKey).length;
+        const addedByCoverage = coverageAddedWeeklyTW[nurseId]?.[currentWeekId] || 0;
+        return originalCount + addedByCoverage;
+    };
+
+    const markCoverageTWAssigned = (nurseId: string, currentWeekId: string): void => {
+        if (!isApril2026OrLater) return;
+        coverageAddedWeeklyTW[nurseId][currentWeekId] = (coverageAddedWeeklyTW[nurseId][currentWeekId] || 0) + 1;
     };
 
     const clinicalShifts = new Set<WorkZone>([
@@ -858,11 +896,12 @@ export const ensureMandatoryCoverage = (
 
             adminNurseIds.slice(2).forEach(nurseId => {
                 const hasPrevAdminOrTW = getShiftsFromCell(result[nurseId]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
-                const weeklyTW = countWeeklyTWForNurse(nurseId, dateKey, currentWeekId);
+                const weeklyTW = getEffectiveWeeklyTWCount(nurseId, dateKey, currentWeekId);
                 const canGetTW = nurseId !== 'nurse-1' && nurseId !== 'nurse-2' && nurseId !== 'nurse-11' && !hasPrevAdminOrTW && weeklyTW < 1;
 
                 if (canGetTW) {
                     result[nurseId][dateKey] = 'TW';
+                    markCoverageTWAssigned(nurseId, currentWeekId);
                 }
             });
         }
@@ -875,12 +914,15 @@ export const ensureMandatoryCoverage = (
                 previousDate.setUTCDate(previousDate.getUTCDate() - 1);
                 const previousDateKey = previousDate.toISOString().split('T')[0];
                 const hasPrevAdminOrTW = getShiftsFromCell(result[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
-                const weeklyTW = countWeeklyTWForNurse(nurse.id, dateKey, currentWeekId);
+                const weeklyTW = getEffectiveWeeklyTWCount(nurse.id, dateKey, currentWeekId);
                 const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && nurse.id !== 'nurse-11' && !hasPrevAdminOrTW && weeklyTW < 1;
                 if (!result[nurse.id]) {
                     result[nurse.id] = {};
                 }
                 result[nurse.id][dateKey] = canGetTW ? 'TW' : 'ADMIN';
+                if (canGetTW) {
+                    markCoverageTWAssigned(nurse.id, currentWeekId);
+                }
             }
         });
     }
