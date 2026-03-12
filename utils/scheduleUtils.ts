@@ -25,10 +25,14 @@ const pickReplacementCandidate = (
     getCell: (nurseId: string) => ScheduleCell | undefined,
     mandatoryShift: WorkZone,
     ineligibleForAfternoon: Set<string>,
-    excludedNurseIds: Set<string>
+    excludedNurseIds: Set<string>,
+    weeklyAdminTWCount?: Record<string, number>,
+    weeklyStats?: Record<string, Record<WorkZone, number>>
 ): { candidateId?: string; discardedCandidates: CoverageDiscardEntry[] } => {
     const discardedCandidates: CoverageDiscardEntry[] = [];
+    const eligibleCandidates: string[] = [];
 
+    // First pass: collect eligible candidates
     for (const nurseId of orderedNurseIds) {
         const cell = getCell(nurseId);
         if (!cell) {
@@ -54,10 +58,35 @@ const pickReplacementCandidate = (
             continue;
         }
 
-        return { candidateId: nurseId, discardedCandidates };
+        eligibleCandidates.push(nurseId);
     }
 
-    return { candidateId: undefined, discardedCandidates };
+    // Second pass: sort eligible candidates by weekly equity, then deterministically
+    if (eligibleCandidates.length === 0) {
+        return { candidateId: undefined, discardedCandidates };
+    }
+
+    const sorted = eligibleCandidates.sort((a, b) => {
+        // PRIORITY 1: Weekly ADMIN+TW equity
+        if (weeklyAdminTWCount) {
+            const countA = weeklyAdminTWCount[a] || 0;
+            const countB = weeklyAdminTWCount[b] || 0;
+            // Prefer nurses with less ADMIN/TW this week
+            if (countA !== countB) return countA - countB;
+        }
+        
+        // PRIORITY 2: Weekly stats for the mandatory shift
+        if (weeklyStats) {
+            const statA = weeklyStats[a]?.[mandatoryShift] || 0;
+            const statB = weeklyStats[b]?.[mandatoryShift] || 0;
+            if (statA !== statB) return statA - statB;
+        }
+        
+        // PRIORITY 3: Deterministic tiebreaker by ID
+        return a.localeCompare(b);
+    });
+
+    return { candidateId: sorted[0], discardedCandidates };
 };
 
 // Función para verificar si un turno es manual (desde la tabla 'turnos')
@@ -210,7 +239,8 @@ const findBestCandidate = (candidates: Nurse[], stats: Record<string, NurseStats
         const statsB = stats[b.id];
         if (statsA[primaryStat] !== statsB[primaryStat]) return statsA[primaryStat] - statsB[primaryStat];
         if (statsA[secondaryStat] !== statsB[secondaryStat]) return statsA[secondaryStat] - statsB[secondaryStat];
-        return Math.random() - 0.5;
+        // Deterministic tiebreaker: compare IDs lexicographically
+        return a.id.localeCompare(b.id);
     });
     return sorted[0];
 };
@@ -289,8 +319,8 @@ const findBestCandidateWithWeeklyEquity = (
             if (penaltyA !== penaltyB) return penaltyA - penaltyB;
         }
         
-        // CRITERIO 7: Random (último recurso)
-        return Math.random() - 0.5;
+        // CRITERIO 7: Deterministic tiebreaker by ID
+        return a.id.localeCompare(b.id);
     });
     return sorted[0];
 };
@@ -341,73 +371,77 @@ const assignAdminAndTWToRemainingNurses = (
 
     const sortForAdmin = (pool: Nurse[]): Nurse[] => {
         return [...pool].sort((a, b) => {
-            // For weekly coordinated: prioritize nurses with <1 ADMIN/TW this week
-            if (isWeeklyCoordinated && weeklyAdminTWCount) {
-                const countA = weeklyAdminTWCount[a.id] || 0;
-                const countB = weeklyAdminTWCount[b.id] || 0;
-                // Prioritize those with 0, then 1, exclude if 2+
-                if (countA > 1 || countB > 1) {
-                    if (countA <= 1 && countB > 1) return -1;
-                    if (countA > 1 && countB <= 1) return 1;
-                }
-                if (countA !== countB && countA <= 1 && countB <= 1) return countA - countB;
+            // PRIORITY 1: Weekly equity - prefer nurses with fewer ADMIN/TW this week
+            const countA = weeklyAdminTWCount ? (weeklyAdminTWCount[a.id] || 0) : 0;
+            const countB = weeklyAdminTWCount ? (weeklyAdminTWCount[b.id] || 0) : 0;
+            // Prefer 0, then 1, exclude if 2+
+            if ((countA > 1) !== (countB > 1)) {
+                return (countA > 1 ? 1 : 0) - (countB > 1 ? 1 : 0);
             }
+            if (countA !== countB && countA <= 1 && countB <= 1) return countA - countB;
 
+            // PRIORITY 2: Avoid consecutive assignments
             const prevA = hasPrevAdminOrTW(a.id) ? 1 : 0;
             const prevB = hasPrevAdminOrTW(b.id) ? 1 : 0;
             if (prevA !== prevB) return prevA - prevB;
 
+            // PRIORITY 3: Weekly ADMIN+TW count
             const weeklyAdminTwA = (weeklyStats[a.id]?.['ADMIN'] || 0) + (weeklyStats[a.id]?.['TW'] || 0);
             const weeklyAdminTwB = (weeklyStats[b.id]?.['ADMIN'] || 0) + (weeklyStats[b.id]?.['TW'] || 0);
             if (weeklyAdminTwA !== weeklyAdminTwB) return weeklyAdminTwA - weeklyAdminTwB;
 
+            // PRIORITY 4: Monthly ADMIN
             const monthlyAdminA = nurseStats[a.id]?.admin || 0;
             const monthlyAdminB = nurseStats[b.id]?.admin || 0;
             if (monthlyAdminA !== monthlyAdminB) return monthlyAdminA - monthlyAdminB;
 
+            // PRIORITY 5: Annual ADMIN
             if (annualStats) {
                 const annualAdminA = annualStats[a.id]?.admin || 0;
                 const annualAdminB = annualStats[b.id]?.admin || 0;
                 if (annualAdminA !== annualAdminB) return annualAdminA - annualAdminB;
             }
 
-            return Math.random() - 0.5;
+            // PRIORITY 6: Deterministic tiebreaker by ID
+            return a.id.localeCompare(b.id);
         });
     };
 
     const sortForTW = (pool: Nurse[]): Nurse[] => {
         return [...pool].sort((a, b) => {
-            // For weekly coordinated: prioritize nurses with <1 TW this week
-            if (isWeeklyCoordinated && weeklyAdminTWCount) {
-                const countA = weeklyAdminTWCount[a.id] || 0;
-                const countB = weeklyAdminTWCount[b.id] || 0;
-                // Prioritize those with 0, then 1, exclude if 2+
-                if (countA > 1 || countB > 1) {
-                    if (countA <= 1 && countB > 1) return -1;
-                    if (countA > 1 && countB <= 1) return 1;
-                }
-                if (countA !== countB && countA <= 1 && countB <= 1) return countA - countB;
+            // PRIORITY 1: Weekly equity - prefer nurses with fewer ADMIN/TW this week
+            const countA = weeklyAdminTWCount ? (weeklyAdminTWCount[a.id] || 0) : 0;
+            const countB = weeklyAdminTWCount ? (weeklyAdminTWCount[b.id] || 0) : 0;
+            // Prefer 0, then 1, exclude if 2+
+            if ((countA > 1) !== (countB > 1)) {
+                return (countA > 1 ? 1 : 0) - (countB > 1 ? 1 : 0);
             }
+            if (countA !== countB && countA <= 1 && countB <= 1) return countA - countB;
 
+            // PRIORITY 2: Weekly TW count
             const weeklyTwA = weeklyStats[a.id]?.['TW'] || 0;
             const weeklyTwB = weeklyStats[b.id]?.['TW'] || 0;
             if (weeklyTwA !== weeklyTwB) return weeklyTwA - weeklyTwB;
 
+            // PRIORITY 3: Monthly TW
             const monthlyTwA = nurseStats[a.id]?.tw || 0;
             const monthlyTwB = nurseStats[b.id]?.tw || 0;
             if (monthlyTwA !== monthlyTwB) return monthlyTwA - monthlyTwB;
 
+            // PRIORITY 4: Annual TW
             if (annualStats) {
                 const annualTwA = annualStats[a.id]?.tw || 0;
                 const annualTwB = annualStats[b.id]?.tw || 0;
                 if (annualTwA !== annualTwB) return annualTwA - annualTwB;
             }
 
+            // PRIORITY 5: Weekly ADMIN+TW count
             const weeklyAdminTwA = (weeklyStats[a.id]?.['ADMIN'] || 0) + (weeklyStats[a.id]?.['TW'] || 0);
             const weeklyAdminTwB = (weeklyStats[b.id]?.['ADMIN'] || 0) + (weeklyStats[b.id]?.['TW'] || 0);
             if (weeklyAdminTwA !== weeklyAdminTwB) return weeklyAdminTwA - weeklyAdminTwB;
 
-            return Math.random() - 0.5;
+            // PRIORITY 6: Deterministic tiebreaker by ID
+            return a.id.localeCompare(b.id);
         });
     };
 
@@ -583,12 +617,27 @@ export const ensureMandatoryCoverage = (
 
             // If not enough coverage, reassign from ADMIN/TW
             while (currentCount < requiredCount) {
+                const currentWeekId = getWeekIdentifier(currentDate);
+                const weeklyAdminTWCount: Record<string, number> = {};
+                
+                // Calculate weekly ADMIN+TW count for all nurses up to this date
+                nurses.forEach(nurse => {
+                    const nurseSchedule = result[nurse.id] || {};
+                    weeklyAdminTWCount[nurse.id] = Object.entries(nurseSchedule).reduce((count, [dk, cell]) => {
+                        if (dk > dateKey) return count;
+                        if (getWeekIdentifier(new Date(`${dk}T12:00:00Z`)) !== currentWeekId) return count;
+                        return count + (getShiftsFromCell(cell).some(s => ['ADMIN', 'TW'].includes(s)) ? 1 : 0);
+                    }, 0);
+                });
+
                 const primaryAttempt = pickReplacementCandidate(
                     nurses.map(n => n.id),
                     (nurseId) => result[nurseId]?.[dateKey],
                     mandatoryShift,
                     ineligibleForAfternoon,
-                    new Set<string>(['nurse-1'])
+                    new Set<string>(['nurse-1']),
+                    weeklyAdminTWCount,
+                    undefined
                 );
 
                 const fallbackAttempt = !primaryAttempt.candidateId
@@ -597,7 +646,9 @@ export const ensureMandatoryCoverage = (
                         (nurseId) => result[nurseId]?.[dateKey],
                         mandatoryShift,
                         ineligibleForAfternoon,
-                        new Set<string>()
+                        new Set<string>(),
+                        weeklyAdminTWCount,
+                        undefined
                     )
                     : undefined;
 
