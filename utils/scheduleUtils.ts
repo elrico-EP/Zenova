@@ -270,7 +270,8 @@ const findBestCandidateWithWeeklyEquity = (
     secondaryStat: keyof NurseStats = 'clinicalTotal',
     annualStats?: Record<string, NurseStats>,
     currentDay?: number,
-    lastAssignmentDate?: Record<string, Record<WorkZone, number>>
+    lastAssignmentDate?: Record<string, Record<WorkZone, number>>,
+    getPureClinicalRestThreshold?: (nurseId: string) => number
 ): Nurse | undefined => {
     if (candidates.length === 0) return undefined;
 
@@ -295,15 +296,17 @@ const findBestCandidateWithWeeklyEquity = (
         // CRITERIO 2: Total clínico semanal (quien menos días trabajó esta semana)
         if (weeklyTotalA !== weeklyTotalB) return weeklyTotalA - weeklyTotalB;
 
-        // CRITERIO 2.5: Rest-day enforcement — nurses who have ≥4 pure clinical days
-        // this week with 0 ADMIN/TW are soft-blocked from further clinical selection.
-        // This prevents 5-clinical weeks while colleagues have 2 non-clinical days.
+        // CRITERIO 2.5: Rest-day enforcement (dynamic threshold).
+        // Soft-block nurses who already reached their weekly pure-clinical threshold
+        // with 0 ADMIN/TW, so they can receive ADMIN/TW before more clinical load.
         const weeklyAdminTwA2 = (weeklyShiftStats[a.id]?.['ADMIN'] || 0) + (weeklyShiftStats[a.id]?.['TW'] || 0);
         const weeklyAdminTwB2 = (weeklyShiftStats[b.id]?.['ADMIN'] || 0) + (weeklyShiftStats[b.id]?.['TW'] || 0);
         const pureClinA = weeklyTotalA - weeklyAdminTwA2;
         const pureClinB = weeklyTotalB - weeklyAdminTwB2;
-        const needsRestA = pureClinA >= 4 && weeklyAdminTwA2 === 0 ? 1 : 0;
-        const needsRestB = pureClinB >= 4 && weeklyAdminTwB2 === 0 ? 1 : 0;
+        const thresholdA = getPureClinicalRestThreshold ? getPureClinicalRestThreshold(a.id) : 4;
+        const thresholdB = getPureClinicalRestThreshold ? getPureClinicalRestThreshold(b.id) : 4;
+        const needsRestA = pureClinA >= thresholdA && weeklyAdminTwA2 === 0 ? 1 : 0;
+        const needsRestB = pureClinB >= thresholdB && weeklyAdminTwB2 === 0 ? 1 : 0;
         if (needsRestA !== needsRestB) return needsRestA - needsRestB;
 
         // CRITERIO 3: Stat mensual del turno específico (quien menos tenga este mes)
@@ -1131,6 +1134,36 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
             return nurseStats[nurseId].tw_weekly < 1;
         };
 
+        const getPureClinicalRestThreshold = (nurseId: string): number => {
+            if (!isApril2026OrLater) return 4;
+
+            const monday = new Date(currentDate);
+            const day = monday.getUTCDay() || 7;
+            monday.setUTCDate(monday.getUTCDate() - (day - 1));
+
+            let workableDays = 0;
+            for (let offset = 0; offset < 5; offset++) {
+                const d = new Date(monday);
+                d.setUTCDate(monday.getUTCDate() + offset);
+
+                if (d.getUTCMonth() !== month || d.getUTCFullYear() !== year) continue;
+
+                const dateKeyForDay = d.toISOString().split('T')[0];
+                if (holidays2026.has(dateKeyForDay)) continue;
+
+                const activeJornada = getActiveJornada(nurseId, d, jornadasLaborales);
+                const isFullDayOff = !!activeJornada &&
+                    activeJornada.porcentaje === 80 &&
+                    activeJornada.reductionOption === 'FULL_DAY_OFF' &&
+                    d.getUTCDay() === activeJornada.reductionDayOfWeek;
+
+                if (isFullDayOff) continue;
+                workableDays++;
+            }
+
+            return Math.max(2, workableDays - 1);
+        };
+
         const markTWAssigned = (nurseId: string): void => {
             if (isApril2026OrLater) {
                 twConsumedWeekly[nurseId] = (twConsumedWeekly[nurseId] || 0) + 1;
@@ -1240,7 +1273,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 const vaccin_pm_nurses: Nurse[] = [];
                 let tempVaccinPool = [...vaccination_group];
                 while(vaccin_am_nurses.length < 2 && tempVaccinPool.length > 0) {
-                    const candidate = findBestCandidateWithWeeklyEquity(tempVaccinPool, nurseStats, weeklyStats, 'VACCIN_AM', 'vaccin_am', annualStats, day, lastAssignmentDate);
+                    const candidate = findBestCandidateWithWeeklyEquity(tempVaccinPool, nurseStats, weeklyStats, 'VACCIN_AM', 'vaccin_am', annualStats, day, lastAssignmentDate, getPureClinicalRestThreshold);
                     if(candidate) { vaccin_am_nurses.push(candidate); tempVaccinPool = tempVaccinPool.filter(n => n.id !== candidate.id); } 
                     else { break; }
                 }
@@ -1276,7 +1309,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                         let eligiblePool = clinicalPool.filter(n => !(shift.includes('_TARDE') && ineligibleForAfternoon.has(n.id)));
                         if (eligiblePool.length === 0) break;
                         const stat = shift.includes('URGENCES') ? 'urgences' : 'travail';
-                        const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, shift as WorkZone, stat as keyof NurseStats, annualStats, day, lastAssignmentDate);
+                        const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, shift as WorkZone, stat as keyof NurseStats, annualStats, day, lastAssignmentDate, getPureClinicalRestThreshold);
                         if(candidate) { dailyAssignments[candidate.id] = shift as WorkZone; clinicalPool = clinicalPool.filter(n => n.id !== candidate.id); }
                     }
                 }
@@ -1335,7 +1368,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 for (const need of neededShifts) {
                     let eligiblePool = localUnassignedPool.filter(n => !(need.includes('_TARDE') && ineligibleForAfternoon.has(n.id)));
                     const primaryStat = need.includes('URGENCES') ? 'urgences' : 'travail';
-                    const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, need, primaryStat as keyof NurseStats, annualStats, day, lastAssignmentDate);
+                    const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, need, primaryStat as keyof NurseStats, annualStats, day, lastAssignmentDate, getPureClinicalRestThreshold);
                     if (candidate) { dailyAssignments[candidate.id] = need; localUnassignedPool = localUnassignedPool.filter(n => n.id !== candidate.id); }
                 }
                 
