@@ -1,8 +1,64 @@
-import type { Nurse, Schedule, WorkZone, Agenda, ScheduleCell, ActivityLevel, NurseStats, CustomShift, JornadaLaboral, SpecialStrasbourgEvent } from '../types';
+import type { Nurse, Schedule, WorkZone, Agenda, ScheduleCell, ActivityLevel, NurseStats, CustomShift, JornadaLaboral, SpecialStrasbourgEvent, CoverageDiagnostic, CoverageDiscardEntry } from '../types';
 import { getWeekIdentifier } from './dateUtils';
 import { holidays2026 } from '../data/agenda2026';
 import { getActiveJornada } from './jornadaUtils';
 import { SHIFTS } from '../constants';
+
+const COVERAGE_DEBUG_STORAGE_KEY = 'zenova_debug_coverage';
+
+const isCoverageDebugEnabled = (): boolean => {
+    try {
+        if (typeof window === 'undefined') return false;
+        return window.localStorage.getItem(COVERAGE_DEBUG_STORAGE_KEY) === '1';
+    } catch {
+        return false;
+    }
+};
+
+const logCoverageDiagnostic = (diagnostic: CoverageDiagnostic): void => {
+    if (!isCoverageDebugEnabled()) return;
+    console.debug('📊 [CoverageDiag]', diagnostic);
+};
+
+const pickReplacementCandidate = (
+    orderedNurseIds: string[],
+    getCell: (nurseId: string) => ScheduleCell | undefined,
+    mandatoryShift: WorkZone,
+    ineligibleForAfternoon: Set<string>,
+    excludedNurseIds: Set<string>
+): { candidateId?: string; discardedCandidates: CoverageDiscardEntry[] } => {
+    const discardedCandidates: CoverageDiscardEntry[] = [];
+
+    for (const nurseId of orderedNurseIds) {
+        const cell = getCell(nurseId);
+        if (!cell) {
+            discardedCandidates.push({ nurseId, reason: 'no_cell' });
+            continue;
+        }
+
+        const shifts = getShiftsFromCell(cell);
+        const isReassignable = shifts.length > 0 && shifts.every(s => s === 'ADMIN' || s === 'TW');
+        if (!isReassignable) {
+            discardedCandidates.push({ nurseId, reason: 'not_admin_or_tw' });
+            continue;
+        }
+
+        const isAfternoonEligible = !mandatoryShift.includes('_TARDE') || !ineligibleForAfternoon.has(nurseId);
+        if (!isAfternoonEligible) {
+            discardedCandidates.push({ nurseId, reason: 'afternoon_ineligible' });
+            continue;
+        }
+
+        if (excludedNurseIds.has(nurseId)) {
+            discardedCandidates.push({ nurseId, reason: 'excluded_nurse' });
+            continue;
+        }
+
+        return { candidateId: nurseId, discardedCandidates };
+    }
+
+    return { candidateId: undefined, discardedCandidates };
+};
 
 // Función para verificar si un turno es manual (desde la tabla 'turnos')
 // Por ahora usamos manualOverrides como fuente de verdad
@@ -527,23 +583,42 @@ export const ensureMandatoryCoverage = (
 
             // If not enough coverage, reassign from ADMIN/TW
             while (currentCount < requiredCount) {
-                const replacementCandidate = nurses.find(nurse => {
-                    const cell = result[nurse.id]?.[dateKey];
-                    if (!cell) return false;
-                    
-                    const shifts = getShiftsFromCell(cell);
-                    const isReassignable = shifts.length > 0 && shifts.every(s => s === 'ADMIN' || s === 'TW');
-                    const isAfternoonEligible = !mandatoryShift.includes('_TARDE') || !ineligibleForAfternoon.has(nurse.id);
-                    const notElvio = nurse.id !== 'nurse-1'; // Elvio should keep ADMIN
-                    
-                    return isReassignable && isAfternoonEligible && notElvio;
-                });
+                const { candidateId, discardedCandidates } = pickReplacementCandidate(
+                    nurses.map(n => n.id),
+                    (nurseId) => result[nurseId]?.[dateKey],
+                    mandatoryShift,
+                    ineligibleForAfternoon,
+                    new Set<string>(['nurse-1'])
+                );
 
-                if (!replacementCandidate) break;
+                if (!candidateId) {
+                    logCoverageDiagnostic({
+                        source: 'ensureMandatoryCoverage',
+                        dateKey,
+                        mandatoryShift,
+                        requiredCount,
+                        currentCount,
+                        missingCount: requiredCount - currentCount,
+                        discardedCandidates,
+                    });
+                    break;
+                }
 
                 // Reassign this nurse to the mandatory shift
-                result[replacementCandidate.id][dateKey] = mandatoryShift;
+                result[candidateId][dateKey] = mandatoryShift;
                 currentCount++;
+            }
+
+            if (currentCount < requiredCount) {
+                logCoverageDiagnostic({
+                    source: 'ensureMandatoryCoverage',
+                    dateKey,
+                    mandatoryShift,
+                    requiredCount,
+                    currentCount,
+                    missingCount: requiredCount - currentCount,
+                    discardedCandidates: [],
+                });
             }
         }
 
@@ -962,18 +1037,41 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 }, 0);
 
                 while (currentCount < requiredCount) {
-                    const replacementCandidate = Object.entries(dailyAssignments).find(([nurseId, cell]) => {
-                        const shifts = getShiftsFromCell(cell);
-                        const isReassignable = shifts.length > 0 && shifts.every(s => s === 'ADMIN' || s === 'TW');
-                        const isAfternoonEligible = !mandatoryShift.includes('_TARDE') || !ineligibleForAfternoon.has(nurseId);
-                        return isReassignable && isAfternoonEligible;
-                    });
+                    const { candidateId, discardedCandidates } = pickReplacementCandidate(
+                        Object.keys(dailyAssignments),
+                        (nurseId) => dailyAssignments[nurseId],
+                        mandatoryShift,
+                        ineligibleForAfternoon,
+                        new Set<string>()
+                    );
 
-                    if (!replacementCandidate) break;
+                    if (!candidateId) {
+                        logCoverageDiagnostic({
+                            source: 'recalculateScheduleForMonth',
+                            dateKey,
+                            mandatoryShift,
+                            requiredCount,
+                            currentCount,
+                            missingCount: requiredCount - currentCount,
+                            discardedCandidates,
+                        });
+                        break;
+                    }
 
-                    const [candidateId] = replacementCandidate;
                     dailyAssignments[candidateId] = mandatoryShift;
                     currentCount++;
+                }
+
+                if (currentCount < requiredCount) {
+                    logCoverageDiagnostic({
+                        source: 'recalculateScheduleForMonth',
+                        dateKey,
+                        mandatoryShift,
+                        requiredCount,
+                        currentCount,
+                        missingCount: requiredCount - currentCount,
+                        discardedCandidates: [],
+                    });
                 }
             });
 

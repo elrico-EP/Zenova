@@ -80,6 +80,29 @@ export type RuleViolation = {
   weekId?: string;
 }
 
+export type CoverageDiagnosticSource = 'ensureMandatoryCoverage' | 'recalculateScheduleForMonth';
+
+export type CoverageDiscardReason =
+  | 'no_cell'
+  | 'not_admin_or_tw'
+  | 'afternoon_ineligible'
+  | 'excluded_nurse';
+
+export interface CoverageDiscardEntry {
+  nurseId: string;
+  reason: CoverageDiscardReason;
+}
+
+export interface CoverageDiagnostic {
+  source: CoverageDiagnosticSource;
+  dateKey: string;
+  mandatoryShift: WorkZone;
+  requiredCount: number;
+  currentCount: number;
+  missingCount: number;
+  discardedCandidates: CoverageDiscardEntry[];
+}
+
 export type Agenda = {
   [weekIdentifier: string]: ActivityLevel; // e.g., '2024-W34'
 };
