@@ -573,6 +573,12 @@ export const ensureMandatoryCoverage = (
     const result: Schedule = JSON.parse(JSON.stringify(schedule));
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+    nurses.forEach(nurse => {
+        if (!result[nurse.id]) {
+            result[nurse.id] = {};
+        }
+    });
+
     const countWeeklyTWForNurse = (nurseId: string, currentDateKey: string, currentWeekId: string): number => {
         const nurseSchedule = result[nurseId] || {};
         return Object.entries(nurseSchedule).reduce((count, [dateKey, cell]) => {
@@ -674,6 +680,9 @@ export const ensureMandatoryCoverage = (
                 }
 
                 // Reassign this nurse to the mandatory shift
+                if (!result[candidateId]) {
+                    result[candidateId] = {};
+                }
                 result[candidateId][dateKey] = mandatoryShift;
                 currentCount++;
             }
@@ -728,6 +737,9 @@ export const ensureMandatoryCoverage = (
                 const hasPrevAdminOrTW = getShiftsFromCell(result[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
                 const weeklyTW = countWeeklyTWForNurse(nurse.id, dateKey, currentWeekId);
                 const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && nurse.id !== 'nurse-11' && !hasPrevAdminOrTW && weeklyTW < 1;
+                if (!result[nurse.id]) {
+                    result[nurse.id] = {};
+                }
                 result[nurse.id][dateKey] = canGetTW ? 'TW' : 'ADMIN';
             }
         });
