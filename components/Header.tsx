@@ -9,7 +9,8 @@ import { MonthPicker } from './MonthPicker';
 import { ExportControls } from './ExportControls';
 import { ZenovaLogo } from './ZenovaLogo';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import type { Nurse, Schedule, Notes, Agenda, User, Hours, JornadaLaboral } from '../types';
+import { RuleViolationsPanel } from './RuleViolationsPanel';
+import type { Nurse, Schedule, Notes, Agenda, User, Hours, JornadaLaboral, RuleViolation } from '../types';
 
 export type AppView = 'schedule' | 'balance' | 'wishes' | 'userManagement' | 'profile';
 
@@ -96,6 +97,7 @@ interface HeaderProps {
   // FIX: Add missing props to support fullscreen toggle functionality passed from App.tsx
   onToggleFullscreen: () => void;
   isFullscreen: boolean;
+  violations: RuleViolation[];
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -103,12 +105,27 @@ export const Header: React.FC<HeaderProps> = ({
   schedule, nurses, notes, agenda, hours, jornadasLaborales, onExportPdf,
   view, setView, onOpenHelp, onOpenHistory, onOpenAnnualPlanner,
   // FIX: Destructure new fullscreen props to be used in the component.
-  onToggleFullscreen, isFullscreen
+  onToggleFullscreen, isFullscreen,
+  violations
 }) => {
   const t = useTranslations();
   const permissions = usePermissions();
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [isAlertsOpen, setIsAlertsOpen] = useState(false);
+  const alertsRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (alertsRef.current && !alertsRef.current.contains(event.target as Node)) {
+        setIsAlertsOpen(false);
+      }
+    };
+    if (isAlertsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isAlertsOpen]);
 
   const normalizeToMidday = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0);
 
@@ -175,6 +192,33 @@ export const Header: React.FC<HeaderProps> = ({
                 <button onClick={onOpenAnnualPlanner} className="p-2 flex items-center text-sm font-medium bg-white/10 border border-white/20 rounded-md shadow-sm hover:bg-white/20" title={t['planner.annual_planner_title']}>
                     📅
                 </button>
+            )}
+            {permissions.canSeeAdminModules && (
+                <div className="relative" ref={alertsRef}>
+                    <button
+                        onClick={() => setIsAlertsOpen(o => !o)}
+                        className={`p-2 flex items-center text-sm font-medium border rounded-md shadow-sm transition-colors ${
+                            violations.length > 0
+                                ? 'bg-amber-500/30 border-amber-400/50 hover:bg-amber-500/50'
+                                : 'bg-white/10 border-white/20 hover:bg-white/20'
+                        }`}
+                        title={t.planningAlerts}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        {violations.length > 0 && (
+                            <span className="ml-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 leading-none">
+                                {violations.length}
+                            </span>
+                        )}
+                    </button>
+                    {isAlertsOpen && (
+                        <div className="absolute right-0 mt-2 w-96 z-50 shadow-2xl rounded-xl overflow-hidden">
+                            <RuleViolationsPanel violations={violations} nurses={nurses} />
+                        </div>
+                    )}
+                </div>
             )}
             <button onClick={onToggleFullscreen} className="p-2 flex items-center text-sm font-medium bg-white/10 border border-white/20 rounded-md shadow-sm hover:bg-white/20" title={isFullscreen ? t.restore : t.maximize}>
                 {isFullscreen ? <RestoreIcon className="h-5 w-5" /> : <MaximizeIcon className="h-5 w-5" />}

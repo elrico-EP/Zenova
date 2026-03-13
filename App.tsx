@@ -1443,6 +1443,7 @@ const handleAddNurse = useCallback((name: string) => {
             onOpenAnnualPlanner={() => setIsAnnualPlannerOpen(true)}
             isFullscreen={isFullscreen}
             onToggleFullscreen={handleToggleFullscreen}
+            violations={violations}
         />
          {effectiveUser?.id && <NotificationPanel userId={effectiveUser.id} />}
       </div>
@@ -1473,7 +1474,6 @@ const handleAddNurse = useCallback((name: string) => {
                 isMonthClosed={isMonthClosed} 
                 onOpenJornadaManager={() => setIsJornadaManagerOpen(true)}
                 schedule={schedule}
-                violations={violations}
                 onManualChange={handleManualChange}
                 onOpenSwapModal={() => setSwapPanelConfig({ isOpen: true, initialDate: '', initialNurseId: '' })}
               />
