@@ -29,6 +29,7 @@ const ELVIO_BLOCKED_SHIFTS: Set<WorkZone> = new Set<WorkZone>([
     'VACCIN_AM',
     'VACCIN_PM',
     'VACCIN_PM_PLUS',
+    'LIBERO',
 ]);
 
 const canAssignShiftToNurse = (nurseId: string, shift: WorkZone): boolean => {

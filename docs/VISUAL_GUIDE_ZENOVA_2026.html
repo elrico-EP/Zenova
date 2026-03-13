@@ -591,6 +591,7 @@
             <a href="#admin" data-label="Admin"></a>
             <a href="#usuario" data-label="Usuario"></a>
             <a href="#flujos" data-label="Flujos"></a>
+            <a href="#normas-auto" data-label="Normas Auto"></a>
         </nav>
 
         <!-- SECCIÓN: INICIO Y ESTRUCTURA -->
@@ -1371,6 +1372,80 @@
                     <li><strong>Hoy</strong> button vuelve al mes actual</li>
                     <li><strong>Candado 🔒</strong> muestra si mes está bloqueado (rojo=bloqueado, verde=editable)</li>
                 </ul>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: INFOGRAFÍA NORMAS AUTOMÁTICAS -->
+        <div class="section" id="normas-auto">
+            <h2>🧭 Infografía: Normas Automáticas de Asignación</h2>
+            <p style="font-size: 1.1em; margin-bottom: 20px; color: #475569;">
+                Resumen operativo de las reglas aplicadas por el motor automático desde abril 2026 en adelante.
+            </p>
+
+            <div class="workflow" style="margin-bottom: 30px;">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🗓️</div>
+                    <h5>Semana Lunes→Viernes</h5>
+                    <p>Reset y coordinación semanal de equidad ADMIN/TW</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">🏥</div>
+                    <h5>Cobertura obligatoria</h5>
+                    <p>Prioriza URGENCES/TRAVAIL AM-PM según necesidades del día</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">⚖️</div>
+                    <h5>Equidad clínica</h5>
+                    <p>Balance semanal/mensual/anual + descanso clínico para jornadas reducidas</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">🔁</div>
+                    <h5>Reequilibrio semanal</h5>
+                    <p>Intercambios clínico↔ADMIN para evitar desventajas persistentes</p>
+                </div>
+            </div>
+
+            <h3>Normas inamovibles</h3>
+            <div class="feature-cards">
+                <div class="feature-card" style="border-left: 6px solid #ef4444;">
+                    <span class="feature-icon">🛡️</span>
+                    <h4>Elvio (nurse-1)</h4>
+                    <p><strong>Nunca</strong> puede ser asignado automáticamente a TRAVAIL, VACCIN ni LIBERO.</p>
+                    <p>Si debe cubrir clínico obligatorio, solo URGENCES AM/PM.</p>
+                </div>
+                <div class="feature-card" style="border-left: 6px solid #f59e0b;">
+                    <span class="feature-icon">🚫</span>
+                    <h4>Exclusión TW</h4>
+                    <p>Sin TW automático: Elvio (nurse-1), Tanja (nurse-2), Becario (nurse-11), Joseph (nurse-9 desde abril).</p>
+                </div>
+                <div class="feature-card" style="border-left: 6px solid #3b82f6;">
+                    <span class="feature-icon">📌</span>
+                    <h4>Máximo TW semanal</h4>
+                    <p>Tope de 1 TW por enfermero y semana (abril+), con normalización final de seguridad.</p>
+                </div>
+            </div>
+
+            <h3>Criterios de reparto (orden práctico)</h3>
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border-left: 6px solid #667eea;">
+                <ol style="padding-left: 20px; color: #334155; line-height: 1.9;">
+                    <li>Protección de oportunidad ADMIN/TW (evitar que alguien se quede en 0).</li>
+                    <li>Equidad semanal por tipo de turno.</li>
+                    <li>Descanso clínico por umbral dinámico en jornadas reducidas.</li>
+                    <li>Carga relativa semanal (no solo total bruto).</li>
+                    <li>Balance mensual/anual + anti-consecutividad.</li>
+                </ol>
+            </div>
+
+            <div class="tip" style="margin-top: 20px;">
+                <strong>✅ Resultado esperado</strong>
+                Desde abril, el sistema debe evitar semanas donde una enfermera acumula casi todo clínico con 0 ADMIN/TW mientras otras tienen 2 o más oportunidades no clínicas.
             </div>
         </div>
 
