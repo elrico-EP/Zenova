@@ -289,6 +289,17 @@ const findBestCandidateWithWeeklyEquity = (
         const weeklyB = weeklyShiftStats[b.id][targetShift] || 0;
         const weeklyTotalA = calculateWeeklyClinicTotal(weeklyShiftStats[a.id]);
         const weeklyTotalB = calculateWeeklyClinicTotal(weeklyShiftStats[b.id]);
+        const weeklyAdminTwA2 = (weeklyShiftStats[a.id]?.['ADMIN'] || 0) + (weeklyShiftStats[a.id]?.['TW'] || 0);
+        const weeklyAdminTwB2 = (weeklyShiftStats[b.id]?.['ADMIN'] || 0) + (weeklyShiftStats[b.id]?.['TW'] || 0);
+
+        // CRITERIO 0 (abril+): protección de déficit ADMIN/TW.
+        // Si una enfermera va con 0 ADMIN/TW y otra ya tiene 2+, priorizar a la que ya tiene 2+
+        // para cubrir clínico, reservando oportunidad de ADMIN/TW para la que va en 0.
+        if (getPureClinicalRestThreshold && Math.abs(weeklyAdminTwA2 - weeklyAdminTwB2) >= 2) {
+            const hasDeficitA = weeklyAdminTwA2 === 0 ? 1 : 0;
+            const hasDeficitB = weeklyAdminTwB2 === 0 ? 1 : 0;
+            if (hasDeficitA !== hasDeficitB) return hasDeficitA - hasDeficitB;
+        }
 
         // CRITERIO 1: Stat semanal del turno específico (quien menos tenga esta semana)
         if (weeklyA !== weeklyB) return weeklyA - weeklyB;
@@ -296,8 +307,6 @@ const findBestCandidateWithWeeklyEquity = (
         // CRITERIO 2.5: Rest-day enforcement (dynamic threshold) — evaluated BEFORE total
         // weekly load so that nurses with reduced schedules (e.g. 80% with Monday off)
         // are not kept on clinical duty simply because they have fewer total days that week.
-        const weeklyAdminTwA2 = (weeklyShiftStats[a.id]?.['ADMIN'] || 0) + (weeklyShiftStats[a.id]?.['TW'] || 0);
-        const weeklyAdminTwB2 = (weeklyShiftStats[b.id]?.['ADMIN'] || 0) + (weeklyShiftStats[b.id]?.['TW'] || 0);
         const pureClinA = weeklyTotalA - weeklyAdminTwA2;
         const pureClinB = weeklyTotalB - weeklyAdminTwB2;
         const thresholdA = getPureClinicalRestThreshold ? getPureClinicalRestThreshold(a.id) : 4;
