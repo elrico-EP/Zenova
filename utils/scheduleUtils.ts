@@ -292,13 +292,10 @@ const findBestCandidateWithWeeklyEquity = (
 
         // CRITERIO 1: Stat semanal del turno específico (quien menos tenga esta semana)
         if (weeklyA !== weeklyB) return weeklyA - weeklyB;
-        
-        // CRITERIO 2: Total clínico semanal (quien menos días trabajó esta semana)
-        if (weeklyTotalA !== weeklyTotalB) return weeklyTotalA - weeklyTotalB;
 
-        // CRITERIO 2.5: Rest-day enforcement (dynamic threshold).
-        // Soft-block nurses who already reached their weekly pure-clinical threshold
-        // with 0 ADMIN/TW, so they can receive ADMIN/TW before more clinical load.
+        // CRITERIO 2.5: Rest-day enforcement (dynamic threshold) — evaluated BEFORE total
+        // weekly load so that nurses with reduced schedules (e.g. 80% with Monday off)
+        // are not kept on clinical duty simply because they have fewer total days that week.
         const weeklyAdminTwA2 = (weeklyShiftStats[a.id]?.['ADMIN'] || 0) + (weeklyShiftStats[a.id]?.['TW'] || 0);
         const weeklyAdminTwB2 = (weeklyShiftStats[b.id]?.['ADMIN'] || 0) + (weeklyShiftStats[b.id]?.['TW'] || 0);
         const pureClinA = weeklyTotalA - weeklyAdminTwA2;
@@ -308,6 +305,9 @@ const findBestCandidateWithWeeklyEquity = (
         const needsRestA = pureClinA >= thresholdA && weeklyAdminTwA2 === 0 ? 1 : 0;
         const needsRestB = pureClinB >= thresholdB && weeklyAdminTwB2 === 0 ? 1 : 0;
         if (needsRestA !== needsRestB) return needsRestA - needsRestB;
+
+        // CRITERIO 2: Total clínico semanal (quien menos días trabajó esta semana)
+        if (weeklyTotalA !== weeklyTotalB) return weeklyTotalA - weeklyTotalB;
 
         // CRITERIO 3: Stat mensual del turno específico (quien menos tenga este mes)
         if (statsA[primaryStat] !== statsB[primaryStat]) return statsA[primaryStat] - statsB[primaryStat];
