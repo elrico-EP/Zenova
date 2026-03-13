@@ -932,7 +932,7 @@ export const ensureMandatoryCoverage = (
             adminNurseIds.slice(2).forEach(nurseId => {
                 const hasPrevAdminOrTW = getShiftsFromCell(result[nurseId]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
                 const weeklyTW = getEffectiveWeeklyTWCount(nurseId, dateKey, currentWeekId);
-                const canGetTW = nurseId !== 'nurse-1' && nurseId !== 'nurse-2' && nurseId !== 'nurse-11' && !hasPrevAdminOrTW && weeklyTW < 1;
+                const canGetTW = nurseId !== 'nurse-1' && nurseId !== 'nurse-2' && nurseId !== 'nurse-11' && !(isApril2026OrLater && nurseId === 'nurse-9') && !hasPrevAdminOrTW && weeklyTW < 1;
 
                 if (canGetTW) {
                     result[nurseId][dateKey] = 'TW';
@@ -950,7 +950,7 @@ export const ensureMandatoryCoverage = (
                 const previousDateKey = previousDate.toISOString().split('T')[0];
                 const hasPrevAdminOrTW = getShiftsFromCell(result[nurse.id]?.[previousDateKey]).some(s => ['ADMIN', 'TW'].includes(s));
                 const weeklyTW = getEffectiveWeeklyTWCount(nurse.id, dateKey, currentWeekId);
-                const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && nurse.id !== 'nurse-11' && !hasPrevAdminOrTW && weeklyTW < 1;
+                const canGetTW = nurse.id !== 'nurse-1' && nurse.id !== 'nurse-2' && nurse.id !== 'nurse-11' && !(isApril2026OrLater && nurse.id === 'nurse-9') && !hasPrevAdminOrTW && weeklyTW < 1;
                 if (!result[nurse.id]) {
                     result[nurse.id] = {};
                 }
@@ -1129,6 +1129,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
 
         const canAssignTWThisWeek = (nurseId: string): boolean => {
             if (isApril2026OrLater) {
+                if (nurseId === 'nurse-9') return false;
                 return (twConsumedWeekly[nurseId] || 0) < 1;
             }
             return nurseStats[nurseId].tw_weekly < 1;
