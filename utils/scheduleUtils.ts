@@ -36,6 +36,11 @@ const canAssignShiftToNurse = (nurseId: string, shift: WorkZone): boolean => {
     return true;
 };
 
+const canAssignCellToNurse = (nurseId: string, cell: ScheduleCell | undefined): boolean => {
+    if (!cell) return false;
+    return getShiftsFromCell(cell).every(shift => canAssignShiftToNurse(nurseId, shift));
+};
+
 const pickReplacementCandidate = (
     orderedNurseIds: string[],
     getCell: (nurseId: string) => ScheduleCell | undefined,
@@ -738,8 +743,14 @@ export const ensureMandatoryCoverage = (
         return shifts.length === 1 && shifts[0] === 'ADMIN';
     };
 
+    const isAdminOrTWOnlyCell = (cell: ScheduleCell | undefined): boolean => {
+        const shifts = getShiftsFromCell(cell);
+        return shifts.length === 1 && (shifts[0] === 'ADMIN' || shifts[0] === 'TW');
+    };
+
     const canTakeClinicalCell = (nurseId: string, cell: ScheduleCell | undefined, date: Date): boolean => {
         if (!cell) return false;
+        if (!canAssignCellToNurse(nurseId, cell)) return false;
         const shifts = getShiftsFromCell(cell);
         const needsAfternoonEligibility = shifts.some(shift =>
             shift.includes('_TARDE') || shift.includes('_PM') || shift === 'ADM_PLUS'
@@ -840,6 +851,104 @@ export const ensureMandatoryCoverage = (
             if (!swapped) {
                 break;
             }
+        }
+    };
+
+    const rebalanceWeekAdminTWOpportunities = (weekDateKeys: string[]): void => {
+        const MAX_SWAPS_PER_WEEK = 4;
+
+        const buildWeekMetrics = () => {
+            const adminTwCount: Record<string, number> = {};
+            const workableDays: Record<string, number> = {};
+            const clinicalCount: Record<string, number> = {};
+
+            nurses.forEach(nurse => {
+                const nurseSchedule = result[nurse.id] || {};
+                adminTwCount[nurse.id] = 0;
+                workableDays[nurse.id] = 0;
+                clinicalCount[nurse.id] = 0;
+
+                weekDateKeys.forEach(dateKey => {
+                    const cell = nurseSchedule[dateKey];
+                    if (!cell) return;
+
+                    const shifts = getShiftsFromCell(cell);
+                    if (shifts.length === 0) return;
+
+                    const isNonWork = shifts.every(s => ['CA', 'SICK_LEAVE', 'FP', 'RECUP', 'F'].includes(s));
+                    if (!isNonWork) workableDays[nurse.id]++;
+                    if (shifts.some(s => ['ADMIN', 'TW'].includes(s))) adminTwCount[nurse.id]++;
+                    if (isClinicalCell(cell)) clinicalCount[nurse.id]++;
+                });
+            });
+
+            return { adminTwCount, workableDays, clinicalCount };
+        };
+
+        const isProtectedFromAdminDonation = (nurseId: string): boolean => {
+            return nurseId === 'nurse-1' || nurseId === 'nurse-11';
+        };
+
+        for (let swapIndex = 0; swapIndex < MAX_SWAPS_PER_WEEK; swapIndex++) {
+            const { adminTwCount, workableDays, clinicalCount } = buildWeekMetrics();
+
+            const receivers = [...nurses]
+                .filter(nurse => workableDays[nurse.id] > 0)
+                .sort((a, b) => {
+                    if (adminTwCount[a.id] !== adminTwCount[b.id]) return adminTwCount[a.id] - adminTwCount[b.id];
+                    const ratioA = clinicalCount[a.id] / Math.max(1, workableDays[a.id]);
+                    const ratioB = clinicalCount[b.id] / Math.max(1, workableDays[b.id]);
+                    if (ratioA !== ratioB) return ratioB - ratioA;
+                    return a.id.localeCompare(b.id);
+                });
+
+            const donors = [...nurses]
+                .filter(nurse => workableDays[nurse.id] > 0 && !isProtectedFromAdminDonation(nurse.id))
+                .sort((a, b) => {
+                    if (adminTwCount[a.id] !== adminTwCount[b.id]) return adminTwCount[b.id] - adminTwCount[a.id];
+                    const ratioA = clinicalCount[a.id] / Math.max(1, workableDays[a.id]);
+                    const ratioB = clinicalCount[b.id] / Math.max(1, workableDays[b.id]);
+                    if (ratioA !== ratioB) return ratioA - ratioB;
+                    return a.id.localeCompare(b.id);
+                });
+
+            let swapped = false;
+
+            for (const receiver of receivers) {
+                for (const donor of donors) {
+                    if (receiver.id === donor.id) continue;
+                    if (adminTwCount[receiver.id] >= 1 && adminTwCount[donor.id] - adminTwCount[receiver.id] < 2) continue;
+                    if (adminTwCount[receiver.id] === 0 && adminTwCount[donor.id] < 1) continue;
+                    if (clinicalCount[receiver.id] <= 0) continue;
+
+                    const candidateDateKey = weekDateKeys.find(dateKey => {
+                        const date = new Date(`${dateKey}T12:00:00Z`);
+                        const receiverCell = result[receiver.id]?.[dateKey];
+                        const donorCell = result[donor.id]?.[dateKey];
+
+                        if (!isClinicalCell(receiverCell)) return false;
+                        if (!isAdminOrTWOnlyCell(donorCell)) return false;
+                        if (!canTakeClinicalCell(donor.id, receiverCell, date)) return false;
+                        if (createsConsecutiveAdminOrTW(receiver.id, dateKey)) return false;
+
+                        return true;
+                    });
+
+                    if (!candidateDateKey) continue;
+
+                    const receiverCell = result[receiver.id]?.[candidateDateKey];
+                    if (!receiverCell) continue;
+
+                    result[donor.id][candidateDateKey] = receiverCell;
+                    result[receiver.id][candidateDateKey] = 'ADMIN';
+                    swapped = true;
+                    break;
+                }
+
+                if (swapped) break;
+            }
+
+            if (!swapped) break;
         }
     };
 
@@ -1021,7 +1130,9 @@ export const ensureMandatoryCoverage = (
         }
 
         weekMap.forEach(weekDateKeys => {
-            rebalanceWeekClinicalLoad(weekDateKeys.sort());
+            const sortedWeekDateKeys = weekDateKeys.sort();
+            rebalanceWeekAdminTWOpportunities(sortedWeekDateKeys);
+            rebalanceWeekClinicalLoad(sortedWeekDateKeys);
         });
     }
 
