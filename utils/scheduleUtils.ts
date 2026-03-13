@@ -306,7 +306,16 @@ const findBestCandidateWithWeeklyEquity = (
         const needsRestB = pureClinB >= thresholdB && weeklyAdminTwB2 === 0 ? 1 : 0;
         if (needsRestA !== needsRestB) return needsRestA - needsRestB;
 
-        // CRITERIO 2: Total clínico semanal (quien menos días trabajó esta semana)
+        // CRITERIO 2: Carga clínica semanal relativa a días laborables
+        // Evita penalizar a jornadas reducidas (p.ej. 80% con día libre fijo)
+        // por tener menos días posibles en la semana.
+        const workableDaysA = Math.max(1, thresholdA + 1);
+        const workableDaysB = Math.max(1, thresholdB + 1);
+        const weeklyLoadRatioA = weeklyTotalA / workableDaysA;
+        const weeklyLoadRatioB = weeklyTotalB / workableDaysB;
+        if (weeklyLoadRatioA !== weeklyLoadRatioB) return weeklyLoadRatioA - weeklyLoadRatioB;
+
+        // Desempate secundario por total bruto semanal
         if (weeklyTotalA !== weeklyTotalB) return weeklyTotalA - weeklyTotalB;
 
         // CRITERIO 3: Stat mensual del turno específico (quien menos tenga este mes)
