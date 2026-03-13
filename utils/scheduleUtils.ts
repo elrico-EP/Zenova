@@ -20,6 +20,22 @@ const logCoverageDiagnostic = (diagnostic: CoverageDiagnostic): void => {
     console.debug('📊 [CoverageDiag]', diagnostic);
 };
 
+const ELVIO_ID = 'nurse-1';
+const ELVIO_BLOCKED_SHIFTS: Set<WorkZone> = new Set<WorkZone>([
+    'TRAVAIL',
+    'TRAVAIL_TARDE',
+    'TRAVAIL_C',
+    'VACCIN',
+    'VACCIN_AM',
+    'VACCIN_PM',
+    'VACCIN_PM_PLUS',
+]);
+
+const canAssignShiftToNurse = (nurseId: string, shift: WorkZone): boolean => {
+    if (nurseId === ELVIO_ID && ELVIO_BLOCKED_SHIFTS.has(shift)) return false;
+    return true;
+};
+
 const pickReplacementCandidate = (
     orderedNurseIds: string[],
     getCell: (nurseId: string) => ScheduleCell | undefined,
@@ -34,6 +50,11 @@ const pickReplacementCandidate = (
 
     // First pass: collect eligible candidates
     for (const nurseId of orderedNurseIds) {
+        if (!canAssignShiftToNurse(nurseId, mandatoryShift)) {
+            discardedCandidates.push({ nurseId, reason: 'excluded_nurse' });
+            continue;
+        }
+
         const cell = getCell(nurseId);
         if (!cell) {
             discardedCandidates.push({ nurseId, reason: 'no_cell' });
@@ -282,6 +303,9 @@ const findBestCandidateWithWeeklyEquity = (
         if (filteredCandidates.length === 0) return undefined; // No eligible nurses for TW this week
     }
 
+    filteredCandidates = filteredCandidates.filter(nurse => canAssignShiftToNurse(nurse.id, targetShift));
+    if (filteredCandidates.length === 0) return undefined;
+
     const sorted = [...filteredCandidates].sort((a, b) => {
         const statsA = stats[a.id];
         const statsB = stats[b.id];
@@ -292,13 +316,13 @@ const findBestCandidateWithWeeklyEquity = (
         const weeklyAdminTwA2 = (weeklyShiftStats[a.id]?.['ADMIN'] || 0) + (weeklyShiftStats[a.id]?.['TW'] || 0);
         const weeklyAdminTwB2 = (weeklyShiftStats[b.id]?.['ADMIN'] || 0) + (weeklyShiftStats[b.id]?.['TW'] || 0);
 
-        // CRITERIO 0 (abril+): protección de déficit ADMIN/TW.
-        // Si una enfermera va con 0 ADMIN/TW y otra ya tiene 2+, priorizar a la que ya tiene 2+
-        // para cubrir clínico, reservando oportunidad de ADMIN/TW para la que va en 0.
-        if (getPureClinicalRestThreshold && Math.abs(weeklyAdminTwA2 - weeklyAdminTwB2) >= 2) {
-            const hasDeficitA = weeklyAdminTwA2 === 0 ? 1 : 0;
-            const hasDeficitB = weeklyAdminTwB2 === 0 ? 1 : 0;
-            if (hasDeficitA !== hasDeficitB) return hasDeficitA - hasDeficitB;
+        // CRITERIO 0 (abril+): protección de oportunidad ADMIN/TW.
+        // Si una enfermera aún va con 0 ADMIN/TW y la otra ya tiene al menos 1,
+        // priorizar clínico en quien ya tuvo oportunidad ADMIN/TW esta semana.
+        if (getPureClinicalRestThreshold) {
+            const hasNoAdminTwA = weeklyAdminTwA2 === 0 ? 1 : 0;
+            const hasNoAdminTwB = weeklyAdminTwB2 === 0 ? 1 : 0;
+            if (hasNoAdminTwA !== hasNoAdminTwB) return hasNoAdminTwA - hasNoAdminTwB;
         }
 
         // CRITERIO 1: Stat semanal del turno específico (quien menos tenga esta semana)
@@ -1296,17 +1320,19 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     if(candidate) { vaccin_am_nurses.push(candidate); tempVaccinPool = tempVaccinPool.filter(n => n.id !== candidate.id); } 
                     else { break; }
                 }
-                const eligibleForPm = tempVaccinPool.filter(n => !ineligibleForAfternoon.has(n.id));
+                const eligibleForPm = tempVaccinPool.filter(n =>
+                    !ineligibleForAfternoon.has(n.id) && canAssignShiftToNurse(n.id, 'VACCIN_PM')
+                );
                 vaccin_pm_nurses.push(...eligibleForPm);
 
                 for (const nurse of vaccin_pm_nurses) {
                     const wantsTravail = nurseStats[nurse.id].travail <= nurseStats[nurse.id].urgences;
                     let morningShift: WorkZone = 'ADMIN';
-                    if (wantsTravail && clinicalNeeds['TRAVAIL'] > 0) {
+                    if (wantsTravail && clinicalNeeds['TRAVAIL'] > 0 && canAssignShiftToNurse(nurse.id, 'TRAVAIL')) {
                         morningShift = 'TRAVAIL';
                     } else if (!wantsTravail && clinicalNeeds['URGENCES'] > 0) {
                         morningShift = 'URGENCES';
-                    } else if (clinicalNeeds['TRAVAIL'] > 0) {
+                    } else if (clinicalNeeds['TRAVAIL'] > 0 && canAssignShiftToNurse(nurse.id, 'TRAVAIL')) {
                         morningShift = 'TRAVAIL';
                     } else if (clinicalNeeds['URGENCES'] > 0) {
                         morningShift = 'URGENCES';
@@ -1318,7 +1344,7 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                 }
                 for (const nurse of vaccin_am_nurses) {
                     const wantsTravail = nurseStats[nurse.id].travail <= nurseStats[nurse.id].urgences;
-                    const afternoonShift: WorkZone = wantsTravail ? 'TRAVAIL_C' : 'URGENCES_C';
+                    const afternoonShift: WorkZone = wantsTravail && canAssignShiftToNurse(nurse.id, 'TRAVAIL_C') ? 'TRAVAIL_C' : 'URGENCES_C';
                     dailyAssignments[nurse.id] = { split: ['VACCIN_AM', afternoonShift] };
                 }
                 
@@ -1385,7 +1411,10 @@ export const recalculateScheduleForMonth = (nurses: Nurse[], date: Date, agenda:
                     }
                 }
                 for (const need of neededShifts) {
-                    let eligiblePool = localUnassignedPool.filter(n => !(need.includes('_TARDE') && ineligibleForAfternoon.has(n.id)));
+                    let eligiblePool = localUnassignedPool.filter(n =>
+                        !(need.includes('_TARDE') && ineligibleForAfternoon.has(n.id)) &&
+                        canAssignShiftToNurse(n.id, need)
+                    );
                     const primaryStat = need.includes('URGENCES') ? 'urgences' : 'travail';
                     const candidate = findBestCandidateWithWeeklyEquity(eligiblePool, nurseStats, weeklyStats, need, primaryStat as keyof NurseStats, annualStats, day, lastAssignmentDate, getPureClinicalRestThreshold);
                     if (candidate) { dailyAssignments[candidate.id] = need; localUnassignedPool = localUnassignedPool.filter(n => n.id !== candidate.id); }
