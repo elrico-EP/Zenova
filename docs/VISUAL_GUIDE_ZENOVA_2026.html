@@ -591,6 +591,7 @@
             <a href="#admin" data-label="Admin"></a>
             <a href="#usuario" data-label="Usuario"></a>
             <a href="#flujos" data-label="Flujos"></a>
+            <a href="#instalacion-movil" data-label="Móvil"></a>
             <a href="#normas-auto" data-label="Normas Auto"></a>
             <a href="#auditoria-equidad" data-label="Auditoría"></a>
         </nav>
@@ -1315,6 +1316,114 @@
                     <h5>Bloquear mes</h5>
                     <p>Clic candado para congelar cambios</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: INSTALACIÓN MÓVIL -->
+        <div class="section" id="instalacion-movil">
+            <h2>📱 Instalar Zenova en Android y iPhone</h2>
+            <p style="font-size: 1.1em; margin-bottom: 20px; color: #475569;">
+                Zenova funciona como app móvil instalable (PWA): aparece con icono en tu pantalla de inicio y se abre en modo aplicación.
+            </p>
+
+            <div class="tip" style="margin-bottom: 20px;">
+                <strong>Antes de empezar</strong>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li>Abre Zenova desde su URL de producción (no desde archivo local).</li>
+                    <li>Usa conexión HTTPS y navegador actualizado.</li>
+                    <li>Abre la app al menos una vez completa para que el navegador detecte que es instalable.</li>
+                </ul>
+            </div>
+
+            <h3>Android (Chrome)</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🌐</div>
+                    <h5>Abrir Zenova</h5>
+                    <p>Entra en la URL de Zenova desde Chrome en tu móvil Android.</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">⋮</div>
+                    <h5>Menú de Chrome</h5>
+                    <p>Toca el menú de 3 puntos en la esquina superior derecha.</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">⬇️</div>
+                    <h5>Instalar app</h5>
+                    <p>Pulsa <strong>Instalar app</strong> o <strong>Añadir a pantalla de inicio</strong>.</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">✅</div>
+                    <h5>Confirmar</h5>
+                    <p>Confirma la instalación. Zenova aparecerá como app con su icono.</p>
+                </div>
+            </div>
+
+            <h3>iPhone (Safari)</h3>
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon">🧭</div>
+                    <h5>Abrir en Safari</h5>
+                    <p>Abre Zenova en Safari (en iOS la instalación no aparece en Chrome).</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon">🔗</div>
+                    <h5>Botón Compartir</h5>
+                    <p>Toca el icono <strong>Compartir</strong> (cuadrado con flecha hacia arriba).</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon">➕</div>
+                    <h5>Añadir a inicio</h5>
+                    <p>Selecciona <strong>Añadir a pantalla de inicio</strong>.</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-icon">📲</div>
+                    <h5>Guardar</h5>
+                    <p>Toca <strong>Añadir</strong>. Zenova quedará como acceso directo tipo app.</p>
+                </div>
+            </div>
+
+            <h3>Si no aparece la opción de instalar</h3>
+            <div class="feature-cards">
+                <div class="feature-card">
+                    <span class="feature-icon">🔄</span>
+                    <h4>Recarga completa</h4>
+                    <p>Cierra y vuelve a abrir Zenova. En móvil, espera unos segundos en la pantalla principal.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🧹</span>
+                    <h4>Borrar caché</h4>
+                    <p>Si el diseño se ve raro o antiguo, borra datos del sitio y vuelve a entrar.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🔒</span>
+                    <h4>Revisar HTTPS</h4>
+                    <p>La instalación PWA requiere URL segura (<strong>https://</strong>).</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🧩</span>
+                    <h4>Navegador correcto</h4>
+                    <p>Android: Chrome. iPhone: Safari (para añadir a pantalla de inicio).</p>
+                </div>
+            </div>
+
+            <div class="tip" style="margin-top: 20px;">
+                <strong>💡 Nota técnica (equipo admin/dev)</strong>
+                Para generar app nativa (APK/IPA), usar en el proyecto: <strong>npm run mobile:android</strong> y <strong>npm run mobile:ios</strong>.
             </div>
         </div>
 
