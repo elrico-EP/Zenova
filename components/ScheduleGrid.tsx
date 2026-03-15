@@ -378,6 +378,7 @@ interface ScheduleGridProps {
   onOpenManualHoursModal?: (dateKey: string, nurseId: string) => void;
   viewMode?: 'months' | 'weeks';
   selectedWeekIndex?: number;
+  containerStyle?: React.CSSProperties;
 }
 
 const EXCLUDED_SHIFTS: Set<WorkZone> = new Set<WorkZone>(['TW', 'FP', 'SICK_LEAVE', 'RECUP', 'CA', 'CS', 'STRASBOURG']);
@@ -387,7 +388,7 @@ export const DAY_COL_WIDTH = 70;  // Reduced from 100 for more space to shifts
 export const PRESENT_COL_WIDTH = 56;
 export const NOTES_COL_WIDTH = 96;
 
-export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, onCellDoubleClick, onOpenManualHoursModal, viewMode = 'months', selectedWeekIndex = 0 }, ref) => {
+export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(({ nurses, schedule, currentDate, violations, agenda, notes, hours, onNoteChange, zoomLevel, strasbourgAssignments, isMonthClosed, jornadasLaborales, onCellDoubleClick, onOpenManualHoursModal, viewMode = 'months', selectedWeekIndex = 0, containerStyle }, ref) => {
     const { language } = useLanguage();
     const permissions = usePermissions();
     const t = useTranslations();
@@ -445,7 +446,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     let lastWeekId: string | null = null;
     
     return (
-        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container max-h-[calc(100vh-230px)] lg:max-h-[calc(100vh-270px)]">
+        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container max-h-[calc(100vh-230px)] lg:max-h-[calc(100vh-270px)]" style={containerStyle}>
             <table className="min-w-full border-collapse table-auto">
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>

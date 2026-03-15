@@ -310,7 +310,7 @@ const AppContent: React.FC = () => {
 
     if (isMobileLandscape) {
       setViewMode('months');
-      setZoomLevel(prev => Math.max(prev, 0.55));
+      setZoomLevel(prev => Math.max(prev, 0.4));
       return;
     }
 
@@ -321,7 +321,7 @@ const AppContent: React.FC = () => {
 
     setViewMode('weeks');
     setSelectedWeekIndex(weekIndex >= 0 ? weekIndex : 0);
-    setZoomLevel(prev => Math.max(prev, 0.7));
+    setZoomLevel(prev => Math.max(prev, 0.5));
   }, [isMobileLayout, isMobileLandscape, view, currentDate]);
 
   const effectiveAgenda = useMemo(() => (year === 2026 ? agenda2026Data : agenda), [year, agenda]);
@@ -1548,7 +1548,7 @@ const handleAddNurse = useCallback((name: string) => {
                           onClick={() => setShowMobileSidebar(prev => !prev)}
                           className="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 text-sm font-semibold"
                         >
-                          {showMobileSidebar ? 'Ocultar menú lateral' : 'Mostrar menú lateral'}
+                          {showMobileSidebar ? t.mobileSidebarHide : t.mobileSidebarShow}
                         </button>
                       )}
                       <button
@@ -1556,7 +1556,7 @@ const handleAddNurse = useCallback((name: string) => {
                         onClick={() => setShowMobilePlanner(prev => !prev)}
                         className="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 text-sm font-semibold"
                       >
-                        {showMobilePlanner ? 'Ocultar planificador' : 'Mostrar planificador'}
+                        {showMobilePlanner ? t.mobilePlannerHide : t.mobilePlannerShow}
                       </button>
                     </div>
                   )}
@@ -1615,9 +1615,9 @@ const handleAddNurse = useCallback((name: string) => {
                         onPreviousWeek={handlePreviousWeek}
                         onNextWeek={handleNextWeek}
                       />
-                      <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} minZoom={isMobileLayout ? (isMobileLandscape ? 0.45 : 0.6) : 0.25} />
+                      <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} minZoom={isMobileLayout ? 0.3 : 0.25} />
                     </div>
-                    <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={currentSchedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} viewMode={viewMode} selectedWeekIndex={selectedWeekIndex} />
+                    <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={currentSchedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} viewMode={viewMode} selectedWeekIndex={selectedWeekIndex} containerStyle={isMobileLayout ? { maxHeight: isMobileLandscape ? 'calc(100vh - 100px)' : 'calc(100vh - 190px)' } : undefined} />
                     </div>
                   
                     <div className="hidden lg:flex flex-shrink-0 w-36 no-print flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar">

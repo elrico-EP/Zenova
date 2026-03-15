@@ -361,6 +361,10 @@ export const locales = {
     total: 'Total',
 
     // Agenda Planner
+    mobileSidebarShow: 'Mostrar menú lateral',
+    mobileSidebarHide: 'Ocultar menú lateral',
+    mobilePlannerShow: 'Mostrar planificador',
+    mobilePlannerHide: 'Ocultar planificador',
     agendaPlanner: 'Planificador de Agenda',
     agenda2026Warning: 'La agenda para 2026 está pre-cargada y no es editable.',
     weekOf: 'Semana del',
@@ -1020,6 +1024,10 @@ export const locales = {
     total: 'Total',
 
     // Agenda Planner
+    mobileSidebarShow: 'Show side menu',
+    mobileSidebarHide: 'Hide side menu',
+    mobilePlannerShow: 'Show planner',
+    mobilePlannerHide: 'Hide planner',
     agendaPlanner: 'Agenda Planner',
     agenda2026Warning: 'The agenda for 2026 is pre-loaded and not editable.',
     weekOf: 'Week of',
@@ -1663,6 +1671,10 @@ export const locales = {
     monthlySummary: 'Résumé Mensuel',
     nurse: 'Infirmier/ère',
     total: 'Total',
+    mobileSidebarShow: 'Afficher le menu latéral',
+    mobileSidebarHide: 'Masquer le menu latéral',
+    mobilePlannerShow: 'Afficher le planificateur',
+    mobilePlannerHide: 'Masquer le planificateur',
     agendaPlanner: "Planificateur de l'Agenda",
     agenda2026Warning: "L'agenda pour 2026 est pré-chargé et n'est pas modifiable.",
     weekOf: 'Semaine du',
