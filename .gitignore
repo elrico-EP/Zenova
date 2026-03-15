@@ -25,3 +25,7 @@ dist-ssr
 
 # Local manual backups (do not track)
 backups/manual-backup-*/
+
+# Capacitor native projects
+android/
+ios/
