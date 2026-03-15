@@ -8,11 +8,11 @@
     "lint": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview",
-    "mobile:sync": "npm run build ; npx cap sync",
+    "mobile:sync": "npm run build && npx cap sync",
     "mobile:add:android": "npx cap add android",
     "mobile:add:ios": "npx cap add ios",
-    "mobile:android": "npm run build ; npx cap sync android ; npx cap open android",
-    "mobile:ios": "npm run build ; npx cap sync ios ; npx cap open ios"
+    "mobile:android": "npm run build && npx cap sync android && npx cap open android",
+    "mobile:ios": "npm run build && npx cap sync ios && npx cap open ios"
   },
   "dependencies": {
     "@capacitor/core": "^7.1.0",
