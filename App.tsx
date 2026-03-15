@@ -135,6 +135,9 @@ const AppContent: React.FC = () => {
   const [viewMode, setViewMode] = useState<'months' | 'weeks'>('months');
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [isMobileLayout, setIsMobileLayout] = useState(() => window.matchMedia('(max-width: 1023px)').matches);
+  const [isMobileLandscape, setIsMobileLandscape] = useState(() => window.matchMedia('(max-width: 1023px)').matches && window.matchMedia('(orientation: landscape)').matches);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [showMobilePlanner, setShowMobilePlanner] = useState(false);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
   const [manualHoursModalConfig, setManualHoursModalConfig] = useState<{ isOpen: boolean; nurse: Nurse | null; dateKey: string; }>({ isOpen: false, nurse: null, dateKey: '' });
@@ -279,18 +282,37 @@ const AppContent: React.FC = () => {
   }, [isFrozenGenerationMonth]);
 
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 1023px)');
-    const handleChange = (event: MediaQueryListEvent) => {
-      setIsMobileLayout(event.matches);
+    const widthMedia = window.matchMedia('(max-width: 1023px)');
+    const orientationMedia = window.matchMedia('(orientation: landscape)');
+
+    const updateMobileState = () => {
+      const isMobile = widthMedia.matches;
+      setIsMobileLayout(isMobile);
+      setIsMobileLandscape(isMobile && orientationMedia.matches);
     };
 
-    setIsMobileLayout(media.matches);
-    media.addEventListener('change', handleChange);
-    return () => media.removeEventListener('change', handleChange);
+    updateMobileState();
+    widthMedia.addEventListener('change', updateMobileState);
+    orientationMedia.addEventListener('change', updateMobileState);
+
+    return () => {
+      widthMedia.removeEventListener('change', updateMobileState);
+      orientationMedia.removeEventListener('change', updateMobileState);
+    };
   }, []);
 
   useEffect(() => {
-    if (!isMobileLayout || view !== 'schedule') return;
+    if (!isMobileLayout || view !== 'schedule') {
+      setShowMobileSidebar(false);
+      setShowMobilePlanner(false);
+      return;
+    }
+
+    if (isMobileLandscape) {
+      setViewMode('months');
+      setZoomLevel(prev => Math.max(prev, 0.55));
+      return;
+    }
 
     const monthWeeks = getWeeksForMonth(currentDate.getFullYear(), currentDate.getMonth());
     const weekIds = Array.from(new Set(monthWeeks.map(date => getWeekIdentifier(date))));
@@ -300,7 +322,7 @@ const AppContent: React.FC = () => {
     setViewMode('weeks');
     setSelectedWeekIndex(weekIndex >= 0 ? weekIndex : 0);
     setZoomLevel(prev => Math.max(prev, 0.7));
-  }, [isMobileLayout, view, currentDate]);
+  }, [isMobileLayout, isMobileLandscape, view, currentDate]);
 
   const effectiveAgenda = useMemo(() => (year === 2026 ? agenda2026Data : agenda), [year, agenda]);
   const [schedule, setSchedule] = useState<Schedule>({});
@@ -1518,6 +1540,69 @@ const handleAddNurse = useCallback((name: string) => {
                     </div>
                   )}
 
+                  {isMobileLayout && (
+                    <div className="lg:hidden no-print flex flex-wrap gap-2 mb-1">
+                      {!permissions.isViewingAsViewer && (
+                        <button
+                          type="button"
+                          onClick={() => setShowMobileSidebar(prev => !prev)}
+                          className="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 text-sm font-semibold"
+                        >
+                          {showMobileSidebar ? 'Ocultar menú lateral' : 'Mostrar menú lateral'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowMobilePlanner(prev => !prev)}
+                        className="px-3 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 text-sm font-semibold"
+                      >
+                        {showMobilePlanner ? 'Ocultar planificador' : 'Mostrar planificador'}
+                      </button>
+                    </div>
+                  )}
+
+                  {isMobileLayout && !permissions.isViewingAsViewer && showMobileSidebar && (
+                    <div className="lg:hidden no-print mb-2 max-h-[45vh] overflow-y-auto pr-1 custom-scrollbar rounded-lg border border-slate-200 bg-white p-2">
+                      <Sidebar 
+                        nurses={nurses} 
+                        activeNursesForMonth={nurses} 
+                        onAddNurse={handleAddNurse} 
+                        onRemoveNurse={handleRemoveNurse} 
+                        onUpdateNurseName={handleUpdateNurseName} 
+                        onOpenAgenda={setSelectedNurseForAgenda}
+                        onOpenMyAgenda={handleOpenMyAgenda}
+                        onOpenProfile={() => setView('profile')}
+                        onMassAbsenceApply={handleMassAbsenceApply} 
+                        currentDate={currentDate} 
+                        strasbourgAssignments={strasbourgAssignments} 
+                        onStrasbourgUpdate={handleStrasbourgUpdate} 
+                        specialStrasbourgEvents={specialStrasbourgEvents} 
+                        onSpecialStrasbourgEventsChange={handleSpecialStrasbourgEventsChange} 
+                        specialStrasbourgEventsLog={specialStrasbourgEventsLog}
+                        onClearStrasbourgLog={handleClearStrasbourgLog}
+                        vaccinationPeriod={vaccinationPeriod} 
+                        onVaccinationPeriodChange={handleVaccinationPeriodChange} 
+                        isMonthClosed={isMonthClosed} 
+                        onOpenJornadaManager={() => setIsJornadaManagerOpen(true)}
+                        schedule={schedule}
+                        onManualChange={handleManualChange}
+                        onOpenSwapModal={() => setSwapPanelConfig({ isOpen: true, initialDate: '', initialNurseId: '' })}
+                      />
+                    </div>
+                  )}
+
+                  {isMobileLayout && showMobilePlanner && (
+                    <div className="lg:hidden no-print mb-2 rounded-lg border border-slate-200 bg-white p-2">
+                      <AgendaPlanner
+                        currentDate={currentDate}
+                        agenda={agenda}
+                        onAgendaChange={handleAgendaChange}
+                        onWeekSelect={setCurrentDate}
+                        vertical={false}
+                      />
+                    </div>
+                  )}
+
                   <div className="flex min-h-0 flex-1 gap-2">
                     <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
@@ -1530,7 +1615,7 @@ const handleAddNurse = useCallback((name: string) => {
                         onPreviousWeek={handlePreviousWeek}
                         onNextWeek={handleNextWeek}
                       />
-                      <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} minZoom={isMobileLayout ? 0.6 : 0.25} />
+                      <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} minZoom={isMobileLayout ? (isMobileLandscape ? 0.45 : 0.6) : 0.25} />
                     </div>
                     <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={currentSchedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} viewMode={viewMode} selectedWeekIndex={selectedWeekIndex} />
                     </div>
