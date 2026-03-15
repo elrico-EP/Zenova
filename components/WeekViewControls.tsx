@@ -72,7 +72,7 @@ export const WeekViewControls: React.FC<WeekViewControlsProps> = ({
     // If in months view, show compact toggle
     if (viewMode === 'months') {
         return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-slate-600">{t.view}:</span>
                 <button
                     onClick={() => onViewModeChange('months')}
@@ -92,9 +92,9 @@ export const WeekViewControls: React.FC<WeekViewControlsProps> = ({
 
     // Weeks view - compact
     return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {/* View mode toggle */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-slate-600">{t.view}:</span>
                 <button
                     onClick={() => onViewModeChange('months')}
@@ -121,7 +121,7 @@ export const WeekViewControls: React.FC<WeekViewControlsProps> = ({
             </button>
 
             {/* Week tabs */}
-            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-1 overflow-x-auto scrollbar-hide max-w-full">
                 {weekIds.map((weekId, index) => {
                     const weekLabel = getWeekLabel(weekId);
                     const weekNum = index + 1;
@@ -152,7 +152,7 @@ export const WeekViewControls: React.FC<WeekViewControlsProps> = ({
             </button>
 
             {/* Info text */}
-            <span className="text-xs text-slate-500 whitespace-nowrap">
+            <span className="hidden sm:inline text-xs text-slate-500 whitespace-nowrap">
                 {t.week} {selectedWeekIndex + 1}/{weekIds.length}
             </span>
         </div>

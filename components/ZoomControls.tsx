@@ -4,9 +4,10 @@ import { useTranslations } from '../hooks/useTranslations';
 interface ZoomControlsProps {
   zoomLevel: number;
   setZoomLevel: React.Dispatch<React.SetStateAction<number>>;
+  minZoom?: number;
 }
 
-export const ZoomControls: React.FC<ZoomControlsProps> = ({ zoomLevel, setZoomLevel }) => {
+export const ZoomControls: React.FC<ZoomControlsProps> = ({ zoomLevel, setZoomLevel, minZoom = 0.25 }) => {
   const t = useTranslations();
 
   const handleZoomIn = () => {
@@ -14,11 +15,11 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({ zoomLevel, setZoomLe
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.1, 0.25));
+    setZoomLevel(prev => Math.max(prev - 0.1, minZoom));
   };
 
   return (
-    <div className="flex items-center justify-end gap-2 mb-4">
+    <div className="flex items-center justify-end gap-2 mb-1 sm:mb-4">
       <div className="flex items-center">
         <button
             onClick={handleZoomOut}

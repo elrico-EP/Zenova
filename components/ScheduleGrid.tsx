@@ -445,7 +445,7 @@ export const ScheduleGrid = React.forwardRef<HTMLDivElement, ScheduleGridProps>(
     let lastWeekId: string | null = null;
     
     return (
-        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container" style={{ maxHeight: 'calc(100vh - 270px)' }}>
+        <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/80 overflow-auto print-grid-container max-h-[calc(100vh-230px)] lg:max-h-[calc(100vh-270px)]">
             <table className="min-w-full border-collapse table-auto">
                 <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm">
                     <tr>

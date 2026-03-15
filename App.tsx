@@ -134,6 +134,7 @@ const AppContent: React.FC = () => {
   const [zoomLevel, setZoomLevel] = useState(0.4);
   const [viewMode, setViewMode] = useState<'months' | 'weeks'>('months');
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
+  const [isMobileLayout, setIsMobileLayout] = useState(() => window.matchMedia('(max-width: 1023px)').matches);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
   const [swapPanelConfig, setSwapPanelConfig] = useState({ isOpen: false, initialDate: '', initialNurseId: '' });
   const [manualHoursModalConfig, setManualHoursModalConfig] = useState<{ isOpen: boolean; nurse: Nurse | null; dateKey: string; }>({ isOpen: false, nurse: null, dateKey: '' });
@@ -276,6 +277,30 @@ const AppContent: React.FC = () => {
   const shouldEnforceCoverageForMonth = useCallback((targetYear: number, targetMonth: number) => {
     return !isFrozenGenerationMonth(new Date(targetYear, targetMonth, 1));
   }, [isFrozenGenerationMonth]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1023px)');
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobileLayout(event.matches);
+    };
+
+    setIsMobileLayout(media.matches);
+    media.addEventListener('change', handleChange);
+    return () => media.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileLayout || view !== 'schedule') return;
+
+    const monthWeeks = getWeeksForMonth(currentDate.getFullYear(), currentDate.getMonth());
+    const weekIds = Array.from(new Set(monthWeeks.map(date => getWeekIdentifier(date))));
+    const currentWeekId = getWeekIdentifier(currentDate);
+    const weekIndex = weekIds.findIndex(weekId => weekId === currentWeekId);
+
+    setViewMode('weeks');
+    setSelectedWeekIndex(weekIndex >= 0 ? weekIndex : 0);
+    setZoomLevel(prev => Math.max(prev, 0.7));
+  }, [isMobileLayout, view, currentDate]);
 
   const effectiveAgenda = useMemo(() => (year === 2026 ? agenda2026Data : agenda), [year, agenda]);
   const [schedule, setSchedule] = useState<Schedule>({});
@@ -1450,8 +1475,8 @@ const handleAddNurse = useCallback((name: string) => {
 
       <main className="flex-grow max-w-screen-2xl w-full mx-auto p-4 flex flex-col">
         <div className="flex flex-col lg:flex-row gap-8 flex-grow print-main-content lg:items-stretch">
-          {!permissions.isViewingAsViewer && view === 'schedule' && (
-             <aside className="lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print overflow-y-auto pr-2 custom-scrollbar">
+           {!permissions.isViewingAsViewer && view === 'schedule' && (
+             <aside className="hidden lg:block lg:w-1/4 xl:w-1/5 flex-shrink-0 no-print overflow-y-auto pr-2 custom-scrollbar">
               <Sidebar 
                 nurses={nurses} 
                 activeNursesForMonth={nurses} 
@@ -1495,7 +1520,7 @@ const handleAddNurse = useCallback((name: string) => {
 
                   <div className="flex min-h-0 flex-1 gap-2">
                     <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
                       <WeekViewControls
                         currentDate={currentDate}
                         selectedWeekIndex={selectedWeekIndex}
@@ -1505,12 +1530,12 @@ const handleAddNurse = useCallback((name: string) => {
                         onPreviousWeek={handlePreviousWeek}
                         onNextWeek={handleNextWeek}
                       />
-                      <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
+                      <ZoomControls zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} minZoom={isMobileLayout ? 0.6 : 0.25} />
                     </div>
                     <ScheduleGrid ref={scheduleGridRef} nurses={nurses} schedule={currentSchedule} currentDate={currentDate} violations={violations} agenda={effectiveAgenda} notes={notes} hours={hours} onNoteChange={handleNoteChange} vaccinationPeriod={vaccinationPeriod} zoomLevel={zoomLevel} strasbourgAssignments={strasbourgAssignments} isMonthClosed={isMonthClosed} jornadasLaborales={jornadasLaborales} onCellDoubleClick={handleOpenSwapPanelFromCell} onOpenManualHoursModal={handleOpenManualHoursModal} viewMode={viewMode} selectedWeekIndex={selectedWeekIndex} />
                     </div>
                   
-                    <div className="flex-shrink-0 w-36 no-print flex flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
+                    <div className="hidden lg:flex flex-shrink-0 w-36 no-print flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
                       <div className="flex-shrink-0">
                         <AgendaPlanner
                           currentDate={currentDate}
